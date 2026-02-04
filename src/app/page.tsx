@@ -4,6 +4,8 @@ import { Features } from "@/components/landing/Features";
 import { IntegrationShowcase } from "@/components/landing/IntegrationShowcase";
 import { Footer } from "@/components/layout/Footer";
 import { ProblemSolution } from "@/components/landing/ProblemSolution";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { FAQ } from "@/components/landing/FAQ";
 
 import { BackgroundPattern } from "@/components/layout/BackgroundPattern";
 
@@ -15,8 +17,10 @@ export default function Home() {
       <main className="relative z-10 w-full overflow-x-hidden">
         <Hero />
         <ProblemSolution />
+        <HowItWorks />
         <Features />
         <IntegrationShowcase />
+        <FAQ />
       </main>
       <Footer />
     </div>
