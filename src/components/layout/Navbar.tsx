@@ -30,18 +30,17 @@ export function Navbar() {
             </nav>
 
             <div className="flex items-center gap-4">
-                <Button
-                    size="sm"
-                    onClick={() => {
-                        const input = document.getElementById("waitlist-email");
-                        if (input) {
-                            input.focus();
-                            input.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }
-                    }}
+                <Link
+                    href="/auth"
+                    className="hidden md:block text-sm font-medium text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
                 >
-                    Register Interest
-                </Button>
+                    Login
+                </Link>
+                <Link href="/auth">
+                    <Button size="sm">
+                        Get Started
+                    </Button>
+                </Link>
             </div>
         </motion.header>
     );

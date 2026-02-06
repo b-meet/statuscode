@@ -44,7 +44,7 @@ export function FinalCTA() {
                 >
                     <h2 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-8">
                         Ready to make your status page{" "}
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-400 to-indigo-400">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-400 to-accent-400">
                             status-worthy?
                         </span>
                     </h2>
@@ -61,7 +61,7 @@ export function FinalCTA() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
                                 </svg>
                             </span>
-                            <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-glaze-500 to-indigo-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-glaze-500 via-accent-500 to-glaze-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                         </button>
                         {/* 
                         <button className="px-8 py-4 text-zinc-300 font-medium hover:text-white transition-colors">
