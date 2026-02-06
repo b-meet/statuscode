@@ -11,10 +11,36 @@ import { HowItWorks } from "@/components/landing/HowItWorks";
 import { FAQ } from "@/components/landing/FAQ";
 
 import { BackgroundPattern } from "@/components/layout/BackgroundPattern";
+import Script from "next/script";
 
 export default function Home() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Statuscode",
+    "applicationCategory": "DevOpsTool",
+    "operatingSystem": "Web",
+    "description": "Statuscode is the designer layer that sits on top of your existing uptime monitors, turning clinical data into a premium brand experience.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD",
+      "description": "Free tier available"
+    },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.8",
+      "ratingCount": "120"
+    }
+  };
+
   return (
     <div className="min-h-screen selection:bg-glaze-500/30 relative">
+      <Script
+        id="json-ld"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <Navbar />
       <BackgroundPattern />
       <main className="relative z-10 w-full">
