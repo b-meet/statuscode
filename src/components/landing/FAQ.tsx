@@ -28,15 +28,7 @@ export function FAQ() {
 
     return (
         <section id="faq" className="py-24 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-200 dark:border-white/5 relative overflow-hidden">
-            {/* Background Dots with Fade */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-                <div
-                    className="absolute inset-0 bg-[size:24px_24px] [mask-image:linear-gradient(to_top,black,transparent)] opacity-40 dark:opacity-30"
-                    style={{
-                        backgroundImage: "radial-gradient(#52525b 1.5px, transparent 1.5px)",
-                    }}
-                />
-            </div>
+
             <div className="container mx-auto px-6 max-w-3xl relative z-10">
                 <div className="text-center mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-4">

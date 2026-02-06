@@ -1,8 +1,10 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/landing/Hero";
 import { BoringStatusReveal } from "@/components/landing/BoringStatusReveal";
+import { LiveThemePlayground } from "@/components/landing/LiveThemePlayground";
 import { Features } from "@/components/landing/Features";
 import { IntegrationShowcase } from "@/components/landing/IntegrationShowcase";
+import { FinalCTA } from "@/components/landing/FinalCTA";
 import { Footer } from "@/components/layout/Footer";
 import { ProblemSolution } from "@/components/landing/ProblemSolution";
 import { HowItWorks } from "@/components/landing/HowItWorks";
@@ -18,11 +20,13 @@ export default function Home() {
       <main className="relative z-10 w-full">
         <Hero />
         <BoringStatusReveal />
+        <LiveThemePlayground />
         <ProblemSolution />
         <HowItWorks />
         <Features />
         <IntegrationShowcase />
         <FAQ />
+        <FinalCTA />
       </main>
       <Footer />
     </div>
