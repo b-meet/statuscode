@@ -63,10 +63,10 @@ export function FinalCTA() {
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-glaze-500 to-indigo-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
                         </button>
-
+                        {/* 
                         <button className="px-8 py-4 text-zinc-300 font-medium hover:text-white transition-colors">
                             View Pricing →
-                        </button>
+                        </button> */}
                     </div>
                 </motion.div>
             </div>
