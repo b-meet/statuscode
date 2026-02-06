@@ -1,51 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Plug, Palette, Sliders, Play, Rocket, Star } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Plug, Palette, Sliders, Play, Rocket } from "lucide-react";
 
-// Falling Star Component
-// Falling Star Component
-const FallingStar = ({ delay }: { delay: number }) => {
-    return (
-        <motion.div
-            initial={{ x: -100, y: -100, opacity: 0 }}
-            animate={{
-                x: ["0vw", "100vw"],
-                y: ["0vh", "100vh"],
-                opacity: [0, 1, 0]
-            }}
-            transition={{
-                duration: 3,
-                repeat: Infinity,
-                delay: delay,
-                ease: "linear",
-                repeatDelay: 2
-            }}
-            className="absolute top-0 left-0 w-[2px] h-[100px] bg-gradient-to-b from-transparent via-white to-transparent rotate-[-45deg] pointer-events-none z-0 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-            style={{
-                left: `${Math.random() * 100}%`,
-                top: `-${Math.random() * 20}%`
-            }}
-        />
-    );
-};
 
 export function HowItWorks() {
-    const [stars, setStars] = useState<number[]>([]);
-
-    useEffect(() => {
-        setStars(Array.from({ length: 15 }, (_, i) => i));
-    }, []);
-
     return (
-        <section id="how-it-works" className="py-24 bg-zinc-50 dark:bg-zinc-900/10 relative overflow-hidden">
-            {/* Background Stars */}
-            <div className="absolute inset-0 z-0 pointer-events-none">
-                {stars.map((i) => (
-                    <FallingStar key={i} delay={i * 2} />
-                ))}
-            </div>
+        <section id="how-it-works" className="py-24 bg-zinc-950/20 relative overflow-hidden">
+
 
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">

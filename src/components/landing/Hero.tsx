@@ -1,11 +1,17 @@
 "use client";
 
-import { WaitlistForm } from "./WaitlistForm";
 import { motion } from "framer-motion";
+import { PhysicsBadges } from "./PhysicsBadges";
+import { WaitlistForm } from "./WaitlistForm";
 
 export function Hero() {
+
     return (
-        <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden">
+        <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden min-h-[90vh] flex flex-col justify-center">
+
+            {/* Physics Layer */}
+            <PhysicsBadges />
+
             {/* Background Gradients */}
             <div className="absolute top-0 right-0 -z-10 opacity-40 dark:opacity-20 translate-x-1/3 -translate-y-1/4">
                 <div className="w-[800px] h-[800px] bg-glaze-400/30 rounded-full blur-[120px]" />
@@ -15,11 +21,13 @@ export function Hero() {
             </div>
 
             <div className="container mx-auto px-6 flex flex-col items-center text-center">
+
+                {/* Coming Soon Pill */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-white/10 border border-zinc-200 dark:border-white/10 mb-8 shadow-sm backdrop-blur-sm"
+                    className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-white/10 border border-zinc-200 dark:border-white/10 mb-8 shadow-sm backdrop-blur-sm relative z-30"
                 >
                     <span className="flex h-2 w-2 rounded-full bg-glaze-500 animate-pulse"></span>
                     <span className="text-sm font-medium text-zinc-600 dark:text-zinc-200">
@@ -27,32 +35,37 @@ export function Hero() {
                     </span>
                 </motion.div>
 
-                <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.1 }}
-                    className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white mb-6 max-w-4xl"
-                >
-                    Status Pages, <br />
-                    <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-500 to-accent-500">
-                        Elevated by Design.
-                    </span>
-                </motion.h1>
+                {/* Headline */}
+                <div className="relative z-30 mb-6 max-w-4xl pointer-events-none select-none">
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5, delay: 0.1 }}
+                        className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white"
+                    >
+                        Status Pages, <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-500 to-accent-500">
+                            Elevated by Design.
+                        </span>
+                    </motion.h1>
+                </div>
 
+                {/* Subtext */}
                 <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
-                    className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-3xl mb-10 leading-relaxed"
+                    className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-3xl mb-10 leading-relaxed relative z-30"
                 >
                     Your brand isn’t basic. Your status page shouldn't be either. Glaze is the designer layer that sits on top of your existing uptime monitors, turning clinical data into a premium brand experience.
                 </motion.p>
 
+                {/* Form & Actions */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.3 }}
-                    className="flex flex-col items-center gap-6 w-full"
+                    className="flex flex-col items-center gap-6 w-full relative z-30"
                 >
                     <WaitlistForm />
                     <div className="flex flex-col items-center gap-2">
@@ -70,7 +83,7 @@ export function Hero() {
                     initial={{ opacity: 0, scale: 0.95, y: 40 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     transition={{ duration: 0.8, delay: 0.4, ease: "easeOut" }}
-                    className="mt-20 relative w-full max-w-5xl aspect-[16/9] rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/50 shadow-2xl overflow-hidden"
+                    className="mt-20 relative w-full max-w-5xl aspect-[16/9] rounded-xl border border-zinc-200 dark:border-white/10 bg-zinc-50 dark:bg-zinc-900/50 shadow-2xl overflow-hidden z-30"
                 >
                     <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-zinc-950 via-transparent to-transparent z-10" />
 
