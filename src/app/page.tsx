@@ -1,5 +1,6 @@
 import { Navbar } from "@/components/layout/Navbar";
 import { Hero } from "@/components/landing/Hero";
+import { BoringStatusReveal } from "@/components/landing/BoringStatusReveal";
 import { Features } from "@/components/landing/Features";
 import { IntegrationShowcase } from "@/components/landing/IntegrationShowcase";
 import { Footer } from "@/components/layout/Footer";
@@ -14,8 +15,9 @@ export default function Home() {
     <div className="min-h-screen selection:bg-glaze-500/30 relative">
       <Navbar />
       <BackgroundPattern />
-      <main className="relative z-10 w-full overflow-x-hidden">
+      <main className="relative z-10 w-full">
         <Hero />
+        <BoringStatusReveal />
         <ProblemSolution />
         <HowItWorks />
         <Features />
