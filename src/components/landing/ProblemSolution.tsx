@@ -37,10 +37,10 @@ export function ProblemSolution() {
                             The Designer Layer
                         </h2>
                         <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
-                            Glaze doesn't replace your monitoring; it elevates it.
+                            Statuscode doesn't replace your monitoring; it elevates it.
                         </h3>
                         <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed mb-6">
-                            Keep using UptimeRobot, Better Stack, Cronitor, Checkly, or Instatus for the data—use Glaze to make it beautiful.
+                            Keep using UptimeRobot, Better Stack, Cronitor, Checkly, or Instatus for the data—use Statuscode to make it beautiful.
                         </p>
 
                         <ul className="space-y-3">

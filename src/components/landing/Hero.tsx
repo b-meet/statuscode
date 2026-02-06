@@ -57,7 +57,7 @@ export function Hero() {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-3xl mb-10 leading-relaxed relative z-30"
                 >
-                    Your brand isn’t basic. Your status page shouldn't be either. Glaze is the designer layer that sits on top of your existing uptime monitors, turning clinical data into a premium brand experience.
+                    Your brand isn’t basic. Your status page shouldn't be either. Statuscode is the designer layer that sits on top of your existing uptime monitors, turning clinical data into a premium brand experience.
                 </motion.p>
 
                 {/* Form & Actions */}
@@ -69,9 +69,7 @@ export function Hero() {
                 >
                     <WaitlistForm />
                     <div className="flex flex-col items-center gap-2">
-                        {/* <a href="https://calcsuite.in" target="_blank" rel="noreferrer" className="text-zinc-500 hover:text-glaze-500 dark:text-zinc-400 dark:hover:text-glaze-400 transition-colors text-sm font-medium flex items-center gap-1">
-                            See the calcsuite.in demo <span aria-hidden="true">→</span>
-                        </a> */}
+
                         <p className="text-xs text-zinc-400 dark:text-zinc-600">
                             No credit card required. Free tier included.
                         </p>

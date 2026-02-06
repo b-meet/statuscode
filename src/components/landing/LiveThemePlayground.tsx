@@ -76,7 +76,7 @@ export function LiveThemePlayground() {
                         </span>
                     </h2>
                     <p className="text-lg text-zinc-600 dark:text-zinc-400">
-                        Glaze adapts to your brand identity instantly. Own your layout, content, and vibe—turning dry data into a premium brand experience.
+                        Statuscode adapts to your brand identity instantly. Own your layout, content, and vibe—turning dry data into a premium brand experience.
                     </p>
                 </div>
 

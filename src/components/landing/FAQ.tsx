@@ -7,11 +7,11 @@ import { useState } from "react";
 const faqs = [
     {
         question: "What exactly is a \"Designer Layer\"?",
-        answer: "Think of it as a premium skin for your data. You keep your existing monitoring service (like UptimeRobot) to do the heavy lifting of checking your servers, and Glaze acts as the front-end. We fetch that data and display it through high-end, animated templates that look custom-built."
+        answer: "Think of it as a premium skin for your data. You keep your existing monitoring service (like UptimeRobot) to do the heavy lifting of checking your servers, and Statuscode acts as the front-end. We fetch that data and display it through high-end, animated templates that look custom-built."
     },
     {
         question: "Do I need to switch from my current monitoring tool?",
-        answer: "Not at all. Glaze is built to be \"provider agnostic.\" We are launching with support for UptimeRobot, Better Stack, and Instatus. You just provide a read-only API key, and we handle the rest."
+        answer: "Not at all. Statuscode is built to be \"provider agnostic.\" We are launching with support for UptimeRobot, Better Stack, and Instatus. You just provide a read-only API key, and we handle the rest."
     },
     {
         question: "Will these animations slow down my site?",
@@ -19,7 +19,7 @@ const faqs = [
     },
     {
         question: "Can I host the status page on my own domain?",
-        answer: "Yes. You can use a glaze.sh/yourbrand link for the fastest setup, or map it to your own custom subdomain (e.g., status.yourdomain.com) to keep your branding consistent."
+        answer: "Yes. You can use a statuscode.in/yourbrand link for the fastest setup, or map it to your own custom subdomain (e.g., status.yourdomain.com) to keep your branding consistent."
     }
 ];
 

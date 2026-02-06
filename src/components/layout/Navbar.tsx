@@ -13,16 +13,19 @@ export function Navbar() {
         >
             <Link href="/" className="flex items-center gap-2">
                 <span className="text-2xl font-bold tracking-tight bg-gradient-to-b from-zinc-700 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
-                    Glaze
+                    Statuscode
                 </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                <Link href="#how-it-works" className="hover:text-glaze-500 transition-colors">
+                    How it Works
+                </Link>
                 <Link href="#features" className="hover:text-glaze-500 transition-colors">
                     Features
                 </Link>
-                <Link href="#integrations" className="hover:text-glaze-500 transition-colors">
-                    Integrations
+                <Link href="#faq" className="hover:text-glaze-500 transition-colors">
+                    FAQ
                 </Link>
             </nav>
 

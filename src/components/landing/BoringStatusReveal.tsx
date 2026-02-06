@@ -103,7 +103,7 @@ export function BoringStatusReveal() {
                             </div>
                         </motion.div>
 
-                        {/* Inference Engine (Renamed from ChatGPT) */}
+                        {/* Inference Engine */}
                         <motion.div style={{ x: x3, rotate: rotate3 }} className="space-y-2">
                             <div className="flex justify-between items-baseline mb-1">
                                 <span className="font-bold text-lg text-[#333]">Inference Engine</span>
@@ -169,6 +169,4 @@ export function BoringStatusReveal() {
     );
 }
 
-// Ensure the outer page layout allows for this
-// The parent 'main' usually has overflow-hidden which might clip sticky elements if not careful.
-// Standard 'min-h-screen' layout is fine.
+

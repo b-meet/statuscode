@@ -13,7 +13,7 @@ export function IntegrationShowcase() {
                             Connects with your existing tools.
                         </h2>
                         <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-                            You don't need to change how you monitor uptime. Glaze sits on top of your existing providers to give you a stunning public face.
+                            You don't need to change how you monitor uptime. Statuscode sits on top of your existing providers to give you a stunning public face.
                         </p>
 
                         <div className="grid grid-cols-2 gap-4">
@@ -68,14 +68,14 @@ export function IntegrationShowcase() {
                                     className="w-24 h-24 rounded-xl bg-gradient-to-br from-glaze-500 to-glaze-600 shadow-xl shadow-glaze-500/20 flex flex-col items-center justify-center gap-2 text-white"
                                 >
                                     <Server className="size-8" />
-                                    <span className="text-xs font-medium text-white/90">Glaze</span>
+                                    <span className="text-xs font-medium text-white/90">Statuscode</span>
                                 </motion.div>
                             </div>
 
                             <div className="bg-white dark:bg-zinc-950 rounded-lg p-4 shadow-sm border border-zinc-200 dark:border-white/5">
                                 <div className="flex items-center gap-3 mb-2">
                                     <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                                    <span className="text-xs font-mono text-green-600 dark:text-green-400">api.glaze.so is operational</span>
+                                    <span className="text-xs font-mono text-green-600 dark:text-green-400">api.statuscode.in is operational</span>
                                 </div>
                                 <div className="h-1 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
                                     <div className="h-full w-full bg-green-500" />

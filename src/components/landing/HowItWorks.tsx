@@ -12,7 +12,7 @@ export function HowItWorks() {
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">
                     <h2 className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-6">
-                        How Glaze Works
+                        How Statuscode Works
                     </h2>
                     <p className="text-lg text-zinc-600 dark:text-zinc-400">
                         From clinical data to brand experience in minutes.
@@ -184,7 +184,7 @@ export function HowItWorks() {
                                 <h3 className="text-xl font-bold text-white">5. Deploy Anywhere</h3>
                             </div>
                             <p className="text-zinc-400">
-                                Launch on <code className="bg-white/5 px-1.5 py-0.5 rounded text-white border border-white/5">glaze.sh</code> or map to <code className="bg-white/5 px-1.5 py-0.5 rounded text-white border border-white/5">status.yours.com</code>.
+                                Launch on <code className="bg-white/5 px-1.5 py-0.5 rounded text-white border border-white/5">statuscode.in</code> or map to <code className="bg-white/5 px-1.5 py-0.5 rounded text-white border border-white/5">status.yours.com</code>.
                             </p>
                         </div>
 

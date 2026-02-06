@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Glaze - Status pages that people actually read.",
+  title: "Statuscode - Status pages that people actually read.",
   description: "Beautiful, customizable status pages for modern brands.",
 };
 
