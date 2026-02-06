@@ -33,6 +33,14 @@ export function BoringStatusReveal() {
     const revealOpacity = useTransform(scrollYProgress, [0.5, 0.8], [0, 1]);
 
 
+    // 1.5. "Pre-break Shake"
+    // Shakes violently just before falling (0.30 -> 0.4)
+    const shakeX = useTransform(
+        scrollYProgress,
+        [0.20, 0.31, 0.32, 0.33, 0.34, 0.35, 0.36, 0.37, 0.38, 0.39, 0.4],
+        [0, -5, 5, -5, 5, -5, 5, -5, 5, -5, 0]
+    );
+
     return (
         <section ref={containerRef} className="relative h-[300vh] bg-white dark:bg-zinc-950">
             {/* Sticky Viewport - Adjusted top to clear Navbar (approx 80px/top-20) */}
@@ -59,7 +67,7 @@ export function BoringStatusReveal() {
 
                 {/* --- The "Boring" Page (Overlay) --- */}
                 <motion.div
-                    style={{ opacity: pageOpacity, y: pageY }}
+                    style={{ opacity: pageOpacity, y: pageY, x: shakeX }}
                     className="absolute inset-0 z-20 flex flex-col bg-white overflow-hidden font-sans text-[#333333]"
                 >
                     {/* Top Bar */}
