@@ -421,7 +421,7 @@ function AuthPageContent() {
                                         />
                                         <Button
                                             type="submit"
-                                            className={`w-full h-12 rounded-xl font-medium text-sm transition-all duration-300 ${isEmailValid ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]' : 'bg-zinc-800 text-zinc-400'}`}
+                                            className={`w-full h-12 rounded-xl font-medium text-sm transition-all duration-300 ${isEmailValid ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)]' : 'bg-zinc-800 text-zinc-400 shadow-[0_0_20px_rgba(0,0,0,0.4)]'}`}
                                             disabled={loading}
                                         >
                                             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Get Verification Code"}
