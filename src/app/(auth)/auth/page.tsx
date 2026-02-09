@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key, Sun, Moon, Activity, Rocket, X, HelpCircle, ExternalLink, Image as ImageIcon, ChevronDown, Monitor, FileText, UploadCloud, Trash2 } from "lucide-react";
+import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key, Sun, Moon, Activity, Rocket, X, HelpCircle, ExternalLink, Image as ImageIcon, ChevronDown, Monitor, FileText, UploadCloud, Trash2, Sparkles, Palette } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
@@ -12,26 +12,29 @@ import { useSearchParams } from "next/navigation";
 // --- Animation Variants ---
 const slideVariants = {
     enter: (direction: number) => ({
-        x: direction > 0 ? 100 : -100,
+        x: direction > 0 ? '110%' : '-110%',
         opacity: 0,
+        scale: 0.95,
+        zIndex: 0,
     }),
     center: {
         zIndex: 1,
         x: 0,
         opacity: 1,
+        scale: 1,
     },
     exit: (direction: number) => ({
         zIndex: 0,
-        x: direction < 0 ? 100 : -100,
+        x: direction < 0 ? '110%' : '-110%',
         opacity: 0,
+        scale: 0.95,
     }),
 };
 
 const badgeVariants = {
-    initial: { x: 0, opacity: 1, scale: 1 },
-    exitLeft: { x: -100, opacity: 0, scale: 0.8 },
-    enterRight: { x: 100, opacity: 0, scale: 0.8 },
-    active: { x: 0, opacity: 1, scale: 1 },
+    initial: { x: -20, opacity: 0, scale: 0.9 },
+    animate: { x: 0, opacity: 1, scale: 1 },
+    exit: { x: 20, opacity: 0, scale: 0.9 },
 };
 
 function AuthPageContent() {
@@ -53,6 +56,8 @@ function AuthPageContent() {
     const [apiKey, setApiKey] = useState("");
     const [showApiTooltip, setShowApiTooltip] = useState(false);
     const [showSkipModal, setShowSkipModal] = useState(false);
+    // Theme State
+    const [selectedTheme, setSelectedTheme] = useState<'modern' | 'minimal' | 'brutal'>('modern');
 
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -204,7 +209,8 @@ function AuthPageContent() {
     const handleSetupSubmit = async () => {
         setLoading(true);
         try {
-            const { data: { user } } = await supabase.auth.getUser();
+            const { data: { user }, error: userError } = await supabase.auth.getUser();
+            if (userError) throw userError;
             if (!user) throw new Error("No user found");
 
             let logoUrl = "";
@@ -217,7 +223,9 @@ function AuthPageContent() {
                     .from('logos')
                     .upload(fileName, brandLogo);
 
-                if (!uploadError) {
+                if (uploadError) {
+                    console.warn("Logo upload failed (bucket might be missing):", uploadError.message);
+                } else {
                     const { data: { publicUrl } } = supabase.storage
                         .from('logos')
                         .getPublicUrl(fileName);
@@ -225,25 +233,73 @@ function AuthPageContent() {
                 }
             }
 
-            // Create/Update Site
-            // We use user_id as identifier for now to prevent duplicates for this demo
-            const { error: siteError } = await supabase
+            // Check if site exists for this user
+            const { data: existingSite } = await supabase
                 .from('sites')
-                .upsert({
-                    user_id: user.id,
-                    brand_name: brandName,
-                    logo_url: logoUrl,
-                    uptimerobot_api_key: apiKey,
-                    subdomain: brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + user.id.slice(0, 4),
-                    monitors: [], // Empty initially
-                    theme_config: { theme: 'modern', primaryColor: '#6366f1' }
-                }); // Removing onConflict: 'user_id' to allow multiple sites. Subdomain uniqueness will still prevent duplicates if same name/id logic.
+                .select('id')
+                .eq('user_id', user.id)
+                .maybeSingle();
 
-            if (siteError) throw siteError;
+            const baseSubdomain = brandName.toLowerCase().replace(/[^a-z0-9]/g, '-');
+            let subdomain = `${baseSubdomain}-${user.id.slice(0, 4)}`; // Default: brand-shortid
+
+            const sitePayload = {
+                user_id: user.id,
+                brand_name: brandName,
+                logo_url: logoUrl,
+                uptimerobot_api_key: apiKey,
+                // subdomain: subdomain, // Set below dynamically
+                monitors: [],
+                theme_config: {
+                    theme: selectedTheme,
+                    primaryColor: selectedTheme === 'modern' ? '#6366f1' : selectedTheme === 'brutal' ? '#ef4444' : '#18181b'
+                }
+            };
+
+            try {
+                if (existingSite) {
+                    // Update existing
+                    const { error } = await supabase
+                        .from('sites')
+                        .update({ ...sitePayload, subdomain }) // Try updating subdomain too
+                        .eq('id', existingSite.id);
+                    if (error) throw error;
+                } else {
+                    // Insert new
+                    const { error } = await supabase
+                        .from('sites')
+                        .insert({ ...sitePayload, subdomain });
+                    if (error) throw error;
+                }
+            } catch (error: any) {
+                // Handle Subdomain Collision (Postgres Code 23505 = unique_violation)
+                if (error.code === '23505') {
+                    console.warn("Subdomain taken, falling back to unique ID method.");
+                    // Fallback: Use full user ID or random string to guarantee uniqueness
+                    // "dont user the brandname as subdomain" -> We switch to a generic ID-based subdomain
+                    const fallbackSubdomain = `site-${user.id.slice(0, 8)}-${Math.random().toString(36).slice(2, 6)}`;
+
+                    if (existingSite) {
+                        const { error: retryError } = await supabase
+                            .from('sites')
+                            .update({ ...sitePayload, subdomain: fallbackSubdomain })
+                            .eq('id', existingSite.id);
+                        if (retryError) throw retryError;
+                    } else {
+                        const { error: retryError } = await supabase
+                            .from('sites')
+                            .insert({ ...sitePayload, subdomain: fallbackSubdomain });
+                        if (retryError) throw retryError;
+                    }
+                } else {
+                    throw error; // Rethrow other errors
+                }
+            }
 
             // Redirect
             window.location.href = "/editor";
         } catch (error: any) {
+            console.error("Setup failed:", error);
             setMessage(error.message || "Failed to save setup");
             setLoading(false);
         }
@@ -321,17 +377,7 @@ function AuthPageContent() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
             {/* Close Button - Hide on Setup Step */}
-            {step !== 'setup' && (
-                <Link
-                    href="/"
-                    className="absolute top-8 right-8 z-50 text-zinc-500 hover:text-white transition-colors p-2 bg-black/50 backdrop-blur-md rounded-full border border-zinc-800"
-                >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <line x1="18" y1="6" x2="6" y2="18"></line>
-                        <line x1="6" y1="6" x2="18" y2="18"></line>
-                    </svg>
-                </Link>
-            )}
+
 
 
             {/* --- MAIN LAYOUT GRID --- */}
@@ -349,10 +395,10 @@ function AuthPageContent() {
                             {step === 'email' ? (
                                 <motion.div
                                     key="badge-smart"
-                                    initial={{ x: -50, opacity: 0 }}
+                                    initial={{ x: -20, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: -100, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    exit={{ x: -20, opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
                                     className="absolute right-0 group"
                                 >
                                     {/* Connector */}
@@ -370,13 +416,13 @@ function AuthPageContent() {
                                         </div>
                                     </div>
                                 </motion.div>
-                            ) : (step === 'otp' || step === 'setup') ? (
+                            ) : (step === 'otp' || step === 'setup' || step === ('setup-theme' as any)) ? (
                                 <motion.div
                                     key="badge-method"
-                                    initial={{ x: 100, opacity: 0 }}
+                                    initial={{ x: 20, opacity: 0 }}
                                     animate={{ x: 0, opacity: 1 }}
-                                    exit={{ x: 100, opacity: 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    exit={{ x: 20, opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
                                     className="absolute right-0 group"
                                 >
                                     {/* Connector */}
@@ -384,17 +430,17 @@ function AuthPageContent() {
                                     <div className="absolute -right-16 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-zinc-400 rounded-full" />
 
                                     {/* Verification Badge (Next Step) */}
-                                    <div className={`backdrop-blur-md border rounded-full px-5 py-3 flex items-center gap-3 shadow-xl transition-colors ${step === 'setup' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-zinc-900/80 border-zinc-800'}`}>
+                                    <div className={`backdrop-blur-md border rounded-full px-5 py-3 flex items-center gap-3 shadow-xl transition-colors ${step === 'setup' || step === ('setup-theme' as any) ? 'bg-zinc-800/50 border-zinc-700' : 'bg-zinc-900/80 border-zinc-800'}`}>
                                         <div className="text-right">
                                             <div className="text-xs font-bold text-white tracking-wide uppercase">
                                                 {step === 'otp' ? 'Verification' : 'Completed'}
                                             </div>
                                             <div className="text-[10px] text-zinc-400">
-                                                {step === 'otp' ? 'Next Step' : 'Identity Verified'}
+                                                {step === 'otp' ? 'Current Step' : 'Identity Verified'}
                                             </div>
                                         </div>
-                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'setup' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-400'}`}>
-                                            {step === 'setup' ? <CheckCircle2 className="w-4 h-4" /> : <Key className="w-4 h-4" />}
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'setup' || step === ('setup-theme' as any) ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                                            {step === 'setup' || step === ('setup-theme' as any) ? <CheckCircle2 className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -405,7 +451,7 @@ function AuthPageContent() {
 
                 {/* CENTER: Main Card (Horizontal Slider) */}
                 <div className="col-span-1 md:col-start-4 md:col-span-6 relative h-[500px] flex items-center">
-                    <AnimatePresence mode="wait" custom={direction}>
+                    <AnimatePresence mode="popLayout" custom={direction}>
 
                         {/* CARD A: Email Input */}
                         {step === 'email' && (
@@ -545,7 +591,7 @@ function AuthPageContent() {
 
 
 
-                        {/* CARD Setup: Quick Onboarding */}
+                        {/* CARD Setup Step 1: Brand & Connection */}
                         {step === 'setup' && (
                             <motion.div
                                 key="step-setup"
@@ -567,7 +613,7 @@ function AuthPageContent() {
                                     </button>
                                 </div>
 
-                                <div className="space-y-5 h-[360px] overflow-y-auto pr-2 custom-scrollbar">
+                                <div className="space-y-6">
                                     {/* 1. Brand Details */}
                                     <div className="space-y-4">
                                         <div className="space-y-1">
@@ -615,7 +661,7 @@ function AuthPageContent() {
                                         </div>
                                     </div>
 
-                                    {/* 2. Connection Source Dropdown */}
+                                    {/* 2. Connection Source */}
                                     <div className={`space-y-2 relative ${isSourceOpen ? 'z-50' : 'z-40'}`}>
                                         <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">2. Connection Source</label>
                                         <div className="relative">
@@ -679,8 +725,6 @@ function AuthPageContent() {
                                         <div className={`space-y-2 relative ${showApiTooltip ? 'z-[60]' : 'z-30'}`}>
                                             <div className="flex justify-between items-center">
                                                 <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">3. API Configuration</label>
-
-                                                {/* Tooltip Trigger */}
                                                 <div
                                                     className="relative"
                                                     onMouseEnter={() => setShowApiTooltip(true)}
@@ -692,7 +736,6 @@ function AuthPageContent() {
                                                     >
                                                         <HelpCircle className="w-3 h-3" /> Where to find?
                                                     </button>
-
                                                     <AnimatePresence>
                                                         {showApiTooltip && (
                                                             <motion.div
@@ -709,7 +752,6 @@ function AuthPageContent() {
                                                                         Open Settings <ExternalLink className="w-3 h-3" />
                                                                     </a>
                                                                 </div>
-                                                                {/* Arrow */}
                                                                 <div className="absolute top-full right-4 -mt-1 w-2 h-2 bg-zinc-900 border-r border-b border-zinc-700 rotate-45 transform" />
                                                             </motion.div>
                                                         )}
@@ -732,11 +774,92 @@ function AuthPageContent() {
 
                                     <div className="pt-2">
                                         <Button
-                                            onClick={handleSetupSubmit}
-                                            // disabled={!brandName || !apiKey} // Disabled for now to allow testing
+                                            onClick={() => { setDirection(1); setStep("setup-theme" as any); }}
                                             className="w-full h-12 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)]"
                                         >
-                                            <Rocket className="w-4 h-4 mr-2" /> Launch Editor
+                                            Next: Select Theme <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* CARD Setup Step 2: Immersive Theme Selection */}
+                        {step === ('setup-theme' as any) && (
+                            <motion.div
+                                key="step-setup-theme"
+                                custom={direction}
+                                variants={slideVariants}
+                                initial="enter"
+                                animate="center"
+                                exit="exit"
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className={`absolute w-full border rounded-3xl p-8 shadow-2xl overflow-hidden z-20 flex flex-col transition-colors duration-500 
+                                    ${selectedTheme === 'modern' ? 'bg-zinc-950/90 border-zinc-800' :
+                                        selectedTheme === 'minimal' ? 'bg-black border-zinc-800' :
+                                            'bg-[#121212] border-black shadow-[8px_8px_0px_rgba(255,255,255,0.1)]'}`}
+                            >
+                                <div className="flex justify-between items-start mb-8">
+                                    <button
+                                        onClick={() => { setDirection(-1); setStep("setup"); }}
+                                        className="text-zinc-500 hover:text-white transition-colors flex items-center gap-2 text-sm"
+                                    >
+                                        <ArrowLeft className="w-4 h-4" /> Back
+                                    </button>
+                                    <div className="text-right">
+                                        <h1 className={`text-2xl font-bold text-white tracking-tight ${selectedTheme === 'brutal' ? 'uppercase font-mono tracking-widest' : ''}`}>Choose Style</h1>
+                                        <p className="text-zinc-400 text-xs mt-1">Select a theme that fits your brand.</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex-1 flex flex-col justify-center space-y-6">
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {[
+                                            { id: 'modern', name: 'Modern', desc: 'Clean, trusted.', color: '#6366f1' },
+                                            { id: 'minimal', name: 'Minimal', desc: 'No noise. Just status.', color: '#18181b' },
+                                            { id: 'brutal', name: 'Brutal', desc: 'Bold. High contrast.', color: '#ef4444' }
+                                        ].map((t) => (
+                                            <button
+                                                key={t.id}
+                                                onClick={() => setSelectedTheme(t.id as any)}
+                                                className={`relative p-4 rounded-xl border text-left transition-all duration-300 group
+                                                    ${selectedTheme === t.id
+                                                        ? (t.id === 'modern' ? 'bg-zinc-900 border-indigo-500/50 ring-1 ring-indigo-500/20' :
+                                                            t.id === 'minimal' ? 'bg-black border-white' :
+                                                                'bg-zinc-900 border-black shadow-[4px_4px_0px_white]')
+                                                        : 'bg-transparent border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/30'
+                                                    }`}
+                                            >
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${selectedTheme === t.id ? 'scale-110' : 'scale-100'} ${t.id === 'modern' ? 'bg-indigo-500/20 text-indigo-400' : t.id === 'brutal' ? 'bg-red-500/20 text-red-500 rounded-none' : 'bg-white/10 text-white'}`}>
+                                                            {t.id === 'modern' ? <Sparkles className="w-5 h-5" /> : t.id === 'brutal' ? <Activity className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                                                        </div>
+                                                        <div>
+                                                            <div className={`font-medium text-white ${t.id === 'brutal' ? 'font-mono uppercase tracking-wider' : 'font-sans'}`}>{t.name}</div>
+                                                            <div className="text-xs text-zinc-500">{t.desc}</div>
+                                                        </div>
+                                                    </div>
+                                                    {selectedTheme === t.id && (
+                                                        <div className={`w-6 h-6 flex items-center justify-center rounded-full ${t.id === 'modern' ? 'bg-indigo-500 text-white' : t.id === 'brutal' ? 'bg-red-500 text-black rounded-none' : 'bg-white text-black'}`}>
+                                                            <CheckCircle2 className="w-4 h-4" />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    <div className="pt-4">
+                                        <Button
+                                            onClick={handleSetupSubmit}
+                                            className={`w-full h-14 text-lg font-medium transition-all duration-300
+                                                ${selectedTheme === 'modern' ? 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.4)]' :
+                                                    selectedTheme === 'minimal' ? 'bg-white hover:bg-zinc-200 text-black rounded-none border-b-2 border-zinc-300' :
+                                                        'bg-red-600 hover:bg-red-700 text-black border-2 border-black shadow-[4px_4px_0px_black] rounded-md uppercase tracking-widest'
+                                                }`}
+                                        >
+                                            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "Launch Editor"}
                                         </Button>
                                     </div>
                                 </div>
@@ -773,14 +896,14 @@ function AuthPageContent() {
                     - Step 'otp': Slides left to become the 'active' badge in the left region.
                  */}
                 <div className="hidden md:flex col-span-3 justify-start items-center relative h-full">
-                    <AnimatePresence>
+                    <AnimatePresence mode="popLayout" initial={false}>
                         {step === 'email' || step === 'otp' ? (
                             <motion.div
                                 key="badge-select-method"
-                                initial={{ x: 50, opacity: 0 }}
+                                initial={{ x: 20, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
-                                exit={{ x: -100, opacity: 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                exit={{ x: -20, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
                                 className="absolute left-0 group"
                             >
                                 {/* Connector */}
@@ -803,13 +926,13 @@ function AuthPageContent() {
                                     </div>
                                 </div>
                             </motion.div>
-                        ) : step === 'setup' ? (
+                        ) : (step === 'setup' || step === ('setup-theme' as any)) ? (
                             <motion.div
                                 key="badge-final"
-                                initial={{ x: 50, opacity: 0 }}
+                                initial={{ x: 20, opacity: 0 }}
                                 animate={{ x: 0, opacity: 1 }}
-                                exit={{ x: -100, opacity: 0 }}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                exit={{ x: -20, opacity: 0 }}
+                                transition={{ duration: 0.3 }}
                                 className="absolute left-0 group"
                             >
                                 {/* Connector */}
@@ -819,11 +942,15 @@ function AuthPageContent() {
                                 {/* Final Step Badge */}
                                 <div className="bg-glaze-500/10 backdrop-blur-md border border-glaze-500/20 rounded-full px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
                                     <div className="text-right">
-                                        <div className="text-xs font-bold text-glaze-300 tracking-wide uppercase">Final Step</div>
-                                        <div className="text-[10px] text-glaze-400/80">Launch Control</div>
+                                        <div className="text-xs font-bold text-glaze-300 tracking-wide uppercase">
+                                            {step === 'setup' ? 'Next Step' : 'Final Step'}
+                                        </div>
+                                        <div className="text-[10px] text-glaze-400/80">
+                                            {step === 'setup' ? 'Select Theme' : 'Launch Control'}
+                                        </div>
                                     </div>
                                     <div className="w-8 h-8 rounded-full bg-glaze-500/20 flex items-center justify-center text-glaze-400">
-                                        <Rocket className="w-4 h-4" />
+                                        {step === 'setup' ? <Palette className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}
                                     </div>
                                 </div>
                             </motion.div>
