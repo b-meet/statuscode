@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key, Sun, Moon, Activity, Rocket, X, HelpCircle, ExternalLink, Image as ImageIcon, ChevronDown, Monitor, FileText, UploadCloud, Trash2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 // --- Animation Variants ---
 const slideVariants = {
@@ -32,7 +34,7 @@ const badgeVariants = {
     active: { x: 0, opacity: 1, scale: 1 },
 };
 
-export default function AuthPage() {
+function AuthPageContent() {
     const supabase = createClient();
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState(["", "", "", "", "", ""]); // 6 digits
@@ -53,6 +55,23 @@ export default function AuthPage() {
     const [showSkipModal, setShowSkipModal] = useState(false);
 
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const emailParam = searchParams.get("email");
+        const stepParam = searchParams.get("step");
+
+        if (emailParam) {
+            setEmail(emailParam);
+        }
+
+        if (stepParam === "otp" && emailParam) {
+            setStep("otp");
+            setDirection(1);
+            setTimer(60);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -359,9 +378,20 @@ export default function AuthPage() {
                                 className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-10"
                             >
                                 <div className="mb-8">
-                                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-700 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
-                                        Statuscode
-                                    </h1>
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative w-10 h-10">
+                                            <Image
+                                                src="/logo.svg"
+                                                alt="Statuscode Logo"
+                                                fill
+                                                className="object-contain"
+                                                priority
+                                            />
+                                        </div>
+                                        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-700 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
+                                            Statuscode
+                                        </h1>
+                                    </div>
                                     <p className="text-zinc-400 text-sm mt-3">Create your brand's status page exactly how you want.</p>
                                 </div>
 
@@ -761,3 +791,12 @@ export default function AuthPage() {
         </div>
     );
 }
+
+export default function AuthPageWrapper() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
+            <AuthPageContent />
+        </Suspense>
+    );
+}
+
