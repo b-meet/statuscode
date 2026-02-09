@@ -2,7 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  output: "export",
+  /* config options here */
+  // output: "export", // Disabled to allow API routes for Auth
   images: { unoptimized: true }
 };
 

@@ -2,23 +2,40 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check } from "lucide-react";
+import { ArrowRight, Check, AlertCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { createClient } from "@/utils/supabase/client";
+import { useRouter } from "next/navigation";
 
 export function WaitlistForm() {
+    const supabase = createClient();
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
+    const [errorMessage, setErrorMessage] = useState("");
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email) return;
 
         setStatus("loading");
-        // Simulate API call
-        setTimeout(() => {
-            setStatus("success");
-            setEmail("");
-        }, 1500);
+        setErrorMessage("");
+
+        // Send OTP
+        const { error } = await supabase.auth.signInWithOtp({
+            email,
+            options: { shouldCreateUser: true },
+        });
+
+        if (error) {
+            setStatus("idle");
+            setErrorMessage(error.message);
+            return;
+        }
+
+        setStatus("success");
+        // Redirect to auth page with email and step=otp
+        router.push(`/auth?email=${encodeURIComponent(email)}&step=otp`);
     };
 
     return (
@@ -70,6 +87,12 @@ export function WaitlistForm() {
                     </motion.div>
                 )}
             </AnimatePresence>
+            {errorMessage && (
+                <div className="absolute -bottom-8 left-0 text-red-500 text-xs flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    {errorMessage}
+                </div>
+            )}
         </form>
     );
 }

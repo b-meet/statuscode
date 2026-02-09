@@ -2,6 +2,7 @@
 
 import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { MouseEvent } from "react";
+import Link from "next/link";
 
 export function FinalCTA() {
     const mouseX = useMotionValue(0);
@@ -54,7 +55,7 @@ export function FinalCTA() {
                     </p>
 
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-                        <button className="relative group px-8 py-4 bg-white text-zinc-950 font-bold rounded-full text-lg overflow-hidden shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.5)] transition-shadow duration-300">
+                        <Link href="/auth" className="relative group px-8 py-4 bg-white text-zinc-950 font-bold rounded-full text-lg overflow-hidden shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)] hover:shadow-[0_0_60px_-10px_rgba(255,255,255,0.5)] transition-shadow duration-300">
                             <span className="relative z-10 flex items-center gap-2">
                                 Get Started for Free
                                 <svg className="w-5 h-5 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -62,7 +63,7 @@ export function FinalCTA() {
                                 </svg>
                             </span>
                             <div className="absolute inset-0 bg-gradient-to-r from-glaze-500 via-accent-500 to-glaze-500 opacity-0 group-hover:opacity-10 transition-opacity duration-300" />
-                        </button>
+                        </Link>
                         {/* 
                         <button className="px-8 py-4 text-zinc-300 font-medium hover:text-white transition-colors">
                             View Pricing →

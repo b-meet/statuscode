@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key, Image as ImageIcon, Trash2, UploadCloud, Monitor, FileText, ChevronDown, HelpCircle, Rocket } from "lucide-react";
+import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key, Sun, Moon, Activity, Rocket, X, HelpCircle, ExternalLink, Image as ImageIcon, ChevronDown, Monitor, FileText, UploadCloud, Trash2 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
+import { useSearchParams } from "next/navigation";
 
 // --- Animation Variants ---
 const slideVariants = {
@@ -32,7 +34,7 @@ const badgeVariants = {
     active: { x: 0, opacity: 1, scale: 1 },
 };
 
-export default function AuthPage() {
+function AuthPageContent() {
     const supabase = createClient();
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState(["", "", "", "", "", ""]); // 6 digits
@@ -41,15 +43,35 @@ export default function AuthPage() {
     const [loading, setLoading] = useState(false);
     const [timer, setTimer] = useState(0);
     const [message, setMessage] = useState("");
-    const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
-    // Quick Setup State
+    // Setup State
     const [brandName, setBrandName] = useState("");
-    const [brandLogo, setBrandLogo] = useState<File | string | null>(null);
+    const [brandLogo, setBrandLogo] = useState<File | null>(null);
+    const [brandLogoPreview, setBrandLogoPreview] = useState<string | null>(null);
     const [source, setSource] = useState<"uptimerobot" | "manual">("uptimerobot");
     const [isSourceOpen, setIsSourceOpen] = useState(false);
     const [apiKey, setApiKey] = useState("");
     const [showApiTooltip, setShowApiTooltip] = useState(false);
+    const [showSkipModal, setShowSkipModal] = useState(false);
+
+    const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    const searchParams = useSearchParams();
+
+    useEffect(() => {
+        const emailParam = searchParams.get("email");
+        const stepParam = searchParams.get("step");
+
+        if (emailParam) {
+            setEmail(emailParam);
+        }
+
+        if (stepParam === "otp" && emailParam) {
+            setStep("otp");
+            setDirection(1);
+            setTimer(60);
+        }
+    }, [searchParams]);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -62,6 +84,7 @@ export default function AuthPage() {
     // --- Actions ---
 
     const handleSocialLogin = async (provider: "github" | "google") => {
+        // Mocking setup transition for social login for now (or handle in callback)
         await supabase.auth.signInWithOAuth({
             provider,
             options: {
@@ -143,6 +166,20 @@ export default function AuthPage() {
         }
     };
 
+    const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            setBrandLogo(file);
+            const objectUrl = URL.createObjectURL(file);
+            setBrandLogoPreview(objectUrl);
+        }
+    };
+
+    const clearLogo = () => {
+        setBrandLogo(null);
+        setBrandLogoPreview(null);
+    };
+
     const verifyOtp = async (tokenOverride?: string) => {
         const token = tokenOverride || otp.join("");
         setLoading(true);
@@ -157,10 +194,12 @@ export default function AuthPage() {
             setLoading(false);
         } else {
             // Success -> Go to Setup
+            setDirection(1);
             setStep("setup");
             setLoading(false);
         }
     };
+
 
     const handleSetupSubmit = async () => {
         setLoading(true);
@@ -210,8 +249,20 @@ export default function AuthPage() {
         }
     };
 
+    const handleSkip = () => {
+        setShowSkipModal(true);
+    };
+
+    const confirmSkip = () => {
+        window.location.href = "/dashboard";
+    };
+
     const goBack = () => {
         setDirection(-1);
+        if (step === 'setup') {
+            setStep("otp");
+            return;
+        }
         setStep("email");
         setMessage("");
     };
@@ -220,6 +271,36 @@ export default function AuthPage() {
 
     return (
         <div className="min-h-screen bg-black text-white font-sans selection:bg-glaze-500/30 flex items-center justify-center p-4 relative overflow-hidden">
+
+            {/* SKIP CONFIRMATION MODAL */}
+            <AnimatePresence>
+                {showSkipModal && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                            className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl w-full max-w-sm shadow-2xl"
+                        >
+                            <h3 className="text-lg font-bold text-white mb-2">Skip Quick Setup?</h3>
+                            <p className="text-zinc-400 text-sm mb-6">Your page is almost ready. Configuring it now saves you time later.</p>
+                            <div className="flex gap-3">
+                                <Button onClick={() => setShowSkipModal(false)} variant="outline" className="flex-1 bg-transparent border-zinc-700 hover:bg-zinc-800 text-white">
+                                    Go Back
+                                </Button>
+                                <Button onClick={confirmSkip} className="flex-1 bg-white text-black hover:bg-zinc-200">
+                                    Yes, Skip
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             {/* --- VISUALS: Grid & Glow --- */}
             <div
@@ -287,7 +368,7 @@ export default function AuthPage() {
                                         </div>
                                     </div>
                                 </motion.div>
-                            ) : step === 'otp' ? (
+                            ) : (step === 'otp' || step === 'setup') ? (
                                 <motion.div
                                     key="badge-method"
                                     initial={{ x: 100, opacity: 0 }}
@@ -300,14 +381,18 @@ export default function AuthPage() {
                                     <div className="absolute -right-16 top-1/2 -translate-y-1/2 w-16 h-[1px] bg-gradient-to-l from-zinc-600 to-transparent" />
                                     <div className="absolute -right-16 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-zinc-400 rounded-full" />
 
-                                    {/* Method Badge (Moved from Right) */}
-                                    <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full px-5 py-3 flex items-center gap-3 shadow-xl">
+                                    {/* Verification Badge (Next Step) */}
+                                    <div className={`backdrop-blur-md border rounded-full px-5 py-3 flex items-center gap-3 shadow-xl transition-colors ${step === 'setup' ? 'bg-zinc-800/50 border-zinc-700' : 'bg-zinc-900/80 border-zinc-800'}`}>
                                         <div className="text-right">
-                                            <div className="text-xs font-bold text-white tracking-wide uppercase">Verification</div>
-                                            <div className="text-[10px] text-zinc-400">Enter Code</div>
+                                            <div className="text-xs font-bold text-white tracking-wide uppercase">
+                                                {step === 'otp' ? 'Verification' : 'Completed'}
+                                            </div>
+                                            <div className="text-[10px] text-zinc-400">
+                                                {step === 'otp' ? 'Next Step' : 'Identity Verified'}
+                                            </div>
                                         </div>
-                                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
-                                            <MousePointerClick className="w-4 h-4" />
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step === 'setup' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                                            {step === 'setup' ? <CheckCircle2 className="w-4 h-4" /> : <Key className="w-4 h-4" />}
                                         </div>
                                     </div>
                                 </motion.div>
@@ -333,9 +418,20 @@ export default function AuthPage() {
                                 className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-10"
                             >
                                 <div className="mb-8">
-                                    <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-700 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
-                                        Statuscode
-                                    </h1>
+                                    <div className="flex items-center gap-3">
+                                        <div className="relative w-10 h-10">
+                                            <Image
+                                                src="/logo.svg"
+                                                alt="Statuscode Logo"
+                                                fill
+                                                className="object-contain"
+                                                priority
+                                            />
+                                        </div>
+                                        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-700 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
+                                            Statuscode
+                                        </h1>
+                                    </div>
                                     <p className="text-zinc-400 text-sm mt-3">Create your brand's status page exactly how you want.</p>
                                 </div>
 
@@ -365,7 +461,7 @@ export default function AuthPage() {
                                         />
                                         <Button
                                             type="submit"
-                                            className={`w-full h-12 rounded-xl font-medium text-sm transition-all duration-300 ${isEmailValid ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.3)]' : 'bg-zinc-800 text-zinc-400'}`}
+                                            className={`w-full h-12 rounded-xl font-medium text-sm transition-all duration-300 ${isEmailValid ? 'bg-white text-black shadow-[0_0_20px_rgba(255,255,255,0.4)]' : 'bg-zinc-800 text-zinc-400 shadow-[0_0_20px_rgba(0,0,0,0.4)]'}`}
                                             disabled={loading}
                                         >
                                             {loading ? <Loader2 className="animate-spin w-4 h-4" /> : "Get Verification Code"}
@@ -444,7 +540,10 @@ export default function AuthPage() {
                                 </div>
                             </motion.div>
                         )}
-                        {/* CARD D: Setup (Restored) */}
+
+
+
+                        {/* CARD Setup: Quick Onboarding */}
                         {step === 'setup' && (
                             <motion.div
                                 key="step-setup"
@@ -456,99 +555,116 @@ export default function AuthPage() {
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                 className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
                             >
-                                <div className="mb-6">
-                                    <h1 className="text-3xl font-bold text-white tracking-tight">Quick Setup</h1>
-                                    <p className="text-zinc-400 text-sm mt-2">Let's get your status page ready.</p>
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h1 className="text-3xl font-bold text-white tracking-tight">Quick Setup</h1>
+                                        <p className="text-zinc-400 text-xs mt-1">Configure your brand identity & connection.</p>
+                                    </div>
+                                    <button onClick={handleSkip} className="text-xs text-zinc-500 hover:text-white transition-colors underline decoration-zinc-700 underline-offset-4">
+                                        Skip to Dashboard
+                                    </button>
                                 </div>
 
-                                <div className="space-y-6">
-                                    {/* Brand Name */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Brand Name</label>
-                                        <input
-                                            type="text"
-                                            value={brandName}
-                                            onChange={(e) => setBrandName(e.target.value)}
-                                            placeholder="e.g. Acme Corp"
-                                            className="w-full h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 transition-all text-sm"
-                                        />
-                                    </div>
+                                <div className="space-y-5 h-[360px] overflow-y-auto pr-2 custom-scrollbar">
+                                    {/* 1. Brand Details */}
+                                    <div className="space-y-4">
+                                        <div className="space-y-1">
+                                            <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">1. Brand Identity</label>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <input
+                                                    type="text"
+                                                    placeholder="Brand Name (e.g. Acme)"
+                                                    value={brandName}
+                                                    onChange={(e) => setBrandName(e.target.value)}
+                                                    className="w-full h-12 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-zinc-600 transition-all text-sm"
+                                                />
 
-                                    {/* Logo Upload */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Logo</label>
-                                        <div className="flex items-center gap-4">
-                                            {brandLogo ? (
-                                                <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-2 pr-4">
-                                                    <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center overflow-hidden">
-                                                        {typeof brandLogo === 'string' ? (
-                                                            <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
-                                                        ) : (
-                                                            <ImageIcon className="w-4 h-4 text-zinc-500" />
-                                                        )}
-                                                    </div>
-                                                    <span className="text-xs text-zinc-300 truncate max-w-[100px]">{brandLogo instanceof File ? brandLogo.name : 'logo.png'}</span>
-                                                    <button onClick={() => setBrandLogo(null)} className="text-zinc-500 hover:text-red-400 transition-colors">
-                                                        <Trash2 className="w-3.5 h-3.5" />
-                                                    </button>
+                                                <div className="relative h-12">
+                                                    {!brandLogoPreview ? (
+                                                        <label className="flex items-center justify-center w-full h-full gap-2 px-4 transition-all border border-dashed rounded-xl cursor-pointer bg-black/40 border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/50 group">
+                                                            <UploadCloud className="w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-colors" />
+                                                            <span className="text-xs text-zinc-500 group-hover:text-zinc-300 transition-colors">Upload Logo</span>
+                                                            <input
+                                                                type="file"
+                                                                accept="image/png, image/jpeg, image/jpg"
+                                                                className="hidden"
+                                                                onChange={handleLogoUpload}
+                                                            />
+                                                        </label>
+                                                    ) : (
+                                                        <div className="flex items-center justify-between w-full h-full px-3 border rounded-xl bg-zinc-900/50 border-zinc-800">
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className="relative w-8 h-8 overflow-hidden bg-white rounded-lg shrink-0 border border-zinc-700">
+                                                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                                    <img src={brandLogoPreview} alt="Logo Preview" className="object-contain w-full h-full" />
+                                                                </div>
+                                                                <span className="text-xs text-zinc-300 truncate max-w-[100px]">{brandLogo?.name}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={clearLogo}
+                                                                className="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                                                            >
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            ) : (
-                                                <div className="relative group">
-                                                    <input
-                                                        type="file"
-                                                        accept="image/png, image/jpeg"
-                                                        onChange={(e) => {
-                                                            if (e.target.files?.[0]) {
-                                                                setBrandLogo(e.target.files[0]);
-                                                            }
-                                                        }}
-                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                                                    />
-                                                    <div className="h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 flex items-center gap-2 group-hover:border-zinc-600 transition-colors text-zinc-500 text-sm">
-                                                        <UploadCloud className="w-4 h-4" />
-                                                        <span>Upload Logo</span>
-                                                    </div>
-                                                </div>
-                                            )}
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Connection Source */}
-                                    <div className="space-y-2">
-                                        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Source</label>
+                                    {/* 2. Connection Source Dropdown */}
+                                    <div className={`space-y-2 relative ${isSourceOpen ? 'z-50' : 'z-40'}`}>
+                                        <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">2. Connection Source</label>
                                         <div className="relative">
                                             <button
                                                 onClick={() => setIsSourceOpen(!isSourceOpen)}
-                                                className="w-full h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 flex items-center justify-between text-white text-sm hover:border-zinc-700 transition-colors"
+                                                className="w-full h-12 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white flex items-center justify-between text-sm hover:bg-zinc-900/50 transition-colors"
                                             >
-                                                <span className="flex items-center gap-2">
-                                                    {source === 'uptimerobot' && <Monitor className="w-4 h-4 text-indigo-400" />}
-                                                    {source === 'manual' && <FileText className="w-4 h-4 text-zinc-400" />}
-                                                    {source === 'uptimerobot' ? 'UptimeRobot' : 'Manual / Custom'}
-                                                </span>
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${source === 'uptimerobot' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                                                        {source === 'uptimerobot' ? <Activity className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                    </div>
+                                                    <div className="text-left">
+                                                        <div className="font-medium">{source === 'uptimerobot' ? 'UptimeRobot' : 'Manual / Custom'}</div>
+                                                    </div>
+                                                </div>
                                                 <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isSourceOpen ? 'rotate-180' : ''}`} />
                                             </button>
 
                                             <AnimatePresence>
                                                 {isSourceOpen && (
                                                     <motion.div
-                                                        initial={{ opacity: 0, y: 5 }}
-                                                        animate={{ opacity: 1, y: 0 }}
-                                                        exit={{ opacity: 0, y: 5 }}
-                                                        className="absolute top-12 left-0 w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xl z-30"
+                                                        initial={{ opacity: 0, y: -10 }}
+                                                        animate={{ opacity: 1, y: 4 }}
+                                                        exit={{ opacity: 0, y: -10 }}
+                                                        className="absolute top-full left-0 right-0 bg-[#09090b] border border-zinc-800 rounded-xl p-2 shadow-2xl z-50"
                                                     >
                                                         <button
                                                             onClick={() => { setSource('uptimerobot'); setIsSourceOpen(false); }}
-                                                            className="w-full px-4 py-2 text-left hover:bg-zinc-800 flex items-center gap-2 text-sm text-white"
+                                                            className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors"
                                                         >
-                                                            <Monitor className="w-4 h-4 text-indigo-400" /> UptimeRobot
+                                                            <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
+                                                                <Activity className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-sm font-medium text-white">UptimeRobot</div>
+                                                                <div className="text-xs text-zinc-500">Auto-sync monitors</div>
+                                                            </div>
+                                                            {source === 'uptimerobot' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
                                                         </button>
+
                                                         <button
                                                             disabled
-                                                            className="w-full px-4 py-2 text-left bg-zinc-900/50 flex items-center justify-between gap-2 text-sm text-zinc-500 cursor-not-allowed"
+                                                            className="w-full p-2 rounded-lg flex items-center gap-3 opacity-50 cursor-not-allowed"
                                                         >
-                                                            <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Manual</span>
-                                                            <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded">Soon</span>
+                                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
+                                                                <FileText className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-sm font-medium text-zinc-400">Manual / Custom</div>
+                                                                <div className="text-xs text-zinc-600">Coming Soon</div>
+                                                            </div>
                                                         </button>
                                                     </motion.div>
                                                 )}
@@ -556,59 +672,74 @@ export default function AuthPage() {
                                         </div>
                                     </div>
 
-                                    {/* API Key */}
+                                    {/* 3. API Key Config */}
                                     {source === 'uptimerobot' && (
-                                        <div className="space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Read-Only API Key</label>
+                                        <div className={`space-y-2 relative ${showApiTooltip ? 'z-[60]' : 'z-30'}`}>
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">3. API Configuration</label>
 
-                                                <div className="relative">
+                                                {/* Tooltip Trigger */}
+                                                <div
+                                                    className="relative"
+                                                    onMouseEnter={() => setShowApiTooltip(true)}
+                                                    onMouseLeave={() => setShowApiTooltip(false)}
+                                                >
                                                     <button
-                                                        onMouseEnter={() => setShowApiTooltip(true)}
-                                                        onMouseLeave={() => setShowApiTooltip(false)}
                                                         onClick={() => setShowApiTooltip(!showApiTooltip)}
-                                                        className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-white transition-colors"
+                                                        className="text-[10px] flex items-center gap-1 text-glaze-400 hover:underline cursor-help"
                                                     >
                                                         <HelpCircle className="w-3 h-3" /> Where to find?
                                                     </button>
+
                                                     <AnimatePresence>
                                                         {showApiTooltip && (
                                                             <motion.div
-                                                                initial={{ opacity: 0, x: 10 }}
-                                                                animate={{ opacity: 1, x: 0 }}
-                                                                exit={{ opacity: 0, x: 10 }}
-                                                                className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl p-3 shadow-xl z-50 pointer-events-none"
+                                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                                className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl p-4 shadow-2xl z-[100]"
                                                             >
-                                                                <p className="text-xs text-zinc-400 leading-relaxed">
-                                                                    Go to <span className="text-white">My Settings</span> in UptimeRobot, scroll down to <span className="text-white">API Settings</span>, and create a <span className="text-white">Read-Only API Key</span>.
-                                                                </p>
+                                                                <div className="text-xs text-zinc-300 space-y-2">
+                                                                    <p>1. Log in to <strong>UptimeRobot</strong>.</p>
+                                                                    <p>2. Go to <strong>Integrations and API</strong> → <strong>API</strong>.</p>
+                                                                    <p>3. Create a <strong>Read-Only API Key</strong>.</p>
+                                                                    <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] inline-flex items-center gap-1 text-glaze-400 hover:text-white transition-colors">
+                                                                        Open Settings <ExternalLink className="w-3 h-3" />
+                                                                    </a>
+                                                                </div>
+                                                                {/* Arrow */}
+                                                                <div className="absolute top-full right-4 -mt-1 w-2 h-2 bg-zinc-900 border-r border-b border-zinc-700 rotate-45 transform" />
                                                             </motion.div>
                                                         )}
                                                     </AnimatePresence>
                                                 </div>
                                             </div>
-                                            <input
-                                                type="password"
-                                                value={apiKey}
-                                                onChange={(e) => setApiKey(e.target.value)}
-                                                placeholder="u12345-..."
-                                                className="w-full h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 transition-all text-sm font-mono"
-                                            />
+
+                                            <div className="relative">
+                                                <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                                                <input
+                                                    type="password"
+                                                    placeholder="Paste Read-Only API Key"
+                                                    value={apiKey}
+                                                    onChange={(e) => setApiKey(e.target.value)}
+                                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-glaze-500/50 focus:ring-4 focus:ring-glaze-500/10 transition-all text-sm font-mono"
+                                                />
+                                            </div>
                                         </div>
                                     )}
 
-                                    <Button
-                                        onClick={handleSetupSubmit}
-                                        className="w-full h-12 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)] mt-2"
-                                        disabled={loading}
-                                    >
-                                        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Rocket className="w-4 h-4 mr-2" />}
-                                        Launch Editor
-                                    </Button>
+                                    <div className="pt-2">
+                                        <Button
+                                            onClick={handleSetupSubmit}
+                                            // disabled={!brandName || !apiKey} // Disabled for now to allow testing
+                                            className="w-full h-12 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                        >
+                                            <Rocket className="w-4 h-4 mr-2" /> Launch Editor
+                                        </Button>
+                                    </div>
                                 </div>
                             </motion.div>
                         )}
-
 
                         {/* CARD C: Success */}
                         {step === 'success' && (
@@ -641,7 +772,7 @@ export default function AuthPage() {
                  */}
                 <div className="hidden md:flex col-span-3 justify-start items-center relative h-full">
                     <AnimatePresence>
-                        {step === 'email' && (
+                        {step === 'email' || step === 'otp' ? (
                             <motion.div
                                 key="badge-select-method"
                                 initial={{ x: 50, opacity: 0 }}
@@ -654,18 +785,47 @@ export default function AuthPage() {
                                 <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-16 h-[1px] bg-gradient-to-r from-zinc-600 to-transparent" />
                                 <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-zinc-400 rounded-full" />
 
-                                {/* Verification Badge (Next Step) */}
+                                {/* Contextual Badge */}
                                 <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full px-5 py-3 flex items-center gap-3 shadow-xl">
                                     <div className="text-right">
-                                        <div className="text-xs font-bold text-white tracking-wide uppercase">Verification</div>
-                                        <div className="text-[10px] text-zinc-400">Next Step</div>
+                                        <div className="text-xs font-bold text-white tracking-wide uppercase">
+                                            {step === 'email' ? 'Verification' : 'Quick Setup'}
+                                        </div>
+                                        <div className="text-[10px] text-zinc-400">
+                                            {step === 'email' ? 'Next Step' : 'Almost There'}
+                                        </div>
                                     </div>
                                     <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400">
-                                        <Key className="w-4 h-4" />
+                                        {/* Dynamic Icon based on next step */}
+                                        {step === 'email' ? <Key className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}
                                     </div>
                                 </div>
                             </motion.div>
-                        )}
+                        ) : step === 'setup' ? (
+                            <motion.div
+                                key="badge-final"
+                                initial={{ x: 50, opacity: 0 }}
+                                animate={{ x: 0, opacity: 1 }}
+                                exit={{ x: -100, opacity: 0 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="absolute left-0 group"
+                            >
+                                {/* Connector */}
+                                <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-16 h-[1px] bg-gradient-to-r from-zinc-600 to-transparent" />
+                                <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-zinc-400 rounded-full" />
+
+                                {/* Final Step Badge */}
+                                <div className="bg-glaze-500/10 backdrop-blur-md border border-glaze-500/20 rounded-full px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                                    <div className="text-right">
+                                        <div className="text-xs font-bold text-glaze-300 tracking-wide uppercase">Final Step</div>
+                                        <div className="text-[10px] text-glaze-400/80">Launch Control</div>
+                                    </div>
+                                    <div className="w-8 h-8 rounded-full bg-glaze-500/20 flex items-center justify-center text-glaze-400">
+                                        <Rocket className="w-4 h-4" />
+                                    </div>
+                                </div>
+                            </motion.div>
+                        ) : null}
                     </AnimatePresence>
                 </div>
 
@@ -673,3 +833,12 @@ export default function AuthPage() {
         </div>
     );
 }
+
+export default function AuthPageWrapper() {
+    return (
+        <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
+            <AuthPageContent />
+        </Suspense>
+    );
+}
+
