@@ -320,16 +320,18 @@ function AuthPageContent() {
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-glaze-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
-            {/* Close Button */}
-            <Link
-                href="/"
-                className="absolute top-8 right-8 z-50 text-zinc-500 hover:text-white transition-colors p-2 bg-black/50 backdrop-blur-md rounded-full border border-zinc-800"
-            >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18"></line>
-                    <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-            </Link>
+            {/* Close Button - Hide on Setup Step */}
+            {step !== 'setup' && (
+                <Link
+                    href="/"
+                    className="absolute top-8 right-8 z-50 text-zinc-500 hover:text-white transition-colors p-2 bg-black/50 backdrop-blur-md rounded-full border border-zinc-800"
+                >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </Link>
+            )}
 
 
             {/* --- MAIN LAYOUT GRID --- */}

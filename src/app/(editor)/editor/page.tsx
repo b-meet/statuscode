@@ -1,10 +1,10 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { Monitor, Smartphone, CheckCircle2, AlertTriangle, Activity, XCircle, ArrowRight, Clock, Calendar, BarChart3, Wifi, ArrowUpRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Monitor, Smartphone, CheckCircle2, AlertTriangle, Activity, XCircle, ArrowRight, Clock, Calendar, BarChart3, Wifi, ArrowUpRight, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { themes } from "@/lib/themes";
+import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 
 // Inline helpers for Client Component
 function classNames(...classes: (string | undefined | null | false)[]) {
@@ -64,7 +64,7 @@ const Sparkline = ({ data, color = "#6366f1" }: { data: { value: number }[], col
 };
 
 export default function EditorPage() {
-    const { config, saveStatus, monitorsData } = useEditor();
+    const { config, saveStatus, monitorsData, autoSaveEnabled, setAutoSaveEnabled } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
 
     // Filter selected monitors
@@ -79,6 +79,8 @@ export default function EditorPage() {
         selectedMonitors.reduce((acc, m) => acc + getAverageResponseTime(m.response_times), 0) / (selectedMonitors.length || 1)
     );
 
+    const previewUrl = `/s/${config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}`;
+
     return (
         <div className="h-full flex flex-col bg-zinc-950">
             {/* Toolbar */}
@@ -90,6 +92,7 @@ export default function EditorPage() {
                             "p-2 rounded-lg transition-colors",
                             viewport === 'desktop' ? "text-white bg-zinc-800" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                         )}
+                        title="Desktop View"
                     >
                         <Monitor className="w-4 h-4" />
                     </button>
@@ -99,6 +102,7 @@ export default function EditorPage() {
                             "p-2 rounded-lg transition-colors",
                             viewport === 'mobile' ? "text-white bg-zinc-800" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
                         )}
+                        title="Mobile View"
                     >
                         <Smartphone className="w-4 h-4" />
                     </button>
@@ -107,15 +111,21 @@ export default function EditorPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                        {saveStatus === 'saving' && <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />}
-                        {saveStatus === 'saved' && <span className="w-2 h-2 rounded-full bg-green-500" />}
-                        <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider">
-                            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Ready'}
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider hidden md:block w-24 text-right">
+                            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : autoSaveEnabled ? 'Auto-Save On' : 'Auto-Save Off'}
                         </span>
+                        <button
+                            onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
+                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-zinc-900 ${autoSaveEnabled ? 'bg-indigo-500' : 'bg-zinc-700'}`}
+                            title={autoSaveEnabled ? "Auto-Save Enabled" : "Auto-Save Disabled"}
+                        >
+                            <span className={`${autoSaveEnabled ? 'translate-x-5' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
+                        </button>
                     </div>
                     <div className="h-4 w-[1px] bg-zinc-800" />
-                    <a href={`/s/${config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-')}`} target="_blank" className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)]">
+
+                    <a href={previewUrl} target="_blank" className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)]">
                         Publish
                     </a>
                 </div>
@@ -237,10 +247,10 @@ export default function EditorPage() {
                             </div>
 
                             {/* Main Content Grid */}
-                            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                            <div className="flex flex-col gap-12 sm:gap-20">
 
-                                {/* Left Column: Monitors */}
-                                <div className="lg:col-span-8 space-y-6">
+                                {/* Section 1: Monitors (Full Width) */}
+                                <div className="space-y-6">
                                     <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
                                         <Activity className="w-3 h-3" /> System Status
                                     </h3>
@@ -313,57 +323,24 @@ export default function EditorPage() {
                                     )}
                                 </div>
 
-                                {/* Right Column: Timeline & Maintenance */}
-                                <div className="lg:col-span-4 space-y-12">
+                                {/* Section 2: History & Maintenance (Side-by-Side Grid) */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-16">
 
                                     {/* Incident Timeline */}
-                                    <div>
-                                        <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
-                                            <Clock className="w-3 h-3" /> Incident History
-                                        </h3>
-
-                                        <div className={`relative pl-8 border-l border-white/10 space-y-10 py-2`}>
-                                            {(config.showDummyData || selectedMonitors.some(m => m.logs && m.logs.length > 0)) ? (
-                                                (config.showDummyData ? [
-                                                    { type: 2, datetime: Date.now() / 1000 - 3600, duration: 300, monitorName: "API Gateway" },
-                                                    { type: 1, datetime: Date.now() / 1000 - 86400, duration: 1200, monitorName: "Database Cluster", reason: { code: "502" } },
-                                                    { type: 2, datetime: Date.now() / 1000 - 172800, duration: 450, monitorName: "CDN Edge" }
-                                                ] : selectedMonitors.flatMap(m => m.logs?.map((l: any) => ({ ...l, monitorName: m.friendly_name })) || []))
-                                                    .sort((a, b) => b.datetime - a.datetime)
-                                                    .slice(0, 5)
-                                                    .map((log: any, i) => (
-                                                        <div key={i} className="relative group">
-                                                            <div className={`absolute -left-[41px] w-4 h-4 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-
-                                                            <div className="flex flex-col gap-1.5">
-                                                                <div className="flex items-center justify-between">
-                                                                    <span className={`text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                                        {log.type === 1 ? 'Outage Detected' : 'Resolved'}
-                                                                    </span>
-                                                                    <span className={`text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
-                                                                        {formatDate(log.datetime)}
-                                                                    </span>
-                                                                </div>
-                                                                <div className="text-sm text-white/90 font-medium">
-                                                                    {log.monitorName}
-                                                                </div>
-                                                                <p className={`text-xs ${t.mutedText} leading-relaxed`}>
-                                                                    {log.type === 1
-                                                                        ? `Service was down for ${Math.round(log.duration / 60)} minutes. Error code: ${log.reason?.code || 'TIMEOUT'}.`
-                                                                        : `Service recovered after ${Math.round(log.duration / 60)}m.`}
-                                                                </p>
-                                                            </div>
-                                                        </div>
-                                                    ))
-                                            ) : (
-                                                <div className={`p-6 text-center ${t.card} ${t.rounded} border-dashed`}>
-                                                    <div className="w-10 h-10 mx-auto rounded-full bg-white/5 flex items-center justify-center mb-3">
-                                                        <CheckCircle2 className="w-5 h-5 text-emerald-500/50" />
-                                                    </div>
-                                                    <p className="text-sm text-white/60">No incidents in the last 30 days.</p>
-                                                </div>
-                                            )}
-                                        </div>
+                                    <div className="relative">
+                                        <IncidentHistory
+                                            logs={config.showDummyData ? [
+                                                { type: 2, datetime: Date.now() / 1000 - 3600, duration: 300, monitorName: "API Gateway", reason: null },
+                                                { type: 1, datetime: Date.now() / 1000 - 86400, duration: 1200, monitorName: "Database Cluster", reason: { code: "502" } },
+                                                { type: 2, datetime: Date.now() / 1000 - 172800, duration: 450, monitorName: "CDN Edge", reason: null },
+                                                { type: 2, datetime: Date.now() / 1000 - 259200, duration: 600, monitorName: "Auth Service", reason: null },
+                                                { type: 2, datetime: Date.now() / 1000 - 345600, duration: 300, monitorName: "Search Index", reason: null },
+                                                { type: 2, datetime: Date.now() / 1000 - 432000, duration: 900, monitorName: "Image Resizer", reason: null }
+                                            ] : selectedMonitors.flatMap(m => m.logs?.map((l: any) => ({ ...l, monitorName: m.friendly_name })) || [])
+                                                .sort((a: any, b: any) => b.datetime - a.datetime)
+                                            }
+                                            theme={t}
+                                        />
                                     </div>
 
                                     {/* Scheduled Maintenance */}

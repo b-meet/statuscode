@@ -1,7 +1,7 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 
 export default function PreviewSettings() {
     const { config, updateConfig } = useEditor();
@@ -12,6 +12,7 @@ export default function PreviewSettings() {
                 <label className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">Preview Controls</label>
             </div>
 
+            {/* Example Data Toggle */}
             <div className="p-4 rounded-xl bg-zinc-900/50 border border-zinc-800 space-y-3">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -33,6 +34,8 @@ export default function PreviewSettings() {
                     Injects fake incidents and maintenance schedules to visualize rich states.
                 </p>
             </div>
+
+
         </div>
     );
 }

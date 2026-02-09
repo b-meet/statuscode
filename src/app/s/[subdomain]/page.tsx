@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Monitor, CheckCircle2, AlertTriangle, Activity, XCircle, ArrowRight, Clock, Calendar, BarChart3, Wifi, ArrowUpRight } from "lucide-react";
 import { cookies } from "next/headers";
 import { themes, Theme } from "@/lib/themes";
+import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 
 // --- Types ---
 interface MonitorData {
@@ -111,8 +112,10 @@ const Sparkline = ({ data, color = "#6366f1" }: { data: { value: number }[], col
     );
 };
 
-export default async function StatusPage({ params }: { params: { subdomain: string } }) {
-    const site = await getSite(params.subdomain);
+export default async function StatusPage({ params }: { params: Promise<{ subdomain: string }> }) {
+    const { subdomain } = await params;
+
+    const site = await getSite(subdomain);
 
     if (!site) {
         notFound();
@@ -226,10 +229,11 @@ export default async function StatusPage({ params }: { params: { subdomain: stri
                 </div>
 
                 {/* Main Content Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                {/* Main Content Grid */}
+                <div className="flex flex-col gap-12 sm:gap-20">
 
-                    {/* Left Column: Monitors */}
-                    <div className="lg:col-span-8 space-y-6">
+                    {/* Section 1: Monitors (Full Width) */}
+                    <div className="space-y-6">
                         <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
                             <Activity className="w-3 h-3" /> System Status
                         </h3>
@@ -272,16 +276,16 @@ export default async function StatusPage({ params }: { params: { subdomain: stri
                                             <div className="flex items-center gap-6 text-right">
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Latency</div>
-                                                    <div className="font-mono text-sm text-white/80">{avgResponse}ms</div>
+                                                    <div className="font-mono text-sm text-white/80">{avgResponse === 0 ? <span className="text-white/30">-</span> : `${avgResponse}ms`}</div>
                                                 </div>
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
-                                                    <div className={`font-mono text-sm font-bold ${parseFloat(uptime.day) === 100 ? 'text-emerald-400' : 'text-yellow-400'}`}>{uptime.day}%</div>
+                                                    <div className={`font-mono text-sm font-bold ${parseFloat(uptime?.day || '0') === 100 ? 'text-emerald-400' : uptime ? 'text-yellow-400' : 'text-zinc-600'}`}>{uptime ? `${uptime.day}%` : '-'}</div>
                                                 </div>
                                             </div>
 
                                             {/* Badge */}
-                                            <div className={t.statusBadge(isUp).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium"}>
+                                            <div className={t.statusBadge(isUp).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
                                                 {isUp ? 'OPERATIONAL' : 'DOWN'}
                                             </div>
                                         </div>
@@ -291,59 +295,25 @@ export default async function StatusPage({ params }: { params: { subdomain: stri
                         })}
                     </div>
 
-                    {/* Right Column: Timeline & Maintenance */}
-                    <div className="lg:col-span-4 space-y-12">
+                    {/* Section 2: History & Maintenance (Side-by-Side Grid) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-16">
 
                         {/* Incident Timeline */}
-                        <div>
-                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
-                                <Clock className="w-3 h-3" /> Incident History
-                            </h3>
-
-                            <div className={`relative pl-8 border-l border-white/10 space-y-10 py-2`}>
-                                {monitors.some(m => m.logs && m.logs.length > 0) ? (
-                                    monitors.flatMap(m => m.logs?.map(l => ({ ...l, monitorName: m.friendly_name })) || [])
+                        <div className="relative">
+                            <IncidentHistory
+                                logs={monitors.some(m => m.logs && m.logs.length > 0)
+                                    ? monitors.flatMap(m => m.logs?.map(l => ({ ...l, monitorName: m.friendly_name })) || [])
                                         .sort((a, b) => b.datetime - a.datetime)
-                                        .slice(0, 5)
-                                        .map((log, i) => (
-                                            <div key={i} className="relative group">
-                                                <div className={`absolute -left-[41px] w-4 h-4 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-
-                                                <div className="flex flex-col gap-1.5">
-                                                    <div className="flex items-center justify-between">
-                                                        <span className={`text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                            {log.type === 1 ? 'Outage Detected' : 'Resolved'}
-                                                        </span>
-                                                        <span className={`text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
-                                                            {formatDate(log.datetime)}
-                                                        </span>
-                                                    </div>
-                                                    <div className="text-sm text-white/90 font-medium">
-                                                        {log.monitorName}
-                                                    </div>
-                                                    <p className={`text-xs ${t.mutedText} leading-relaxed`}>
-                                                        {log.type === 1
-                                                            ? `Service unavailable. Error code: ${log.reason.code || 'TIMEOUT'}.`
-                                                            : `Service recovered after ${Math.round(log.duration / 60)}m.`}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        ))
-                                ) : (
-                                    <div className={`p-6 text-center ${t.card} ${t.rounded} border-dashed`}>
-                                        <div className="w-10 h-10 mx-auto rounded-full bg-white/5 flex items-center justify-center mb-3">
-                                            <CheckCircle2 className="w-5 h-5 text-emerald-500/50" />
-                                        </div>
-                                        <p className="text-sm text-white/60">No incidents in the last 30 days.</p>
-                                    </div>
-                                )}
-                            </div>
+                                    : []
+                                }
+                                theme={t}
+                            />
                         </div>
 
                         {/* Scheduled Maintenance */}
                         <div>
                             <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
-                                <Calendar className="w-3 h-3" /> Scheduled Maint.
+                                <Calendar className="w-3 h-3" /> Scheduled Maintenance
                             </h3>
                             <div className={`p-8 text-center border border-dashed border-white/10 ${t.card} ${t.rounded}`}>
                                 <div className="w-12 h-12 mx-auto rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">

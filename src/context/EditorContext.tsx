@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
+import { toast } from 'sonner';
 
 // --- Types ---
 export type Theme = 'modern' | 'minimal' | 'brutal';
@@ -25,6 +26,8 @@ interface EditorContextType {
     loading: boolean;
     monitorsData: any[]; // Store full monitor objects
     fetchMonitors: () => Promise<void>;
+    autoSaveEnabled: boolean;
+    setAutoSaveEnabled: (enabled: boolean) => void;
 }
 
 // --- Default State ---
@@ -46,6 +49,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
     const [monitorsData, setMonitorsData] = useState<any[]>([]);
+    const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
     const supabase = createClient();
 
     const fetchMonitors = async () => {
@@ -131,45 +135,70 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             return newConfig;
         });
         setSaveStatus('idle'); // Reset save status on change
-
-        // Auto-save logic could go here or be triggered separately
-        // For now, we'll just update state
     };
 
     // Auto-save effect (debounce)
     useEffect(() => {
-        if (loading || !config.id) return; // Don't save initial load or if no ID
+        if (loading || !autoSaveEnabled) return; // Don't save if loading or disabled
 
         const timeout = setTimeout(async () => {
             setSaveStatus('saving');
             try {
-                const { error } = await supabase
-                    .from('sites')
-                    .update({
-                        brand_name: config.brandName,
-                        logo_url: config.logoUrl,
-                        uptimerobot_api_key: config.apiKey,
-                        monitors: config.monitors,
-                        theme_config: {
-                            theme: config.theme,
-                            primaryColor: config.primaryColor
-                        }
-                    })
-                    .eq('id', config.id);
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) return;
 
-                if (error) throw error;
+                const payload = {
+                    user_id: user.id,
+                    brand_name: config.brandName,
+                    logo_url: config.logoUrl,
+                    uptimerobot_api_key: config.apiKey,
+                    monitors: config.monitors,
+                    theme_config: {
+                        theme: config.theme,
+                        primaryColor: config.primaryColor
+                    },
+                    // Automatically update subdomain based on brand name (slugified)
+                    subdomain: config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'
+                };
+
+                if (config.id) {
+                    // Update existing
+                    const { error } = await supabase
+                        .from('sites')
+                        .update(payload)
+                        .eq('id', config.id);
+
+                    if (error) throw error;
+                } else {
+                    // Insert new
+                    const { data, error } = await supabase
+                        .from('sites')
+                        .insert([payload])
+                        .select()
+                        .single();
+
+                    if (error) throw error;
+
+                    // Update local config with new ID so future saves are updates
+                    if (data) {
+                        setConfig(prev => ({ ...prev, id: data.id }));
+                    }
+                }
+
                 setSaveStatus('saved');
+                toast.success("Saved changes to cloud");
             } catch (err) {
                 console.error("Auto-save failed:", err);
                 setSaveStatus('error');
+                toast.error("Failed to save changes");
             }
         }, 2000); // 2 second debounce
 
         return () => clearTimeout(timeout);
-    }, [config, loading]);
+    }, [config, loading, autoSaveEnabled]);
 
     return (
-        <EditorContext.Provider value={{ config, updateConfig, saveStatus, setSaveStatus, loading, monitorsData, fetchMonitors }}>
+        <EditorContext.Provider value={{ config, updateConfig, saveStatus, setSaveStatus, loading, monitorsData, fetchMonitors, autoSaveEnabled, setAutoSaveEnabled }}>
             {children}
         </EditorContext.Provider>
     );

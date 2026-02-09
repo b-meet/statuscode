@@ -22,8 +22,8 @@ export default function ThemeSelector() {
                         key={theme.id}
                         onClick={() => updateConfig({ theme: theme.id, primaryColor: theme.color })}
                         className={`group relative p-3 rounded-xl border text-left transition-all ${config.theme === theme.id
-                                ? 'bg-zinc-900 border-white ring-1 ring-white/20'
-                                : 'bg-black border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50'
+                            ? 'bg-zinc-900 border-white ring-1 ring-white/20'
+                            : 'bg-black border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50'
                             }`}
                     >
                         <div className="flex items-start justify-between">
@@ -47,24 +47,7 @@ export default function ThemeSelector() {
                 ))}
             </div>
 
-            {/* Custom Color Input */}
-            <div className="space-y-1.5 pt-2">
-                <label className="text-xs text-zinc-500">Accent Color</label>
-                <div className="flex items-center gap-2">
-                    <input
-                        type="color"
-                        value={config.primaryColor}
-                        onChange={(e) => updateConfig({ primaryColor: e.target.value })}
-                        className="w-8 h-8 rounded-lg bg-transparent cursor-pointer"
-                    />
-                    <input
-                        type="text"
-                        value={config.primaryColor}
-                        onChange={(e) => updateConfig({ primaryColor: e.target.value })}
-                        className="flex-1 h-8 px-3 rounded-lg bg-black border border-zinc-800 text-white text-xs font-mono placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors uppercase"
-                    />
-                </div>
-            </div>
+
         </div>
     );
 }
