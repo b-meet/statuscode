@@ -2,6 +2,7 @@
 
 import BrandSettings from "./BrandSettings";
 import ThemeSelector from "./ThemeSelector";
+import LayoutSelector from "./LayoutSelector";
 import MonitorManager from "./MonitorManager";
 import PreviewSettings from "./PreviewSettings";
 
@@ -22,13 +23,12 @@ export default function Sidebar() {
 
                     <div className="border-t border-zinc-800/50" />
 
-                    {/* Section 2: Theme */}
-                    <ThemeSelector />
-
-                    <div className="border-t border-zinc-800/50" />
-
-                    {/* Section 3: Monitors */}
-                    <MonitorManager />
+                    {/* Section 2: Configuration (Theme, Layout, Monitors) */}
+                    <div className="space-y-1">
+                        <ThemeSelector />
+                        <LayoutSelector />
+                        <MonitorManager />
+                    </div>
 
                     <div className="border-t border-zinc-800/50" />
 

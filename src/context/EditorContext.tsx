@@ -6,12 +6,14 @@ import { toast } from 'sonner';
 
 // --- Types ---
 export type Theme = 'modern' | 'minimal' | 'brutal';
+export type Layout = 'layout1' | 'layout2' | 'layout3' | 'layout4';
 
 export interface SiteConfig {
     id?: string; // Supabase ID
     brandName: string;
     logoUrl: string;
     theme: Theme;
+    layout: Layout;
     primaryColor: string; // Hex code
     monitors: string[]; // List of Monitor IDs
     apiKey: string; // UptimeRobot API Key (mask in UI)
@@ -35,6 +37,7 @@ const defaultConfig: SiteConfig = {
     brandName: 'My Status Page',
     logoUrl: '',
     theme: 'modern',
+    layout: 'layout1',
     primaryColor: '#6366f1', // Indigo-500
     monitors: [],
     apiKey: '',
@@ -98,6 +101,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         brandName: site.brand_name || defaultConfig.brandName,
                         logoUrl: site.logo_url || defaultConfig.logoUrl,
                         theme: site.theme_config?.theme || defaultConfig.theme,
+                        layout: site.theme_config?.layout || defaultConfig.layout,
                         primaryColor: site.theme_config?.primaryColor || defaultConfig.primaryColor,
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
@@ -155,6 +159,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     monitors: config.monitors,
                     theme_config: {
                         theme: config.theme,
+                        layout: config.layout,
                         primaryColor: config.primaryColor
                     },
                     // Automatically update subdomain based on brand name (slugified)
