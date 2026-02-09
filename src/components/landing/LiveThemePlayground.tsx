@@ -70,9 +70,9 @@ export function LiveThemePlayground() {
                 {/* Section Header */}
                 <div className="max-w-3xl mx-auto text-center mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6 text-zinc-900 dark:text-white">
-                        Don't just report downtime.<br />
+                        Status pages soo premium & relevant.<br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-500 to-accent-500">
-                            Own the narrative.
+                            That you would break your app on purpose.
                         </span>
                     </h2>
                     <p className="text-lg text-zinc-600 dark:text-zinc-400">

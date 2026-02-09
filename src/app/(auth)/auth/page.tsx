@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
-import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key } from "lucide-react";
+import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle2, Key, Image as ImageIcon, Trash2, UploadCloud, Monitor, FileText, ChevronDown, HelpCircle, Rocket } from "lucide-react";
 import Link from "next/link";
 
 // --- Animation Variants ---
@@ -36,12 +36,20 @@ export default function AuthPage() {
     const supabase = createClient();
     const [email, setEmail] = useState("");
     const [otp, setOtp] = useState(["", "", "", "", "", ""]); // 6 digits
-    const [step, setStep] = useState<"email" | "otp" | "success">("email");
+    const [step, setStep] = useState<"email" | "otp" | "setup" | "success">("email");
     const [direction, setDirection] = useState(0); // 1 = forward, -1 = back
     const [loading, setLoading] = useState(false);
     const [timer, setTimer] = useState(0);
     const [message, setMessage] = useState("");
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
+
+    // Quick Setup State
+    const [brandName, setBrandName] = useState("");
+    const [brandLogo, setBrandLogo] = useState<File | string | null>(null);
+    const [source, setSource] = useState<"uptimerobot" | "manual">("uptimerobot");
+    const [isSourceOpen, setIsSourceOpen] = useState(false);
+    const [apiKey, setApiKey] = useState("");
+    const [showApiTooltip, setShowApiTooltip] = useState(false);
 
     useEffect(() => {
         let interval: NodeJS.Timeout;
@@ -148,11 +156,57 @@ export default function AuthPage() {
             setMessage(error.message);
             setLoading(false);
         } else {
-            setStep("success");
+            // Success -> Go to Setup
+            setStep("setup");
             setLoading(false);
-            setTimeout(() => {
-                window.location.href = "/dashboard";
-            }, 2000);
+        }
+    };
+
+    const handleSetupSubmit = async () => {
+        setLoading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("No user found");
+
+            let logoUrl = "";
+
+            // Upload Logo if exists
+            if (brandLogo instanceof File) {
+                const fileExt = brandLogo.name.split('.').pop();
+                const fileName = `${user.id}-${Math.random()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('logos')
+                    .upload(fileName, brandLogo);
+
+                if (!uploadError) {
+                    const { data: { publicUrl } } = supabase.storage
+                        .from('logos')
+                        .getPublicUrl(fileName);
+                    logoUrl = publicUrl;
+                }
+            }
+
+            // Create/Update Site
+            // We use user_id as identifier for now to prevent duplicates for this demo
+            const { error: siteError } = await supabase
+                .from('sites')
+                .upsert({
+                    user_id: user.id,
+                    brand_name: brandName,
+                    logo_url: logoUrl,
+                    uptimerobot_api_key: apiKey,
+                    subdomain: brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + user.id.slice(0, 4),
+                    monitors: [], // Empty initially
+                    theme_config: { theme: 'modern', primaryColor: '#6366f1' }
+                }); // Removing onConflict: 'user_id' to allow multiple sites. Subdomain uniqueness will still prevent duplicates if same name/id logic.
+
+            if (siteError) throw siteError;
+
+            // Redirect
+            window.location.href = "/editor";
+        } catch (error: any) {
+            setMessage(error.message || "Failed to save setup");
+            setLoading(false);
         }
     };
 
@@ -390,6 +444,171 @@ export default function AuthPage() {
                                 </div>
                             </motion.div>
                         )}
+                        {/* CARD D: Setup (Restored) */}
+                        {step === 'setup' && (
+                            <motion.div
+                                key="step-setup"
+                                custom={direction}
+                                variants={slideVariants}
+                                initial="enter"
+                                animate="center"
+                                exit="exit"
+                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
+                            >
+                                <div className="mb-6">
+                                    <h1 className="text-3xl font-bold text-white tracking-tight">Quick Setup</h1>
+                                    <p className="text-zinc-400 text-sm mt-2">Let's get your status page ready.</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    {/* Brand Name */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Brand Name</label>
+                                        <input
+                                            type="text"
+                                            value={brandName}
+                                            onChange={(e) => setBrandName(e.target.value)}
+                                            placeholder="e.g. Acme Corp"
+                                            className="w-full h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 transition-all text-sm"
+                                        />
+                                    </div>
+
+                                    {/* Logo Upload */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Logo</label>
+                                        <div className="flex items-center gap-4">
+                                            {brandLogo ? (
+                                                <div className="flex items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-2 pr-4">
+                                                    <div className="w-8 h-8 rounded-lg bg-black flex items-center justify-center overflow-hidden">
+                                                        {typeof brandLogo === 'string' ? (
+                                                            <img src={brandLogo} alt="Logo" className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <ImageIcon className="w-4 h-4 text-zinc-500" />
+                                                        )}
+                                                    </div>
+                                                    <span className="text-xs text-zinc-300 truncate max-w-[100px]">{brandLogo instanceof File ? brandLogo.name : 'logo.png'}</span>
+                                                    <button onClick={() => setBrandLogo(null)} className="text-zinc-500 hover:text-red-400 transition-colors">
+                                                        <Trash2 className="w-3.5 h-3.5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="relative group">
+                                                    <input
+                                                        type="file"
+                                                        accept="image/png, image/jpeg"
+                                                        onChange={(e) => {
+                                                            if (e.target.files?.[0]) {
+                                                                setBrandLogo(e.target.files[0]);
+                                                            }
+                                                        }}
+                                                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                                                    />
+                                                    <div className="h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 flex items-center gap-2 group-hover:border-zinc-600 transition-colors text-zinc-500 text-sm">
+                                                        <UploadCloud className="w-4 h-4" />
+                                                        <span>Upload Logo</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Connection Source */}
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Source</label>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setIsSourceOpen(!isSourceOpen)}
+                                                className="w-full h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 flex items-center justify-between text-white text-sm hover:border-zinc-700 transition-colors"
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    {source === 'uptimerobot' && <Monitor className="w-4 h-4 text-indigo-400" />}
+                                                    {source === 'manual' && <FileText className="w-4 h-4 text-zinc-400" />}
+                                                    {source === 'uptimerobot' ? 'UptimeRobot' : 'Manual / Custom'}
+                                                </span>
+                                                <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isSourceOpen ? 'rotate-180' : ''}`} />
+                                            </button>
+
+                                            <AnimatePresence>
+                                                {isSourceOpen && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 5 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: 5 }}
+                                                        className="absolute top-12 left-0 w-full bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xl z-30"
+                                                    >
+                                                        <button
+                                                            onClick={() => { setSource('uptimerobot'); setIsSourceOpen(false); }}
+                                                            className="w-full px-4 py-2 text-left hover:bg-zinc-800 flex items-center gap-2 text-sm text-white"
+                                                        >
+                                                            <Monitor className="w-4 h-4 text-indigo-400" /> UptimeRobot
+                                                        </button>
+                                                        <button
+                                                            disabled
+                                                            className="w-full px-4 py-2 text-left bg-zinc-900/50 flex items-center justify-between gap-2 text-sm text-zinc-500 cursor-not-allowed"
+                                                        >
+                                                            <span className="flex items-center gap-2"><FileText className="w-4 h-4" /> Manual</span>
+                                                            <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded">Soon</span>
+                                                        </button>
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
+
+                                    {/* API Key */}
+                                    {source === 'uptimerobot' && (
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="text-xs font-medium text-zinc-500 uppercase tracking-wider">Read-Only API Key</label>
+
+                                                <div className="relative">
+                                                    <button
+                                                        onMouseEnter={() => setShowApiTooltip(true)}
+                                                        onMouseLeave={() => setShowApiTooltip(false)}
+                                                        onClick={() => setShowApiTooltip(!showApiTooltip)}
+                                                        className="flex items-center gap-1 text-[10px] text-zinc-500 hover:text-white transition-colors"
+                                                    >
+                                                        <HelpCircle className="w-3 h-3" /> Where to find?
+                                                    </button>
+                                                    <AnimatePresence>
+                                                        {showApiTooltip && (
+                                                            <motion.div
+                                                                initial={{ opacity: 0, x: 10 }}
+                                                                animate={{ opacity: 1, x: 0 }}
+                                                                exit={{ opacity: 0, x: 10 }}
+                                                                className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-800 rounded-xl p-3 shadow-xl z-50 pointer-events-none"
+                                                            >
+                                                                <p className="text-xs text-zinc-400 leading-relaxed">
+                                                                    Go to <span className="text-white">My Settings</span> in UptimeRobot, scroll down to <span className="text-white">API Settings</span>, and create a <span className="text-white">Read-Only API Key</span>.
+                                                                </p>
+                                                            </motion.div>
+                                                        )}
+                                                    </AnimatePresence>
+                                                </div>
+                                            </div>
+                                            <input
+                                                type="password"
+                                                value={apiKey}
+                                                onChange={(e) => setApiKey(e.target.value)}
+                                                placeholder="u12345-..."
+                                                className="w-full h-10 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-white/30 transition-all text-sm font-mono"
+                                            />
+                                        </div>
+                                    )}
+
+                                    <Button
+                                        onClick={handleSetupSubmit}
+                                        className="w-full h-12 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)] mt-2"
+                                        disabled={loading}
+                                    >
+                                        {loading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Rocket className="w-4 h-4 mr-2" />}
+                                        Launch Editor
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+
 
                         {/* CARD C: Success */}
                         {step === 'success' && (
