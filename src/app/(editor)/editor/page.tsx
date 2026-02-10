@@ -1,416 +1,81 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { Monitor, Smartphone, CheckCircle2, AlertTriangle, Activity, XCircle, ArrowRight, Clock, Calendar, BarChart3, Wifi, ArrowUpRight, ExternalLink } from "lucide-react";
-import { useState } from "react";
+import { Monitor, Smartphone, Activity, ExternalLink } from "lucide-react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import { themes } from "@/lib/themes";
+import { RenderLayout } from "@/components/editor/RenderLayout";
+import { Footer } from "@/components/editor/Footer";
+import { EditorHeader } from "@/components/editor/EditorHeader";
+import { EditorHistory } from "@/components/editor/EditorHistory";
+import { EditorMaintenance } from "@/components/editor/EditorMaintenance";
+import { getAverageResponseTime, classNames } from "@/lib/utils";
 import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 
-// Inline helpers for Client Component
-function classNames(...classes: (string | undefined | null | false)[]) {
-    return classes.filter(Boolean).join(' ');
-}
-
-function formatUptime(ratioString: string) {
-    if (!ratioString || ratioString === "0" || ratioString === "0-0-0") return null;
-    const parts = ratioString.split('-');
-    return {
-        day: parts[0] || '0',
-        week: parts[1] || '0',
-        month: parts[2] || '0'
-    };
-}
-
-function getAverageResponseTime(times: { value: number }[] = []) {
-    if (!times.length) return 0;
-    const sum = times.reduce((acc, curr) => acc + curr.value, 0);
-    return Math.round(sum / times.length);
-}
-
-function formatDate(timestamp: number) {
-    return new Date(timestamp * 1000).toLocaleString('en-US', {
-        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-    });
-}
-
-// Simple SVG Sparkline
-const Sparkline = ({ data, color = "#6366f1" }: { data: { value: number }[], color?: string }) => {
-    if (!data || data.length < 2) return null;
-
-    const height = 40;
-    const width = 120;
-    const max = Math.max(...data.map(d => d.value));
-    const min = Math.min(...data.map(d => d.value));
-    const range = max - min || 1;
-
-    const points = data.map((d, i) => {
-        const x = (i / (data.length - 1)) * width;
-        const y = height - ((d.value - min) / range) * height; // Invert Y
-        return `${x},${y}`;
-    }).join(' ');
-
-    return (
-        <svg width={width} height={height} className="overflow-visible opacity-50 block">
-            <polyline
-                fill="none"
-                stroke={color}
-                strokeWidth="2"
-                points={points}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-            />
-        </svg>
-    );
-};
 
 export default function EditorPage() {
     const { config, updateConfig, saveStatus, monitorsData } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
     const [isMaximized, setIsMaximized] = useState(false);
+    const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
 
-    // Filter selected monitors
-    const selectedMonitors = monitorsData.filter(m => config.monitors.includes(String(m.id)));
+    // Resizing logic
+    const [containerWidth, setContainerWidth] = useState(1200);
+    const [isResizing, setIsResizing] = useState(false);
+    const dragStartRef = useRef<{ x: number, width: number } | null>(null);
 
-    // Stats
-    const downMonitors = selectedMonitors.filter(m => m.status === 8 || m.status === 9);
-    const isAllUp = downMonitors.length === 0 && selectedMonitors.length > 0;
-    const t = themes[config.theme] || themes.modern; // Theme helper
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizing || !dragStartRef.current) return;
+            const deltaX = e.clientX - dragStartRef.current.x;
+            const newWidth = Math.max(400, Math.min(1440, dragStartRef.current.width + deltaX * 2));
+            setContainerWidth(newWidth);
+        };
 
-    const totalAvgResponse = Math.round(
-        selectedMonitors.reduce((acc, m) => acc + getAverageResponseTime(m.response_times), 0) / (selectedMonitors.length || 1)
-    );
+        const handleMouseUp = () => setIsResizing(false);
 
-    const previewUrl = `/s/${config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}`;
-
-    // --- SECTIONS ---
-
-    const headerDisplay = (
-        <div className={classNames(
-            "flex justify-between mb-8",
-            viewport === 'mobile' ? "flex-col gap-6" : "flex-row items-center gap-8"
-        )}>
-            <div className="flex items-center gap-4">
-                {config.logoUrl ? (
-                    <img src={config.logoUrl} alt="Logo" className={`w-10 h-10 sm:w-16 sm:h-16 object-contain p-1.5 sm:p-2 bg-white/5 backdrop-blur-md border border-white/10 ${t.rounded}`} />
-                ) : (
-                    <div className={`w-10 h-10 sm:w-16 sm:h-16 bg-white/5 backdrop-blur-md flex items-center justify-center border border-white/10 ${t.rounded}`}>
-                        <Activity className="w-5 h-5 sm:w-8 sm:h-8 text-white/50" />
-                    </div>
-                )}
-                <div>
-                    <h1 className={`text-lg sm:text-4xl text-white ${t.heading} leading-tight`}>{config.brandName || "Brand Name"}</h1>
-                    <div className={`flex items-center gap-2 mt-1 sm:mt-2 ${t.mutedText} text-[10px] sm:text-sm font-medium`}>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            Monitoring {selectedMonitors.length} services
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div className="flex gap-4">
-                <button className={`w-full sm:w-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white transition-all backdrop-blur-md flex items-center justify-center gap-2 ${t.rounded}`}>
-                    Updates <ArrowUpRight className="w-3 h-3 opacity-50" />
-                </button>
-            </div>
-        </div>
-    );
-
-    const bannerDisplay = (
-        <div className={`p-4 sm:p-5 md:p-10 mb-8 md:mb-20 relative overflow-hidden transition-all duration-500 group ${t.rounded} ${t.bannerStyle(isAllUp)}`}>
-            {/* Dynamic Glow */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl sm:blur-3xl opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700" />
-
-            <div className={classNames(
-                "relative z-10 flex",
-                viewport === 'mobile' ? "flex-col items-start gap-6" : "flex-row items-center gap-10"
-            )}>
-                <div className={`p-6 rounded-full shrink-0 ${isAllUp ? "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-red-500/10 text-red-500 ring-1 ring-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)]"}`}>
-                    {isAllUp ? <CheckCircle2 className="w-10 h-10" /> : <AlertTriangle className="w-10 h-10" />}
-                </div>
-
-                <div className="text-center md:text-left flex-1">
-                    <h2 className={`text-lg sm:text-3xl text-white mb-2 ${t.heading} drop-shadow-sm`}>
-                        {isAllUp ? "All Systems Operational" : "Major System Outage"}
-                    </h2>
-                    <p className={`${t.mutedText} text-sm sm:text-lg leading-relaxed max-w-xl mx-auto md:mx-0`}>
-                        {isAllUp
-                            ? "All services are functioning normally."
-                            : "Major service disruption. Check below."}
-                    </p>
-                </div>
-
-                {/* Global Metrics Pill */}
-                <div className={classNames(
-                    "bg-black/20 p-4 sm:p-6 backdrop-blur-sm border border-white/5",
-                    t.rounded,
-                    viewport === 'mobile' ? "w-full flex flex-col gap-4" : "w-auto flex flex-row items-center gap-8"
-                )}>
-                    <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Avg Latency</div>
-                        <div className="text-xl sm:text-2xl font-mono text-white flex items-baseline gap-1">
-                            {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-xs sm:text-sm text-white/40">ms</span>
-                        </div>
-                    </div>
-                    {viewport !== 'mobile' && <div className="w-px h-10 bg-white/10" />}
-                    {viewport === 'mobile' && <div className="h-px w-full bg-white/10" />}
-                    <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
-                        <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-
-    const monitorsDisplay = (
-        <div className="space-y-6">
-            <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
-                <Activity className="w-3 h-3" /> System Status
-            </h3>
-
-            {selectedMonitors.length > 0 ? (
-                selectedMonitors.map((monitor) => {
-                    const uptime = formatUptime(monitor.custom_uptime_ratio);
-                    const avgResponse = getAverageResponseTime(monitor.response_times);
-                    const isUp = monitor.status === 2;
-                    const hasData = !!uptime;
-
-                    return (
-                        <div
-                            key={monitor.id}
-                            className={`group p-4 sm:p-6 relative overflow-hidden ${t.card} ${t.cardHover} ${t.rounded}`}
-                        >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
-
-                                {/* Status & Info */}
-                                <div className="flex items-start gap-5 min-w-[200px]">
-                                    <div className="relative mt-1.5 flex-shrink-0">
-                                        <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
-                                        <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${isUp ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                                    </div>
-                                    <div>
-                                        <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1`}>{monitor.friendly_name}</h4>
-                                        <div className={`text-xs ${t.mutedText} mt-1`} style={{ color: config.primaryColor }}>
-                                            99.9% Uptime
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Metrics */}
-                                <div className="flex-1 flex items-center justify-between sm:justify-end gap-8 sm:gap-12">
-
-                                    {/* Sparkline */}
-                                    <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                                        <Sparkline data={monitor.response_times || []} color={isUp ? "#10b981" : "#ef4444"} />
-                                    </div>
-
-                                    {/* Stats */}
-                                    <div className="flex items-center gap-6 text-right">
-                                        <div className="space-y-0.5">
-                                            <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Latency</div>
-                                            <div className="font-mono text-sm text-white/80">
-                                                {avgResponse === 0 ? <span className="text-white/30">-</span> : `${avgResponse}ms`}
-                                            </div>
-                                        </div>
-                                        <div className="space-y-0.5">
-                                            <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
-                                            <div className={`font-mono text-sm font-bold ${hasData && parseFloat(uptime.day) === 100 ? 'text-emerald-400' : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                                {hasData ? `${uptime.day}%` : '-'}
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Badge */}
-                                    <div className={t.statusBadge(isUp).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
-                                        {isUp ? 'OPERATIONAL' : 'DOWN'}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                })
-            ) : (
-                <div className={`text-center py-12 border border-dashed border-white/10 ${t.rounded} bg-white/5`}>
-                    <p className={`${t.mutedText} text-sm`}>No monitors selected.</p>
-                </div>
-            )}
-        </div>
-    );
-
-    const historyDisplay = (
-        <div className="relative">
-            <IncidentHistory
-                logs={config.showDummyData ? [
-                    { type: 2, datetime: Date.now() / 1000 - 3600, duration: 300, monitorName: "API Gateway", reason: null },
-                    { type: 1, datetime: Date.now() / 1000 - 86400, duration: 1200, monitorName: "Database Cluster", reason: { code: "502" } },
-                    { type: 2, datetime: Date.now() / 1000 - 172800, duration: 450, monitorName: "CDN Edge", reason: null },
-                    { type: 2, datetime: Date.now() / 1000 - 259200, duration: 600, monitorName: "Auth Service", reason: null },
-                    { type: 2, datetime: Date.now() / 1000 - 345600, duration: 300, monitorName: "Search Index", reason: null },
-                    { type: 2, datetime: Date.now() / 1000 - 432000, duration: 900, monitorName: "Image Resizer", reason: null }
-                ] : selectedMonitors.flatMap(m => m.logs?.map((l: any) => ({ ...l, monitorName: m.friendly_name })) || [])
-                    .sort((a: any, b: any) => b.datetime - a.datetime)
-                }
-                theme={t}
-            />
-        </div>
-    );
-
-    const maintenanceDisplay = (
-        <div>
-            <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
-                <Calendar className="w-3 h-3" /> Scheduled Maintenance
-            </h3>
-
-            {config.showDummyData ? (
-                <div className={`p-8 ${t.card} ${t.rounded} border-l-4 border-l-indigo-500`}>
-                    <div className="flex items-center justify-between mb-2">
-                        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/20">UPCOMING</span>
-                        <span className="text-xs text-white/50 font-mono">Oct 24</span>
-                    </div>
-                    <h4 className="font-medium text-white text-sm">Database Migration</h4>
-                    <p className={`text-xs ${t.mutedText} mt-2 leading-relaxed`}>
-                        Broad updates to the cluster.
-                    </p>
-                </div>
-            ) : (
-                <div className={`p-8 text-center border border-dashed border-white/10 ${t.card} ${t.rounded}`}>
-                    <div className="w-12 h-12 mx-auto rounded-full bg-white/5 flex items-center justify-center mb-4 border border-white/5">
-                        <Calendar className="w-6 h-6 text-white/20" />
-                    </div>
-                    <h4 className="text-sm font-medium text-white/80">All Systems Go</h4>
-                    <p className={`text-xs ${t.mutedText} mt-2`}>No maintenance windows are currently scheduled.</p>
-                </div>
-            )}
-        </div>
-    );
-
-    const footerDisplay = (
-        <footer className="mt-auto pt-24 pb-8 flex items-center justify-center">
-            <a href="https://statuscode.in" className={`text-xs ${t.mutedText} hover:text-white transition-colors flex items-center gap-2 group`}>
-                <div className="w-2 h-2 rounded-full bg-indigo-500 group-hover:scale-125 transition-transform" />
-                Powered by <span className="font-bold text-white tracking-wide">Statuscode</span>
-            </a>
-        </footer>
-    );
-
-    const maintenanceBannerDisplay = config.showDummyData ? (
-        <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8">
-            <Calendar className="w-4 h-4 text-indigo-400" />
-            <span className="text-sm font-medium text-indigo-200">
-                Scheduled Maintenance: <span className="text-white">Database Migration</span> &mdash; Oct 24, 13:00 UTC
-            </span>
-            <ArrowRight className="w-4 h-4 text-indigo-400/50" />
-        </div>
-    ) : null; // Don't show if no maintenance (in real app, check maintenance data)
-
-    // Layout 4 State
-    const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
-
-    const RenderLayout = () => {
-        // Reset overlay if layout changes (optional, but good UX)
-        // useEffect(() => setShowHistoryOverlay(false), [config.layout]); 
-        // Cannot use useEffect inside this render function easily without moving it up, 
-        // but since RenderLayout is called in render, we just handle the switch logic here.
-
-        switch (config.layout) {
-            case 'layout1': // Standard (Split Bottom)
-                return (
-                    <>
-                        {headerDisplay}
-                        {bannerDisplay}
-                        <div className="flex flex-col gap-10 sm:gap-20">
-                            {monitorsDisplay}
-                            <div className={classNames(
-                                "grid gap-12 sm:gap-16",
-                                viewport === 'mobile' ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-                            )}>
-                                {historyDisplay}
-                                {maintenanceDisplay}
-                            </div>
-                        </div>
-                    </>
-                );
-            case 'layout2': // Split Middle
-                return (
-                    <>
-                        {headerDisplay}
-                        {bannerDisplay}
-                        <div className="flex flex-col gap-10 sm:gap-20">
-                            <div className={classNames(
-                                "grid gap-12 sm:gap-16",
-                                viewport === 'mobile' ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"
-                            )}>
-                                <div className={classNames(
-                                    "space-y-12",
-                                    viewport === 'mobile' ? "col-span-1" : "lg:col-span-2"
-                                )}>
-                                    {monitorsDisplay}
-                                </div>
-                                <div className={classNames(
-                                    viewport === 'mobile' ? "col-span-1" : "lg:col-span-1"
-                                )}>
-                                    {maintenanceDisplay}
-                                </div>
-                            </div>
-                            {historyDisplay}
-                        </div>
-                    </>
-                );
-            case 'layout3': // Stacked + Banner Maint
-                return (
-                    <>
-                        {maintenanceBannerDisplay}
-                        {headerDisplay}
-                        {bannerDisplay}
-                        <div className="flex flex-col gap-10 sm:gap-20">
-                            {monitorsDisplay}
-                            {historyDisplay}
-                        </div>
-                    </>
-                );
-            case 'layout4': // Minimal + History Link + Banner Maint
-                if (showHistoryOverlay) {
-                    return (
-                        <div className="animate-in fade-in slide-in-from-bottom-4 duration-300">
-                            <button
-                                onClick={() => setShowHistoryOverlay(false)}
-                                className={`mb-8 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 ${t.rounded} text-sm font-medium text-white transition-all flex items-center gap-2 group`}
-                            >
-                                <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                                Back to Status
-                            </button>
-                            {headerDisplay}
-                            <div className="mt-8">
-                                {historyDisplay}
-                            </div>
-                        </div>
-                    );
-                }
-                return (
-                    <>
-                        {maintenanceBannerDisplay}
-                        {headerDisplay}
-                        {bannerDisplay}
-                        <div className="flex flex-col gap-10 sm:gap-20">
-                            {monitorsDisplay}
-                            <div className="flex justify-center pt-8 border-t border-white/5">
-                                <button
-                                    onClick={() => setShowHistoryOverlay(true)}
-                                    className={`px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 ${t.rounded} text-sm font-medium text-white transition-all flex items-center gap-2 group`}
-                                >
-                                    <Clock className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
-                                    View Incident History
-                                    <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
-                                </button>
-                            </div>
-                        </div>
-                    </>
-                );
-            default:
-                return null;
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
         }
-    };
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [isResizing]);
+
+    // Derived state (Memoized)
+    const isMobileLayout = viewport === 'mobile' || containerWidth < 800;
+
+    const selectedMonitors = useMemo(() =>
+        monitorsData.filter(m => config.monitors.includes(String(m.id))),
+        [monitorsData, config.monitors]);
+
+    const stats = useMemo(() => {
+        const downCount = selectedMonitors.filter(m => m.status === 8 || m.status === 9).length;
+        const totalCount = selectedMonitors.length;
+
+        let status: 'operational' | 'partial' | 'major' = 'operational';
+
+        if (totalCount > 0) {
+            if (downCount >= totalCount / 2 && downCount > 0) {
+                status = 'major';
+            } else if (downCount > 0) {
+                status = 'partial';
+            }
+        }
+
+        const avg = Math.round(
+            selectedMonitors.reduce((acc, m) => acc + getAverageResponseTime(m.response_times), 0) / (totalCount || 1)
+        );
+
+        return { status, totalAvgResponse: avg };
+    }, [selectedMonitors]);
+
+    const t = useMemo(() => themes[config.theme] || themes.modern, [config.theme]);
+    const previewUrl = useMemo(() => `/s/${config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}`, [config.brandName]);
+
 
     return (
         <div className="h-full flex flex-col bg-zinc-950 relative">
@@ -461,12 +126,11 @@ export default function EditorPage() {
                         <Smartphone className="w-4 h-4" />
                     </button>
                     <div className="h-4 w-[1px] bg-zinc-800 mx-2" />
-                    <span className="text-xs text-zinc-500">Live Preview</span>
+                    <span className="text-xs text-zinc-500 font-medium">Live Preview</span>
                 </div>
 
                 <div className="flex items-center gap-3">
-
-                    {/* Example Data Toggle (Moved from Sidebar) */}
+                    {/* Example Data Toggle */}
                     <div className="flex items-center gap-3 bg-zinc-900 rounded-full px-3 py-1.5 border border-zinc-800">
                         <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Example Data</span>
                         <button
@@ -499,66 +163,115 @@ export default function EditorPage() {
                 {/* Device Frame */}
                 <div
                     className={classNames(
-                        "bg-black border border-zinc-800 shadow-2xl overflow-hidden flex flex-col relative transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] z-20",
-                        isMaximized ? "w-full h-full rounded-none border-0" :
-                            viewport === 'desktop' ? "w-full h-full max-w-[1500px] rounded-xl" : "w-[420px] h-[812px] border-[8px] border-zinc-900 rounded-[3rem]"
+                        "relative z-20 flex flex-col items-center",
+                        isMaximized ? "w-full h-full transition-all duration-300 ease-out" :
+                            viewport === 'desktop' ?
+                                `transition-all ${isResizing ? 'duration-0 ease-linear' : 'duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]'}`
+                                : "w-[420px] h-[812px] transition-all duration-300 ease-[cubic-bezier(0.25,1,0.5,1)]"
                     )}
+                    style={{
+                        width: viewport === 'desktop' && !isMaximized ? `${containerWidth}px` : undefined,
+                        height: viewport === 'desktop' && !isMaximized ? '100%' : undefined
+                    }}
                 >
+                    {/* Drag Handle (Desktop only) */}
+                    {viewport === 'desktop' && !isMaximized && (
+                        <>
+                            <div
+                                className={classNames(
+                                    "absolute right-0 top-1/2 -translate-y-1/2 translate-x-6 w-6 h-24 rounded-r-lg flex items-center justify-center cursor-col-resize shadow-xl z-50 group transition-colors",
+                                    isResizing ? "bg-indigo-600 border-indigo-500 ring-2 ring-indigo-500/50" : "bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                                )}
+                                onMouseDown={(e) => {
+                                    setIsResizing(true);
+                                    dragStartRef.current = { x: e.clientX, width: containerWidth };
+                                }}
+                            >
+                                <div className="flex flex-col gap-1 pointer-events-none">
+                                    <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-white' : 'bg-zinc-500'}`} />
+                                    <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-white' : 'bg-zinc-500'}`} />
+                                    <div className={`w-1 h-1 rounded-full transition-colors ${isResizing ? 'bg-white' : 'bg-zinc-500'}`} />
+                                </div>
+                            </div>
 
-                    {/* Browser Chrome (Desktop only) */}
-                    {viewport === 'desktop' && (
-                        <div className="h-10 bg-zinc-900/90 border-b border-zinc-800 flex items-center px-4 gap-2 shrink-0">
-                            <div className="flex gap-1.5 group">
-                                <button
-                                    onClick={() => setIsMaximized(false)} // Close (Minimize effect)
-                                    className="w-3 h-3 rounded-full bg-[#ff5f56] flex items-center justify-center hover:scale-110 transition-transform"
-                                >
-                                    <div className="w-1.5 h-1.5 bg-black/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity" />
-                                </button>
-                                <button
-                                    onClick={() => setIsMaximized(false)} // Minimize (Yellow)
-                                    className="w-3 h-3 rounded-full bg-[#ffbd2e] flex items-center justify-center hover:scale-110 transition-transform"
-                                >
-                                    <div className="w-2 h-0.5 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </button>
-                                <button
-                                    onClick={() => setIsMaximized(true)} // Maximize (Green)
-                                    className="w-3 h-3 rounded-full bg-[#27c93f] flex items-center justify-center hover:scale-110 transition-transform"
-                                >
-                                    <div className="w-1.5 h-1.5 bg-black/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity" />
-                                </button>
-                            </div>
-                            <div className="ml-4 flex-1 max-w-sm h-7 bg-zinc-950/50 rounded flex items-center justify-center text-xs text-zinc-500 font-mono transition-all">
-                                statuscode.in/s/{config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}
-                            </div>
-                        </div>
+                            {/* Width Label overlay during resize */}
+                            {isResizing && (
+                                <div className="absolute top-4 right-4 bg-black/90 text-white text-sm font-bold font-mono px-3 py-1.5 rounded-lg backdrop-blur-md border border-white/10 z-50 shadow-2xl pointer-events-none">
+                                    {Math.round(containerWidth)}px
+                                </div>
+                            )}
+
+                            {/* Interaction overlay during resize */}
+                            {isResizing && (
+                                <div className="fixed inset-0 z-[100] cursor-col-resize" />
+                            )}
+                        </>
                     )}
 
-                    {/* --- PREVIEW CONTENT --- */}
-                    <div className={`flex-1 overflow-y-auto relative custom-scrollbar font-sans selection:bg-indigo-500/30 ${t.pageBg} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']`}>
-
-                        {/* Global Noise Texture */}
-                        <div className={`absolute inset-0 pointer-events-none z-0 mix-blend-overlay ${t.noiseOpacity}`}
-                            style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")` }}
-                        />
-
-                        {/* Logo Background Effect */}
-                        {config.logoUrl && (
-                            <div
-                                className="absolute top-0 right-0 w-[80vw] h-[80vh] opacity-[0.03] pointer-events-none z-0 grayscale mix-blend-screen"
-                                style={{
-                                    backgroundImage: `url(${config.logoUrl})`,
-                                    backgroundSize: 'contain',
-                                    backgroundRepeat: 'no-repeat',
-                                    backgroundPosition: '50% 50%',
-                                    filter: 'blur(80px)'
-                                }}
-                            />
+                    {/* Inner Clipping Frame - Contains Chrome & Content */}
+                    <div className={classNames(
+                        "flex-1 w-full h-full bg-black shadow-2xl overflow-hidden flex flex-col relative transition-all duration-300",
+                        isMaximized ? "rounded-none" :
+                            viewport === 'desktop' ? "rounded-xl border border-zinc-800" : "rounded-[3rem] border-[8px] border-zinc-900",
+                        isResizing && "pointer-events-none select-none opacity-90 grayscale-[0.5] scale-[0.99]"
+                    )}>
+                        {/* Browser Chrome (Desktop only) */}
+                        {viewport === 'desktop' && (
+                            <div className="h-10 bg-zinc-900/90 border-b border-zinc-800 flex items-center px-4 gap-2 shrink-0">
+                                <div className="flex gap-1.5 group">
+                                    <button onClick={() => setIsMaximized(false)} className="w-3 h-3 rounded-full bg-[#ff5f56]" />
+                                    <button onClick={() => setIsMaximized(false)} className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
+                                    <button onClick={() => setIsMaximized(true)} className="w-3 h-3 rounded-full bg-[#27c93f]" />
+                                </div>
+                                <div className="ml-4 flex-1 max-w-sm h-7 bg-zinc-950/50 rounded flex items-center justify-center text-xs text-zinc-500 font-mono">
+                                    statuscode.in/s/{config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}
+                                </div>
+                            </div>
                         )}
 
-                        <div className={`${t.container} flex flex-col min-h-[90vh]`}>
-                            <RenderLayout />
-                            {footerDisplay}
+                        {/* --- PREVIEW CONTENT --- */}
+                        <div className={`flex-1 overflow-y-auto relative custom-scrollbar font-sans selection:bg-indigo-500/30 ${t.pageBg}`}>
+
+                            {/* Global Noise Texture */}
+                            <div className={`absolute inset-0 pointer-events-none z-0 mix-blend-overlay ${t.noiseOpacity}`}
+                                style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")` }}
+                            />
+
+                            <div className={`${t.container} flex flex-col min-h-[90vh] relative z-10`}>
+                                <RenderLayout
+                                    config={config}
+                                    selectedMonitors={selectedMonitors}
+                                    status={stats.status}
+                                    totalAvgResponse={stats.totalAvgResponse}
+                                    isMobileLayout={isMobileLayout}
+                                    selectedMonitorId={selectedMonitorId}
+                                    setSelectedMonitorId={setSelectedMonitorId}
+                                    theme={t}
+                                    Header={
+                                        <EditorHeader
+                                            logoUrl={config.logoUrl}
+                                            brandName={config.brandName}
+                                            isMobileLayout={isMobileLayout}
+                                            serviceCount={selectedMonitors.length}
+                                            theme={t}
+                                        />
+                                    }
+                                    History={
+                                        <EditorHistory
+                                            showDummyData={config.showDummyData}
+                                            selectedMonitors={selectedMonitors}
+                                            theme={t}
+                                        />
+                                    }
+                                    Maintenance={
+                                        <EditorMaintenance
+                                            showDummyData={config.showDummyData}
+                                            theme={t}
+                                        />
+                                    }
+                                />
+                                <Footer theme={t} />
+                            </div>
                         </div>
                     </div>
                 </div>

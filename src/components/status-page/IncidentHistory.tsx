@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { ThemeConfig } from "@/lib/themes";
 
@@ -17,15 +17,15 @@ interface IncidentHistoryProps {
     theme: ThemeConfig;
 }
 
-export function IncidentHistory({ logs, theme }: IncidentHistoryProps) {
+function formatDate(timestamp: number) {
+    return new Date(timestamp * 1000).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+    });
+}
+
+export const IncidentHistory = memo(({ logs, theme }: IncidentHistoryProps) => {
     const [showAll, setShowAll] = useState(false);
     const visibleLogs = showAll ? logs : logs.slice(0, 5);
-
-    function formatDate(timestamp: number) {
-        return new Date(timestamp * 1000).toLocaleString('en-US', {
-            month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-        });
-    }
 
     return (
         <div>
@@ -89,4 +89,6 @@ export function IncidentHistory({ logs, theme }: IncidentHistoryProps) {
             </div>
         </div>
     );
-}
+});
+
+IncidentHistory.displayName = 'IncidentHistory';
