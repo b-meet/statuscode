@@ -6,6 +6,8 @@ import { themes, Theme } from "@/lib/themes";
 import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 import StatusPageClient from "@/components/status-page/StatusPageClient";
 
+export const runtime = 'edge';
+
 // --- Types ---
 interface MonitorData {
     id: number;
