@@ -1,6 +1,7 @@
 "use client";
 
 export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { createClient } from "@/utils/supabase/client";

@@ -7,6 +7,7 @@ import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 import StatusPageClient from "@/components/status-page/StatusPageClient";
 
 export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 
 // --- Types ---
 interface MonitorData {
