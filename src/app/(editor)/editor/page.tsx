@@ -258,14 +258,14 @@ export default function EditorPage() {
                                     }
                                     History={
                                         <EditorHistory
-                                            showDummyData={config.showDummyData}
+                                            showDummyData={config.showDummyData ?? false}
                                             selectedMonitors={selectedMonitors}
                                             theme={t}
                                         />
                                     }
                                     Maintenance={
                                         <EditorMaintenance
-                                            showDummyData={config.showDummyData}
+                                            showDummyData={config.showDummyData ?? false}
                                             theme={t}
                                         />
                                     }
