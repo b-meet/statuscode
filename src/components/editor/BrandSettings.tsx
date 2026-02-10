@@ -1,10 +1,67 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { useRef, useState } from "react";
+import { createClient } from "@/utils/supabase/client";
+import { toast } from "sonner";
 
 export default function BrandSettings() {
     const { config, updateConfig } = useEditor();
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isUploading, setIsUploading] = useState(false);
+    const supabase = createClient();
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validation
+        if (!file.type.startsWith('image/')) {
+            toast.error("Please upload an image file");
+            return;
+        }
+
+        if (file.size > 2 * 1024 * 1024) { // 2MB limit
+            toast.error("File size must be less than 2MB");
+            return;
+        }
+
+        setIsUploading(true);
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                toast.error("You must be logged in to upload files");
+                return;
+            }
+
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('logos')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage
+                .from('logos')
+                .getPublicUrl(filePath);
+
+            updateConfig({ logoUrl: publicUrlData.publicUrl });
+            toast.success("Logo uploaded successfully");
+
+        } catch (error) {
+            console.error("Upload failed:", error);
+            toast.error("Failed to upload logo");
+        } finally {
+            setIsUploading(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
 
     return (
         <div className="space-y-4">
@@ -22,22 +79,73 @@ export default function BrandSettings() {
                 />
             </div>
 
-            {/* Logo Input (Placeholder for now) */}
+            {/* Logo Input */}
             <div className="space-y-1.5">
                 <label className="text-xs text-zinc-500">Logo</label>
-                <div className="relative">
-                    <input
-                        type="text"
-                        value={config.logoUrl}
-                        onChange={(e) => updateConfig({ logoUrl: e.target.value })}
-                        placeholder="https://..."
-                        className="w-full h-9 pl-3 pr-9 rounded-lg bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors"
-                    />
-                    <div className="absolute right-2 top-1/2 -translate-y-1/2 text-zinc-600">
-                        <UploadCloud className="w-4 h-4" />
+
+                {/* Hidden File Input */}
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleLogoUpload}
+                    accept="image/*"
+                    className="hidden"
+                />
+
+                <div className="flex gap-3">
+                    {/* Preview / Upload Area */}
+                    <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className={`
+                            relative flex-1 h-20 rounded-lg border border-dashed border-zinc-800 bg-black/50 
+                            flex flex-col items-center justify-center gap-1.5 cursor-pointer 
+                            hover:border-zinc-700 hover:bg-zinc-900/50 transition-all group overflow-hidden
+                            ${isUploading ? 'opacity-50 pointer-events-none' : ''}
+                        `}
+                    >
+                        {config.logoUrl ? (
+                            <>
+                                <img
+                                    src={config.logoUrl}
+                                    alt="Logo Preview"
+                                    className="h-10 object-contain absolute z-0 opacity-50 group-hover:opacity-20 transition-opacity"
+                                />
+                                <div className="z-10 bg-black/50 backdrop-blur-sm p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-white/10">
+                                    <UploadCloud className="w-4 h-4 text-white" />
+                                </div>
+                                <span className="text-[10px] text-zinc-400 z-10 opacity-0 group-hover:opacity-100 transition-opacity">Change Logo</span>
+                            </>
+                        ) : (
+                            <>
+                                <div className="p-2 rounded-full bg-zinc-900 border border-zinc-800 group-hover:border-zinc-700 transition-colors">
+                                    <UploadCloud className="w-4 h-4 text-zinc-400" />
+                                </div>
+                                <span className="text-[10px] text-zinc-500 font-medium">Click to upload</span>
+                            </>
+                        )}
+
+                        {isUploading && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-20">
+                                <Loader2 className="w-5 h-5 text-indigo-500 animate-spin" />
+                            </div>
+                        )}
                     </div>
+
+                    {/* Remove Button (Only if logo exists) */}
+                    {config.logoUrl && (
+                        <button
+                            onClick={() => updateConfig({ logoUrl: '' })}
+                            className="h-full px-3 rounded-lg border border-zinc-800 bg-black/50 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 text-zinc-500 transition-colors flex items-center justify-center"
+                            title="Remove Logo"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    )}
                 </div>
-                <p className="text-[10px] text-zinc-600">Enter a URL for your logo or upload (soon).</p>
+
+                <p className="text-[10px] text-zinc-600">
+                    Recommended: PNG or SVG, max 2MB.
+                </p>
             </div>
         </div>
     );

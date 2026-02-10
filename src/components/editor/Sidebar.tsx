@@ -1,5 +1,7 @@
 "use client";
 
+import { LayoutDashboard } from "lucide-react";
+import Link from "next/link";
 import BrandSettings from "./BrandSettings";
 import ThemeSelector from "./ThemeSelector";
 import LayoutSelector from "./LayoutSelector";
@@ -12,6 +14,13 @@ export default function Sidebar() {
             {/* Header */}
             <div className="h-14 px-6 border-b border-zinc-800 flex items-center justify-between shrink-0">
                 <div className="font-bold text-lg bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Statuscode</div>
+                <Link
+                    href="/dashboard"
+                    className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all group"
+                    title="Back to Dashboard"
+                >
+                    <LayoutDashboard className="w-4 h-4" />
+                </Link>
             </div>
 
             {/* Content Scroller */}

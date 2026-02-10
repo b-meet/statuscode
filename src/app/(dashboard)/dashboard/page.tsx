@@ -122,9 +122,9 @@ export default function DashboardPage() {
 
                                 {/* Actions */}
                                 <div className="flex gap-3">
-                                    <Link href="/editor" className="flex-1">
-                                        <button className="w-full h-10 rounded-xl bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-colors flex items-center justify-center gap-2">
-                                            Edit Design <ArrowRight className="w-4 h-4" />
+                                    <Link href="/editor" target="_blank" className="flex-1">
+                                        <button className="w-full h-10 rounded-xl bg-white text-black text-sm font-semibold hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 group/btn">
+                                            Edit Design <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                         </button>
                                     </Link>
                                     <button disabled className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 transition-colors">
@@ -155,18 +155,8 @@ export default function DashboardPage() {
                     </div>
                     <h2 className="text-xl font-bold text-white">No projects yet</h2>
                     <p className="text-zinc-500 mt-2 max-w-sm text-center">Get started by creating your first status page. It only takes a minute.</p>
-                    <Link href="/auth">
-                        {/* Sends back to auth/setup flow, or we could make a dedicated /onboarding page. 
-                             For now, auth handleSetupSubmit redirects to editor. 
-                             We should probably link to a route that triggers setup. 
-                             Or just Link to Editor directly? 
-                             Editor needs context. 
-                             Let's link to '/auth' where Step='setup' logic lives? 
-                             Or maybe just link to '/editor' and if no config, Editor prompts setup? 
-                             Current EditorContext loads from Supabase. If null, it uses default.
-                             But we want to persist. 
-                             Let's simple Link to "/editor" and assume they will save.
-                         */}
+                    <Link href="/setup">
+                        {/* Sends back to setup flow starting from brand/connection. */}
                         <button className="mt-8 px-6 h-12 bg-white text-black rounded-full font-semibold hover:bg-zinc-200 transition-colors flex items-center gap-2">
                             <Plus className="w-4 h-4" /> Create Status Page
                         </button>

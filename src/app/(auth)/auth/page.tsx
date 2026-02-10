@@ -297,7 +297,8 @@ function AuthPageContent() {
             }
 
             // Redirect
-            window.location.href = "/editor";
+            window.open("/editor", "_blank");
+            window.location.href = "/dashboard";
         } catch (error: any) {
             console.error("Setup failed:", error);
             setMessage(error.message || "Failed to save setup");
