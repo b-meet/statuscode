@@ -28,8 +28,6 @@ interface EditorContextType {
     loading: boolean;
     monitorsData: any[]; // Store full monitor objects
     fetchMonitors: () => Promise<void>;
-    autoSaveEnabled: boolean;
-    setAutoSaveEnabled: (enabled: boolean) => void;
 }
 
 // --- Default State ---
@@ -52,7 +50,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
     const [monitorsData, setMonitorsData] = useState<any[]>([]);
-    const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
     const supabase = createClient();
 
     const fetchMonitors = async () => {
@@ -143,13 +140,19 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
     // Auto-save effect (debounce)
     useEffect(() => {
-        if (loading || !autoSaveEnabled) return; // Don't save if loading or disabled
+        if (loading) return; // Don't save if loading
 
         const timeout = setTimeout(async () => {
             setSaveStatus('saving');
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return;
+                if (!user) {
+                    // Silent fail or just stay idle if not logged in yet, 
+                    // but usually we want to know. 
+                    // Let's just return to idle if no user, to avoid "Saving..." loop
+                    setSaveStatus('idle');
+                    return;
+                }
 
                 const payload = {
                     user_id: user.id,
@@ -192,6 +195,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
                 setSaveStatus('saved');
                 toast.success("Saved changes to cloud");
+
+                // Reset to idle after 2 seconds
+                setTimeout(() => {
+                    setSaveStatus('idle');
+                }, 2000);
+
             } catch (err) {
                 console.error("Auto-save failed:", err);
                 setSaveStatus('error');
@@ -200,10 +209,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 2000); // 2 second debounce
 
         return () => clearTimeout(timeout);
-    }, [config, loading, autoSaveEnabled]);
+    }, [config, loading]);
 
     return (
-        <EditorContext.Provider value={{ config, updateConfig, saveStatus, setSaveStatus, loading, monitorsData, fetchMonitors, autoSaveEnabled, setAutoSaveEnabled }}>
+        <EditorContext.Provider value={{ config, updateConfig, saveStatus, setSaveStatus, loading, monitorsData, fetchMonitors }}>
             {children}
         </EditorContext.Provider>
     );

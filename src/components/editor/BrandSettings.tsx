@@ -99,7 +99,7 @@ export default function BrandSettings() {
                         className={`
                             relative flex-1 h-20 rounded-lg border border-dashed border-zinc-800 bg-black/50 
                             flex flex-col items-center justify-center gap-1.5 cursor-pointer 
-                            hover:border-zinc-700 hover:bg-zinc-900/50 transition-all group overflow-hidden
+                            hover:border-zinc-700 hover:bg-zinc-900/50 transition-all group
                             ${isUploading ? 'opacity-50 pointer-events-none' : ''}
                         `}
                     >
@@ -114,6 +114,18 @@ export default function BrandSettings() {
                                     <UploadCloud className="w-4 h-4 text-white" />
                                 </div>
                                 <span className="text-[10px] text-zinc-400 z-10 opacity-0 group-hover:opacity-100 transition-opacity">Change Logo</span>
+
+                                {/* Remove Button */}
+                                <div
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateConfig({ logoUrl: '' });
+                                    }}
+                                    className="absolute -top-2 -right-2 p-1 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition-all z-30 opacity-0 group-hover:opacity-100"
+                                    title="Remove Logo"
+                                >
+                                    <X className="w-3 h-3" />
+                                </div>
                             </>
                         ) : (
                             <>
@@ -131,16 +143,7 @@ export default function BrandSettings() {
                         )}
                     </div>
 
-                    {/* Remove Button (Only if logo exists) */}
-                    {config.logoUrl && (
-                        <button
-                            onClick={() => updateConfig({ logoUrl: '' })}
-                            className="h-full px-3 rounded-lg border border-zinc-800 bg-black/50 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-500 text-zinc-500 transition-colors flex items-center justify-center"
-                            title="Remove Logo"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-                    )}
+
                 </div>
 
                 <p className="text-[10px] text-zinc-600">

@@ -64,8 +64,9 @@ const Sparkline = ({ data, color = "#6366f1" }: { data: { value: number }[], col
 };
 
 export default function EditorPage() {
-    const { config, saveStatus, monitorsData, autoSaveEnabled, setAutoSaveEnabled } = useEditor();
+    const { config, updateConfig, saveStatus, monitorsData } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
+    const [isMaximized, setIsMaximized] = useState(false);
 
     // Filter selected monitors
     const selectedMonitors = monitorsData.filter(m => config.monitors.includes(String(m.id)));
@@ -84,20 +85,23 @@ export default function EditorPage() {
     // --- SECTIONS ---
 
     const headerDisplay = (
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
-            <div className="flex items-center gap-6">
+        <div className={classNames(
+            "flex justify-between mb-8",
+            viewport === 'mobile' ? "flex-col gap-6" : "flex-row items-center gap-8"
+        )}>
+            <div className="flex items-center gap-4">
                 {config.logoUrl ? (
-                    <img src={config.logoUrl} alt="Logo" className={`w-16 h-16 object-contain p-2 bg-white/5 backdrop-blur-md border border-white/10 ${t.rounded}`} />
+                    <img src={config.logoUrl} alt="Logo" className={`w-10 h-10 sm:w-16 sm:h-16 object-contain p-1.5 sm:p-2 bg-white/5 backdrop-blur-md border border-white/10 ${t.rounded}`} />
                 ) : (
-                    <div className={`w-16 h-16 bg-white/5 backdrop-blur-md flex items-center justify-center border border-white/10 ${t.rounded}`}>
-                        <Activity className="w-8 h-8 text-white/50" />
+                    <div className={`w-10 h-10 sm:w-16 sm:h-16 bg-white/5 backdrop-blur-md flex items-center justify-center border border-white/10 ${t.rounded}`}>
+                        <Activity className="w-5 h-5 sm:w-8 sm:h-8 text-white/50" />
                     </div>
                 )}
                 <div>
-                    <h1 className={`text-4xl text-white ${t.heading}`}>{config.brandName || "Brand Name"}</h1>
-                    <div className={`flex items-center gap-2 mt-2 ${t.mutedText} text-sm font-medium`}>
+                    <h1 className={`text-lg sm:text-4xl text-white ${t.heading} leading-tight`}>{config.brandName || "Brand Name"}</h1>
+                    <div className={`flex items-center gap-2 mt-1 sm:mt-2 ${t.mutedText} text-[10px] sm:text-sm font-medium`}>
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
                             Monitoring {selectedMonitors.length} services
                         </div>
                     </div>
@@ -105,46 +109,54 @@ export default function EditorPage() {
             </div>
 
             <div className="flex gap-4">
-                <button className={`px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-medium text-white transition-all backdrop-blur-md flex items-center gap-2 ${t.rounded}`}>
-                    Updates <ArrowUpRight className="w-3.5 h-3.5 opacity-50" />
+                <button className={`w-full sm:w-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white transition-all backdrop-blur-md flex items-center justify-center gap-2 ${t.rounded}`}>
+                    Updates <ArrowUpRight className="w-3 h-3 opacity-50" />
                 </button>
             </div>
         </div>
     );
 
     const bannerDisplay = (
-        <div className={`p-10 mb-20 relative overflow-hidden transition-all duration-500 group ${t.rounded} ${t.bannerStyle(isAllUp)}`}>
+        <div className={`p-4 sm:p-5 md:p-10 mb-8 md:mb-20 relative overflow-hidden transition-all duration-500 group ${t.rounded} ${t.bannerStyle(isAllUp)}`}>
             {/* Dynamic Glow */}
-            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-80 h-80 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700" />
+            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-40 h-40 sm:w-80 sm:h-80 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl sm:blur-3xl opacity-20 pointer-events-none group-hover:opacity-40 transition-opacity duration-700" />
 
-            <div className="flex flex-col md:flex-row items-center gap-10 relative z-10">
+            <div className={classNames(
+                "relative z-10 flex",
+                viewport === 'mobile' ? "flex-col items-start gap-6" : "flex-row items-center gap-10"
+            )}>
                 <div className={`p-6 rounded-full shrink-0 ${isAllUp ? "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/50 shadow-[0_0_30px_rgba(16,185,129,0.3)]" : "bg-red-500/10 text-red-500 ring-1 ring-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)]"}`}>
                     {isAllUp ? <CheckCircle2 className="w-10 h-10" /> : <AlertTriangle className="w-10 h-10" />}
                 </div>
 
                 <div className="text-center md:text-left flex-1">
-                    <h2 className={`text-3xl text-white mb-2 ${t.heading} drop-shadow-sm`}>
+                    <h2 className={`text-lg sm:text-3xl text-white mb-2 ${t.heading} drop-shadow-sm`}>
                         {isAllUp ? "All Systems Operational" : "Major System Outage"}
                     </h2>
-                    <p className={`${t.mutedText} text-lg leading-relaxed max-w-xl`}>
+                    <p className={`${t.mutedText} text-sm sm:text-lg leading-relaxed max-w-xl mx-auto md:mx-0`}>
                         {isAllUp
-                            ? "All services are functioning normally. No active incidents reported."
-                            : "We are currently investigating a major service disruption. Check below for details."}
+                            ? "All services are functioning normally."
+                            : "Major service disruption. Check below."}
                     </p>
                 </div>
 
                 {/* Global Metrics Pill */}
-                <div className={`flex items-center gap-8 bg-black/20 p-6 backdrop-blur-sm border border-white/5 ${t.rounded}`}>
+                <div className={classNames(
+                    "bg-black/20 p-4 sm:p-6 backdrop-blur-sm border border-white/5",
+                    t.rounded,
+                    viewport === 'mobile' ? "w-full flex flex-col gap-4" : "w-auto flex flex-row items-center gap-8"
+                )}>
                     <div>
                         <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Avg Latency</div>
-                        <div className="text-2xl font-mono text-white flex items-baseline gap-1">
-                            {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-sm text-white/40">ms</span>
+                        <div className="text-xl sm:text-2xl font-mono text-white flex items-baseline gap-1">
+                            {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-xs sm:text-sm text-white/40">ms</span>
                         </div>
                     </div>
-                    <div className="w-px h-10 bg-white/10" />
+                    {viewport !== 'mobile' && <div className="w-px h-10 bg-white/10" />}
+                    {viewport === 'mobile' && <div className="h-px w-full bg-white/10" />}
                     <div>
                         <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
-                        <div className="text-2xl font-mono text-emerald-400">99.9%</div>
+                        <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
                     </div>
                 </div>
             </div>
@@ -167,18 +179,18 @@ export default function EditorPage() {
                     return (
                         <div
                             key={monitor.id}
-                            className={`group p-6 relative overflow-hidden ${t.card} ${t.cardHover} ${t.rounded}`}
+                            className={`group p-4 sm:p-6 relative overflow-hidden ${t.card} ${t.cardHover} ${t.rounded}`}
                         >
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
 
                                 {/* Status & Info */}
                                 <div className="flex items-start gap-5 min-w-[200px]">
-                                    <div className="relative mt-1.5">
-                                        <div className={`w-3 h-3 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
-                                        <div className={`absolute inset-0 w-3 h-3 rounded-full animate-ping opacity-20 ${isUp ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                    <div className="relative mt-1.5 flex-shrink-0">
+                                        <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
+                                        <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${isUp ? 'bg-emerald-500' : 'bg-red-500'}`} />
                                     </div>
                                     <div>
-                                        <h4 className={`text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading}`}>{monitor.friendly_name}</h4>
+                                        <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1`}>{monitor.friendly_name}</h4>
                                         <div className={`text-xs ${t.mutedText} mt-1`} style={{ color: config.primaryColor }}>
                                             99.9% Uptime
                                         </div>
@@ -307,9 +319,12 @@ export default function EditorPage() {
                     <>
                         {headerDisplay}
                         {bannerDisplay}
-                        <div className="flex flex-col gap-12 sm:gap-20">
+                        <div className="flex flex-col gap-10 sm:gap-20">
                             {monitorsDisplay}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 sm:gap-16">
+                            <div className={classNames(
+                                "grid gap-12 sm:gap-16",
+                                viewport === 'mobile' ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
+                            )}>
                                 {historyDisplay}
                                 {maintenanceDisplay}
                             </div>
@@ -321,12 +336,20 @@ export default function EditorPage() {
                     <>
                         {headerDisplay}
                         {bannerDisplay}
-                        <div className="flex flex-col gap-12 sm:gap-20">
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 sm:gap-16">
-                                <div className="lg:col-span-2 space-y-12">
+                        <div className="flex flex-col gap-10 sm:gap-20">
+                            <div className={classNames(
+                                "grid gap-12 sm:gap-16",
+                                viewport === 'mobile' ? "grid-cols-1" : "grid-cols-1 lg:grid-cols-3"
+                            )}>
+                                <div className={classNames(
+                                    "space-y-12",
+                                    viewport === 'mobile' ? "col-span-1" : "lg:col-span-2"
+                                )}>
                                     {monitorsDisplay}
                                 </div>
-                                <div className="lg:col-span-1">
+                                <div className={classNames(
+                                    viewport === 'mobile' ? "col-span-1" : "lg:col-span-1"
+                                )}>
                                     {maintenanceDisplay}
                                 </div>
                             </div>
@@ -340,7 +363,7 @@ export default function EditorPage() {
                         {maintenanceBannerDisplay}
                         {headerDisplay}
                         {bannerDisplay}
-                        <div className="flex flex-col gap-12 sm:gap-20">
+                        <div className="flex flex-col gap-10 sm:gap-20">
                             {monitorsDisplay}
                             {historyDisplay}
                         </div>
@@ -369,7 +392,7 @@ export default function EditorPage() {
                         {maintenanceBannerDisplay}
                         {headerDisplay}
                         {bannerDisplay}
-                        <div className="flex flex-col gap-12 sm:gap-20">
+                        <div className="flex flex-col gap-10 sm:gap-20">
                             {monitorsDisplay}
                             <div className="flex justify-center pt-8 border-t border-white/5">
                                 <button
@@ -390,12 +413,32 @@ export default function EditorPage() {
     };
 
     return (
-        <div className="h-full flex flex-col bg-zinc-950">
+        <div className="h-full flex flex-col bg-zinc-950 relative">
+
+            {/* Small Screen Warning */}
+            <div className="min-[800px]:hidden absolute inset-0 z-[100] bg-black flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-6">
+                    <Monitor className="w-8 h-8 text-indigo-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-3">Desktop Required</h2>
+                <p className="text-zinc-500 max-w-sm">
+                    The editor is optimized for larger screens. Please switch to a desktop or laptop for the best experience.
+                </p>
+                <div className="mt-8 flex gap-2">
+                    <span className="w-2 h-2 rounded-full bg-zinc-800" />
+                    <span className="w-2 h-2 rounded-full bg-zinc-800" />
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                </div>
+            </div>
+
             {/* Toolbar */}
             <header className="h-14 border-b border-zinc-800 bg-zinc-900/50 flex items-center justify-between px-4 shrink-0 backdrop-blur-md z-50">
                 <div className="flex items-center gap-2">
                     <button
-                        onClick={() => setViewport('desktop')}
+                        onClick={() => {
+                            setViewport('desktop');
+                            setIsMaximized(false);
+                        }}
                         className={classNames(
                             "p-2 rounded-lg transition-colors",
                             viewport === 'desktop' ? "text-white bg-zinc-800" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
@@ -405,7 +448,10 @@ export default function EditorPage() {
                         <Monitor className="w-4 h-4" />
                     </button>
                     <button
-                        onClick={() => setViewport('mobile')}
+                        onClick={() => {
+                            setViewport('mobile');
+                            setIsMaximized(false);
+                        }}
                         className={classNames(
                             "p-2 rounded-lg transition-colors",
                             viewport === 'mobile' ? "text-white bg-zinc-800" : "text-zinc-400 hover:text-white hover:bg-zinc-800/50"
@@ -419,53 +465,77 @@ export default function EditorPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
+
+                    {/* Example Data Toggle (Moved from Sidebar) */}
+                    <div className="flex items-center gap-3 bg-zinc-900 rounded-full px-3 py-1.5 border border-zinc-800">
+                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Example Data</span>
+                        <button
+                            onClick={() => updateConfig({ showDummyData: !config.showDummyData })}
+                            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${config.showDummyData ? 'bg-indigo-500' : 'bg-zinc-700'}`}
+                        >
+                            <span className={`${config.showDummyData ? 'translate-x-3.5' : 'translate-x-[2px]'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
+                        </button>
+                    </div>
+
+                    <div className="h-4 w-[1px] bg-zinc-800" />
+
                     <div className="flex items-center gap-3">
                         <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider hidden md:block w-24 text-right">
-                            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : autoSaveEnabled ? 'Auto-Save On' : 'Auto-Save Off'}
+                            {saveStatus === 'saving' ? 'Saving...' : saveStatus === 'saved' ? 'Saved' : 'Auto-Save On'}
                         </span>
-                        <button
-                            onClick={() => setAutoSaveEnabled(!autoSaveEnabled)}
-                            className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-zinc-900 ${autoSaveEnabled ? 'bg-indigo-500' : 'bg-zinc-700'}`}
-                            title={autoSaveEnabled ? "Auto-Save Enabled" : "Auto-Save Disabled"}
-                        >
-                            <span className={`${autoSaveEnabled ? 'translate-x-5' : 'translate-x-1'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
-                        </button>
+                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" title="Auto-Save Active" />
                     </div>
                     <div className="h-4 w-[1px] bg-zinc-800" />
 
-                    <a href={previewUrl} target="_blank" className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                        Publish
+                    <a href={previewUrl} target="_blank" className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2">
+                        Publish <ExternalLink className="w-3 h-3" />
                     </a>
                 </div>
             </header>
 
             {/* Canvas Area */}
-            <div className="flex-1 overflow-hidden relative flex items-center justify-center p-8 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px]">
+            <div className={`flex-1 overflow-hidden relative flex items-center justify-center bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:16px_16px] transition-all duration-500 ${isMaximized ? 'p-0' : 'p-8'}`}>
 
                 {/* Device Frame */}
                 <div
                     className={classNames(
-                        "bg-black border border-zinc-800 rounded-xl shadow-2xl overflow-hidden flex flex-col relative transition-all duration-500 ease-in-out z-20",
-                        viewport === 'desktop' ? "w-full h-full max-w-5xl" : "w-[375px] h-[812px] border-[8px] border-zinc-900 rounded-[3rem]"
+                        "bg-black border border-zinc-800 shadow-2xl overflow-hidden flex flex-col relative transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] z-20",
+                        isMaximized ? "w-full h-full rounded-none border-0" :
+                            viewport === 'desktop' ? "w-full h-full max-w-[1500px] rounded-xl" : "w-[420px] h-[812px] border-[8px] border-zinc-900 rounded-[3rem]"
                     )}
                 >
 
                     {/* Browser Chrome (Desktop only) */}
                     {viewport === 'desktop' && (
                         <div className="h-10 bg-zinc-900/90 border-b border-zinc-800 flex items-center px-4 gap-2 shrink-0">
-                            <div className="flex gap-1.5">
-                                <div className="w-3 h-3 rounded-full bg-[#ff5f56]" />
-                                <div className="w-3 h-3 rounded-full bg-[#ffbd2e]" />
-                                <div className="w-3 h-3 rounded-full bg-[#27c93f]" />
+                            <div className="flex gap-1.5 group">
+                                <button
+                                    onClick={() => setIsMaximized(false)} // Close (Minimize effect)
+                                    className="w-3 h-3 rounded-full bg-[#ff5f56] flex items-center justify-center hover:scale-110 transition-transform"
+                                >
+                                    <div className="w-1.5 h-1.5 bg-black/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity" />
+                                </button>
+                                <button
+                                    onClick={() => setIsMaximized(false)} // Minimize (Yellow)
+                                    className="w-3 h-3 rounded-full bg-[#ffbd2e] flex items-center justify-center hover:scale-110 transition-transform"
+                                >
+                                    <div className="w-2 h-0.5 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                </button>
+                                <button
+                                    onClick={() => setIsMaximized(true)} // Maximize (Green)
+                                    className="w-3 h-3 rounded-full bg-[#27c93f] flex items-center justify-center hover:scale-110 transition-transform"
+                                >
+                                    <div className="w-1.5 h-1.5 bg-black/20 opacity-0 group-hover:opacity-100 rounded-full transition-opacity" />
+                                </button>
                             </div>
-                            <div className="ml-4 flex-1 max-w-sm h-7 bg-zinc-950/50 rounded flex items-center justify-center text-xs text-zinc-500 font-mono">
+                            <div className="ml-4 flex-1 max-w-sm h-7 bg-zinc-950/50 rounded flex items-center justify-center text-xs text-zinc-500 font-mono transition-all">
                                 statuscode.in/s/{config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}
                             </div>
                         </div>
                     )}
 
                     {/* --- PREVIEW CONTENT --- */}
-                    <div className={`flex-1 overflow-y-auto relative custom-scrollbar font-sans selection:bg-indigo-500/30 ${t.pageBg}`}>
+                    <div className={`flex-1 overflow-y-auto relative custom-scrollbar font-sans selection:bg-indigo-500/30 ${t.pageBg} [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']`}>
 
                         {/* Global Noise Texture */}
                         <div className={`absolute inset-0 pointer-events-none z-0 mix-blend-overlay ${t.noiseOpacity}`}

@@ -31,7 +31,7 @@ export interface ThemeConfig {
 export const themes: Record<Theme, ThemeConfig> = {
     modern: {
         pageBg: "bg-zinc-950 bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.15),transparent_50%)]",
-        container: "max-w-5xl mx-auto px-6 py-20 relative z-10",
+        container: "max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 relative z-10",
 
         card: "bg-zinc-900/40 backdrop-blur-xl border border-white/10 shadow-xl ring-1 ring-black/5",
         cardHover: "hover:bg-zinc-900/60 hover:border-white/20 hover:shadow-2xl hover:scale-[1.01] transition-all duration-300",
@@ -57,7 +57,7 @@ export const themes: Record<Theme, ThemeConfig> = {
 
     minimal: {
         pageBg: "bg-black",
-        container: "max-w-4xl mx-auto px-6 py-20 relative z-10",
+        container: "max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 relative z-10",
 
         card: "bg-transparent border-b border-zinc-800",
         cardHover: "hover:bg-zinc-900/30 transition-colors duration-200",
@@ -83,7 +83,7 @@ export const themes: Record<Theme, ThemeConfig> = {
 
     brutal: {
         pageBg: "bg-[#121212] bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-800/20 via-zinc-950 to-black",
-        container: "max-w-5xl mx-auto px-6 py-20 relative z-10",
+        container: "max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20 relative z-10",
 
         card: "bg-zinc-900 border-2 border-black shadow-[4px_4px_0px_0px_rgba(255,255,255,0.1)]",
         cardHover: "hover:translate-x-[-2px] hover:translate-y-[-2px] hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.2)] transition-all duration-200",

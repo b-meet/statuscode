@@ -6,11 +6,10 @@ import BrandSettings from "./BrandSettings";
 import ThemeSelector from "./ThemeSelector";
 import LayoutSelector from "./LayoutSelector";
 import MonitorManager from "./MonitorManager";
-import PreviewSettings from "./PreviewSettings";
 
 export default function Sidebar() {
     return (
-        <aside className="w-80 border-r border-zinc-800 bg-zinc-900/50 flex flex-col shrink-0 h-full overflow-hidden">
+        <aside className="flex flex-col shrink-0 h-full overflow-hidden">
             {/* Header */}
             <div className="h-14 px-6 border-b border-zinc-800 flex items-center justify-between shrink-0">
                 <div className="font-bold text-lg bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Statuscode</div>
@@ -38,11 +37,6 @@ export default function Sidebar() {
                         <LayoutSelector />
                         <MonitorManager />
                     </div>
-
-                    <div className="border-t border-zinc-800/50" />
-
-                    {/* Section 4: Preview Controls */}
-                    <PreviewSettings />
                 </div>
             </div>
 
