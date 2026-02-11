@@ -1,16 +1,18 @@
 "use client";
 
 import React, { memo, useState } from 'react';
-import { ThemeConfig, colorPresets } from '@/lib/themes';
+import { ThemeConfig, colorPresets, ColorPreset } from '@/lib/themes';
 import { MonitorList } from './MonitorList';
 import { MonitorDetailView } from '../status-page/MonitorDetailView';
 import { StatusBanner } from './StatusBanner';
-import { Clock, ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight, Calendar } from 'lucide-react';
 import { classNames } from '@/lib/utils';
+import { MonitorData } from '@/lib/types';
+import { SiteConfig } from '@/context/EditorContext';
 
 interface RenderLayoutProps {
-    config: any;
-    selectedMonitors: any[];
+    config: SiteConfig;
+    selectedMonitors: MonitorData[];
     status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial';
     totalAvgResponse: number;
     isMobileLayout: boolean;
@@ -39,8 +41,8 @@ export const RenderLayout = memo(({
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
 
     // Resolve colors
-    const themePresets = colorPresets[config.theme] || [];
-    const activePreset = themePresets.find((p: any) => p.id === config.colorPreset) || themePresets[0];
+    const themePresets = colorPresets[config.theme as keyof typeof colorPresets] || [];
+    const activePreset = themePresets.find((p: ColorPreset) => p.id === config.colorPreset) || themePresets[0];
     const colors = activePreset?.colors;
 
     const MaintenanceBanner = config.showDummyData ? (
@@ -56,6 +58,8 @@ export const RenderLayout = memo(({
     // --- DETAIL VIEW OVERRIDE ---
     if (selectedMonitorId) {
         const monitor = selectedMonitors.find(m => String(m.id) === selectedMonitorId);
+        if (!monitor) return null;
+
         return (
             <div className="w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <MonitorDetailView

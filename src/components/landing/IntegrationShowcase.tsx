@@ -13,7 +13,7 @@ export function IntegrationShowcase() {
                             Connects with your existing tools.
                         </h2>
                         <p className="text-lg text-zinc-600 dark:text-zinc-400 mb-8 leading-relaxed">
-                            You don't need to change how you monitor uptime. Statuscode sits on top of your existing providers to give you a stunning public face.
+                            You don&apos;t need to change how you monitor uptime. Statuscode sits on top of your existing providers to give you a stunning public face.
                         </p>
 
                         <div className="grid grid-cols-2 gap-4">

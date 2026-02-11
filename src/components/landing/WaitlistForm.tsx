@@ -50,7 +50,7 @@ export function WaitlistForm() {
                         className="flex items-center gap-2 text-glaze-500 font-medium p-2"
                     >
                         <Check className="size-5" />
-                        <span>You're on the list! We'll be in touch.</span>
+                        <span>You&apos;re on the list! We&apos;ll be in touch.</span>
                     </motion.div>
                 ) : (
                     <motion.div

@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, ArrowRight } from "lucide-react";
+import { Activity } from "lucide-react";
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
-import { MonitorData } from "./StatusPageClient";
+import { MonitorData } from "@/lib/types";
 
 // --- Helpers ---
 function formatUptime(ratioString: string) {
@@ -72,7 +72,6 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
                             const isUp = monitor.status === 2;
                             const isMaintenance = monitor.status === 0;
                             const statusType = isUp ? 'up' : isMaintenance ? 'maintenance' : 'down';
-                            const hasData = !!uptime;
                             const isHovered = hoveredId === String(monitor.id);
 
                             // Determine active colors for this item
@@ -166,7 +165,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
 
                                                     {(monitor.logs && monitor.logs.length > 0) ? (
                                                         <div className="space-y-3">
-                                                            {monitor.logs.slice(0, 3).map((log: any, i: number) => (
+                                                            {monitor.logs.slice(0, 3).map((log, i: number) => (
                                                                 <div key={i} className="flex gap-3 text-sm">
                                                                     <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
                                                                     <div className="flex-1 min-w-0">

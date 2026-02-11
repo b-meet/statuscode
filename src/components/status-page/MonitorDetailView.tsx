@@ -6,7 +6,7 @@ import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock } from 'lu
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
-import { MonitorData } from './StatusPageClient';
+import { MonitorData, Log } from '@/lib/types';
 
 interface MonitorDetailViewProps {
     monitor: MonitorData;
@@ -29,8 +29,6 @@ function formatDuration(seconds: number) {
 }
 
 export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t, colors }: MonitorDetailViewProps) => {
-    if (!monitor) return null;
-
     // Dynamic Colors Helpers
     const opBase = getBaseColor(colors?.operational) || 'emerald';
     const majBase = getBaseColor(colors?.major) || 'red';
@@ -52,30 +50,30 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
     };
 
     // Helper for bars (higher opacity)
-    const getBarClass = (base: string, isHover: boolean = false) => {
-        const suffix = isHover ? '-400' : '-500/40';
-        if (base === 'white' || base === 'black') return isHover ? `bg-${base}` : `bg-${base}/40`;
-        return `bg-${base}${suffix}`;
-    };
+    // const getBarClass = ... (removed unused)
 
     const opBgLow = getLowAlphaClass(opBase);
     const majBgLow = getLowAlphaClass(majBase);
     const opText = getTextClass(opBase);
     const majText = getTextClass(majBase);
 
-    const isUp = monitor.status === 2;
-    const uptime = formatUptime(monitor.custom_uptime_ratio);
-    const avgResponse = getAverageResponseTime(monitor.response_times);
+    // and 90-day logic stays consistent within a single render cycle.
+    // eslint-disable-next-line react-hooks/purity
+    const now = useMemo(() => Date.now(), []);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const creationDate = useMemo(() => monitor.create_datetime ? new Date(monitor.create_datetime * 1000) : new Date(0), [monitor.create_datetime]);
 
     // Generate 90-day bars based on ACTUAL data and creation date
     const dayBars = useMemo(() => {
+        if (!monitor) return [];
+
         const totalDays = 90;
-        const creationDate = monitor.create_datetime ? new Date(monitor.create_datetime * 1000) : new Date(0);
 
         // Identify days with actual recorded outages from logs
         const outageDates = new Set<string>();
         if (monitor.logs) {
-            monitor.logs.forEach(log => {
+            (monitor.logs as Log[]).forEach((log) => {
                 // type 1 = Down, type 99 = Paused
                 if (log.type === 1) {
                     const date = new Date(log.datetime * 1000).toLocaleDateString();
@@ -85,7 +83,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
         }
 
         return Array.from({ length: totalDays }).map((_, i) => {
-            const timestamp = Date.now() - (totalDays - 1 - i) * 86400000;
+            const timestamp = now - (totalDays - 1 - i) * 86400000;
             const dateObj = new Date(timestamp);
             const dateStr = dateObj.toLocaleDateString();
 
@@ -93,18 +91,27 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
             const isBeforeCreation = dateObj < creationDate && dateObj.toDateString() !== creationDate.toDateString();
 
             if (isBeforeCreation) {
-                return { status: 'empty', date: dateStr };
+                return { status: 'empty', date: dateStr, height: '100%' };
             }
 
             // CRITICAL: If we have a log saying it was down this day, FORCE it down.
             if (outageDates.has(dateStr)) {
-                return { status: 'down', date: dateStr };
+                // Deterministic height for visual interest
+                const deterministicRandom = Math.abs(Math.sin(timestamp)) * 40 + 30;
+                return { status: 'down', date: dateStr, height: `${deterministicRandom}%` };
             }
 
             // Default to UP if monitored and no outage log
-            return { status: 'up', date: dateStr };
+            return { status: 'up', date: dateStr, height: '100%' };
         });
-    }, [monitor.create_datetime, monitor.logs]);
+    }, [monitor, now, creationDate]);
+
+    if (!monitor) return null;
+
+    const isUp = monitor.status === 2;
+    const uptime = formatUptime(monitor.custom_uptime_ratio);
+    const avgResponse = getAverageResponseTime(monitor.response_times);
+
 
     return (
         <motion.div
@@ -169,11 +176,9 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                         <div className="flex items-end gap-[2px] h-16 w-full opacity-80">
                             {dayBars.map((bar, i) => {
                                 let colorClass = 'bg-white/5 hover:bg-white/10';
-                                let heightStyle = '100%';
                                 let title = `${bar.date}: Not monitored yet`;
 
                                 if (bar.status === 'up') {
-                                    colorClass = `transition-all hover:opacity-100 ${getBarClass(opBase, false)} hover:${getBarClass(opBase, true)}`;
                                     // Manually fixing hover class construction since getBarClass returns full string
                                     // A simpler approach:
                                     const base = opBase === 'white' || opBase === 'black' ? opBase : `${opBase}-500`;
@@ -182,7 +187,6 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                                 } else if (bar.status === 'down') {
                                     const base = majBase === 'white' || majBase === 'black' ? majBase : `${majBase}-500`;
                                     colorClass = `bg-${base}/80 hover:bg-${base}`;
-                                    heightStyle = `${30 + Math.random() * 40}%`;
                                     title = `${bar.date}: Downtime Detected`;
                                 }
 
@@ -190,7 +194,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                                     <div
                                         key={i}
                                         className={`flex-1 rounded-sm transition-all hover:scale-y-125 hover:opacity-100 ${colorClass}`}
-                                        style={{ height: heightStyle }}
+                                        style={{ height: bar.height }}
                                         title={title}
                                     />
                                 );
@@ -203,11 +207,11 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                         <div className="flex items-center justify-between mb-6">
                             <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
                             <div className="flex items-center gap-4 text-xs font-mono">
-                                <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map(r => r.value)) : '-'}ms</span>
+                                <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
                                 <span className="text-white/40">|</span>
                                 <span className="text-white">Avg: {avgResponse}ms</span>
                                 <span className="text-white/40">|</span>
-                                <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map(r => r.value)) : '-'}ms</span>
+                                <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
                             </div>
                         </div>
                         <div className="h-48 w-full">
@@ -229,7 +233,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                     <div className={`lg:col-span-2 p-6 ${t.card} ${t.rounded}`}>
                         <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-6`}>Incident History</h3>
                         <div className="space-y-6 border-l border-white/10 ml-3 pl-6 sm:pl-8 py-2">
-                            {(monitor.logs || []).slice(0, 5).map((log: any, i: number) => (
+                            {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
                                 <div key={i} className="relative group">
                                     <div className={`absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1`} />
                                     <div className="flex flex-col gap-1">

@@ -155,7 +155,7 @@ export function LiveThemePlayground() {
 
                             {/* Uptime Visualization */}
                             <div className="space-y-6 mb-10">
-                                {['API Gateway', 'Core Database', 'CDN'].map((label, i) => (
+                                {['API Gateway', 'Core Database', 'CDN'].map((label) => (
                                     <div key={label} className="space-y-2">
                                         <div className="flex justify-between text-sm">
                                             <span className={clsx("text-base font-bold", activeTheme.font, activeTheme.header === "text-black" ? "text-zinc-700" : "text-white")}>{label}</span>

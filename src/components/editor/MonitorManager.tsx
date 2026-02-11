@@ -3,7 +3,7 @@
 import { useEditor } from "@/context/EditorContext";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, Plus, CheckCircle2, XCircle, AlertCircle, Activity, ChevronRight, Activity as ActivityIcon } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronRight, Activity as ActivityIcon } from "lucide-react";
 
 interface Monitor {
     id: number;
@@ -31,8 +31,8 @@ export default function MonitorManager() {
 
         try {
             await fetchMonitors();
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "An unknown error occurred");
         } finally {
             setFetching(false);
         }

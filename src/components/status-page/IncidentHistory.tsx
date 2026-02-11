@@ -4,16 +4,14 @@ import { memo, useState } from "react";
 import { CheckCircle2, ChevronDown, ChevronUp, Clock } from "lucide-react";
 import { ThemeConfig } from "@/lib/themes";
 
-interface Log {
-    type: number;
-    datetime: number;
-    duration: number;
-    reason: any;
+import { Log } from "@/lib/types";
+
+interface IncidentLog extends Log {
     monitorName: string;
 }
 
 interface IncidentHistoryProps {
-    logs: Log[];
+    logs: IncidentLog[];
     theme: ThemeConfig;
 }
 
@@ -54,7 +52,7 @@ export const IncidentHistory = memo(({ logs, theme }: IncidentHistoryProps) => {
                                     </div>
                                     <p className={`text-xs ${theme.mutedText} leading-relaxed`}>
                                         {log.type === 1
-                                            ? `Service unavailable. Error code: ${log.reason.code || 'TIMEOUT'}.`
+                                            ? `Service unavailable. Error code: ${log.reason?.code || 'TIMEOUT'}.`
                                             : `Service recovered after ${Math.round(log.duration / 60)}m.`}
                                     </p>
                                 </div>

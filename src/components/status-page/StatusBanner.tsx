@@ -9,7 +9,6 @@ interface StatusBannerProps {
     status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial';
     totalAvgResponse: number;
     theme: ThemeConfig;
-    uptime?: number;
     colors?: StatusColors;
 }
 
@@ -34,7 +33,7 @@ interface StatusBannerProps {
 // bg-zinc-500/5 ring-zinc-500/20 bg-zinc-500/10 text-zinc-500 ring-zinc-500/50 from-zinc-500
 // bg-stone-500/5 ring-stone-500/20 bg-stone-500/10 text-stone-500 ring-stone-500/50 from-stone-500
 
-export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, uptime = 99.9, colors }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors }: StatusBannerProps) => {
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
     const isMaintenance = status === 'maintenance';

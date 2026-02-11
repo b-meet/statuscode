@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, memo, useEffect, useMemo } from "react";
-import { Clock, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { themes, ThemeConfig, colorPresets, StatusColors } from "@/lib/themes";
 import { StatusBanner } from "./StatusBanner";
 import { MonitorList } from "./MonitorList";
@@ -9,18 +9,7 @@ import { IncidentHistory } from "./IncidentHistory";
 import { Maintenance } from "./Maintenance";
 import { MonitorDetailView } from "./MonitorDetailView";
 
-// --- Types ---
-export interface MonitorData {
-    id: number;
-    friendly_name: string;
-    url: string;
-    status: number;
-    custom_uptime_ratio: string;
-    response_times?: { datetime: number; value: number }[];
-    logs?: { type: number; datetime: number; duration: number; reason: any }[];
-    interval?: number; // Add interval property for Detail View
-    create_datetime?: number;
-}
+import { MonitorData } from "@/lib/types";
 
 interface RenderLayoutProps {
     layout: string;
@@ -53,6 +42,14 @@ const RenderLayout = memo(({
     selectedMonitorId,
     setSelectedMonitorId
 }: RenderLayoutProps) => {
+    // History is only used in overlay currently to match Editor
+    const historyLogs = useMemo(() =>
+        monitors.some(m => m.logs && m.logs.length > 0)
+            ? monitors.flatMap(m => m.logs?.map(l => ({ ...l, monitorName: m.friendly_name })) || [])
+                .sort((a, b) => b.datetime - a.datetime)
+            : [],
+        [monitors]);
+
 
     // --- DETAIL VIEW OVERRIDE ---
     if (selectedMonitorId) {
@@ -79,15 +76,11 @@ const RenderLayout = memo(({
     const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} />;
     const maintenance = <Maintenance theme={t} />;
 
-    // History is only used in overlay currently to match Editor
+
     const history = (
         <div className="relative">
             <IncidentHistory
-                logs={monitors.some(m => m.logs && m.logs.length > 0)
-                    ? monitors.flatMap(m => m.logs?.map(l => ({ ...l, monitorName: m.friendly_name })) || [])
-                        .sort((a, b) => b.datetime - a.datetime)
-                    : []
-                }
+                logs={historyLogs}
                 theme={t}
             />
         </div>
@@ -202,7 +195,7 @@ export default function StatusPageClient({
 
     // Resolve Colors
     const themePresets = colorPresets[themeCode as keyof typeof colorPresets] || colorPresets.modern;
-    const activePreset = themePresets.find((p: any) => p.id === colorPreset) || themePresets[0];
+    const activePreset = themePresets.find((p) => p.id === colorPreset) || themePresets[0];
     const colors = activePreset?.colors;
 
     // Polling Effect
@@ -251,7 +244,7 @@ export default function StatusPageClient({
     }, [monitors, downMonitors, maintenanceMonitors]);
 
     const totalAvgResponse = useMemo(() => Math.round(
-        monitors.reduce((acc, m) => acc + getAverageResponseTime(m.response_times), 0) / (monitors.length || 1)
+        monitors.reduce((acc: number, m) => acc + getAverageResponseTime(m.response_times), 0) / (monitors.length || 1)
     ), [monitors]);
 
     return (

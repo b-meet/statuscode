@@ -6,10 +6,11 @@ import { Activity } from 'lucide-react';
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
+import { MonitorData, Log } from '@/lib/types';
 
 // Define explicit types used in the component
 interface MonitorListProps {
-    monitors: any[];
+    monitors: MonitorData[];
     setSelectedMonitorId: (id: string | null) => void;
     primaryColor: string;
     theme: ThemeConfig;
@@ -48,7 +49,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
             {monitors.length > 0 ? (
                 <div className="space-y-4">
                     <AnimatePresence mode="popLayout">
-                        {monitors.map((monitor, index) => {
+                        {monitors.map((monitor) => {
                             const uptime = formatUptime(monitor.custom_uptime_ratio);
                             const avgResponse = getAverageResponseTime(monitor.response_times);
                             const isUp = monitor.status === 2;
@@ -153,7 +154,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
 
                                                     {(monitor.logs && monitor.logs.length > 0) ? (
                                                         <div className="space-y-3">
-                                                            {monitor.logs.slice(0, 3).map((log: any, i: number) => (
+                                                            {monitor.logs.slice(0, 3).map((log: Log, i: number) => (
                                                                 <div key={i} className="flex gap-3 text-sm">
                                                                     <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
                                                                     <div className="flex-1 min-w-0">

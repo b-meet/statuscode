@@ -57,7 +57,7 @@ export function Hero() {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="text-lg md:text-xl text-zinc-600 dark:text-zinc-400 max-w-3xl mb-10 leading-relaxed relative z-30"
                 >
-                    Your brand isn’t basic. Your status page shouldn't be either. Statuscode is the designer layer that sits on top of your existing uptime monitors, turning clinical data into a premium brand experience.
+                    Your brand isn&apos;t basic. Your status page shouldn&apos;t be either. Statuscode is the designer layer that sits on top of your existing uptime monitors, turning clinical data into a premium brand experience.
                 </motion.p>
 
                 {/* Form & Actions */}
@@ -106,15 +106,20 @@ export function Hero() {
 
                             {/* Mock Chart */}
                             <div className="flex items-end gap-1 h-32 mt-4 z-10">
-                                {[...Array(24)].map((_, i) => (
-                                    <div
-                                        key={i}
-                                        className="flex-1 bg-glaze-500/20 dark:bg-glaze-500/20 rounded-t-sm"
-                                        style={{ height: `${30 + Math.random() * 70}%` }}
-                                    >
-                                        <div className="w-full bg-glaze-500 dark:bg-glaze-500 rounded-t-sm opacity-80" style={{ height: '100%' }} />
-                                    </div>
-                                ))}
+                                {[...Array(24)].map((_, i) => {
+                                    // Use i to get a deterministic "random" height for the mock chart
+                                    // to avoid calling Math.random() directly in render
+                                    const h = 30 + (Math.abs(Math.sin(i * 1.5)) * 70);
+                                    return (
+                                        <div
+                                            key={i}
+                                            className="flex-1 bg-glaze-500/20 dark:bg-glaze-500/20 rounded-t-sm"
+                                            style={{ height: `${h}%` }}
+                                        >
+                                            <div className="w-full bg-glaze-500 dark:bg-glaze-500 rounded-t-sm opacity-80" style={{ height: '100%' }} />
+                                        </div>
+                                    );
+                                })}
                             </div>
                             {/* Glow effect */}
                             <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-glaze-500/10 to-transparent pointer-events-none" />

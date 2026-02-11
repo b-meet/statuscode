@@ -3,9 +3,8 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useEditor } from "@/context/EditorContext";
+import { ChevronRight, Check, PaintBucket } from "lucide-react";
 import { colorPresets, ColorPreset } from "@/lib/themes";
-import { Check, ChevronRight, PaintBucket } from "lucide-react";
-import { classNames } from "@/lib/utils";
 
 export default function ColorPresetSelector() {
     const { config, updateConfig } = useEditor();
@@ -47,14 +46,6 @@ export default function ColorPresetSelector() {
     }, []);
 
     // Helper to extract a bg color from class string for preview
-    // e.g. "bg-emerald-500/10 ..." -> "bg-emerald-500"
-    const getPreviewClass = (fullClass: string) => {
-        const match = fullClass.match(/bg-([a-z]+)-500/);
-        if (match) return `bg-${match[1]}-500`;
-        const textMatch = fullClass.match(/text-([a-z]+)-500/);
-        if (textMatch) return `bg-${textMatch[1]}-500`;
-        return 'bg-zinc-500';
-    };
 
     // Better preview: just use the raw colors from the class string?
     // "bg-emerald-500/10"
@@ -63,47 +54,6 @@ export default function ColorPresetSelector() {
     // Let's try to extract the base color name and map it to a hex or standard Tailwind class.
 
     const PalettePreview = ({ preset }: { preset: ColorPreset }) => {
-        // Extract main color from 'operational'
-        // format: "bg-emerald-500/10" or "text-emerald-500"
-        let mainColor = "bg-zinc-500";
-        let subColor = "bg-zinc-700";
-
-        // Regex to find "bg-{color}-500" or "text-{color}-500"
-        // We look for color names between '-' and '-'.
-        const opColor = preset.colors.operational;
-        const mainMatch = opColor.match(/(?:bg|text)-([a-z]+)(?:-\d+)?/);
-
-        if (mainMatch) {
-            // Reconstruct a simplified class for the dot
-            // e.g. "emerald" -> "bg-emerald-500"
-            const colorName = mainMatch[1];
-            mainColor = `bg-${colorName}-500`;
-
-            // Try to find a secondary color from 'partial'?
-            const partialColor = preset.colors.partial;
-            const subMatch = partialColor.match(/(?:bg|text)-([a-z]+)(?:-\d+)?/);
-            if (subMatch) {
-                subColor = `bg-${subMatch[1]}-500`;
-            }
-        }
-
-        // Tailwind JIT might not pick these up if dynamic.
-        // But since we are using standard colors, maybe just use style={{ backgroundColor: ... }}?
-        // No, we don't have the hex map handy in this file (it's implicit in Tailwind).
-        // Let's use the actual `name` to guess?
-        // Actually, for the *sidebar preview*, small dots using the classes from the preset string (e.g. bg-emerald-500) 
-        // will work IF those classes are in the preset string itself!
-        // The preset strings have `bg-emerald-500/10`. We need `bg-emerald-500`.
-        // If `bg-emerald-500` isn't used elsewhere, JIT prunes it. 
-        // `bg-emerald-500/10` is NOT `bg-emerald-500` + opacity. It's a unique class.
-
-        // fallback: use hardcoded styles or just circles with the actual class but w/o /10?
-        // If I use `className={preset.colors.operational.split(' ')[0]}` it might be `bg-emerald-500/10`.
-        // That's very faint for a dot.
-
-        // Solution: Just show the names. Or simple colored squares using generic hexes?
-        // I'll trust standard colors are available or just use inline styles with a small map.
-
         const colorMap: Record<string, string> = {
             emerald: '#10b981', green: '#22c55e', lime: '#84cc16', teal: '#14b8a6',
             cyan: '#06b6d4', sky: '#0ea5e9', blue: '#3b82f6', indigo: '#6366f1',

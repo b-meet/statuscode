@@ -6,7 +6,7 @@ export function createClient() {
 
     if (!supabaseUrl || !supabaseAnonKey) {
         // Return a mock or handle build-time execution
-        if (typeof window === 'undefined') return {} as any;
+        if (typeof window === 'undefined') return {} as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
 
     return createBrowserClient(

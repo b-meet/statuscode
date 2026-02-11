@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useEditor, PreviewScenario } from "@/context/EditorContext";
-import { Eye, CheckCircle2, AlertCircle, XCircle, Clock, Construction, History, Activity, ChevronRight, Check } from "lucide-react";
+import { Eye, CheckCircle2, AlertCircle, XCircle, Clock, Construction, Activity, ChevronRight, Check, LucideIcon } from "lucide-react";
 
-const scenarios: { id: PreviewScenario; label: string; icon: any; color: string }[] = [
+const scenarios: { id: PreviewScenario; label: string; icon: LucideIcon; color: string }[] = [
     { id: 'all_good', label: 'Everything is working fine', icon: CheckCircle2, color: 'text-emerald-500' },
     { id: 'under_50_down', label: '< 50% of services are down', icon: AlertCircle, color: 'text-amber-500' },
     { id: 'over_50_down', label: '> 50% of services are down', icon: XCircle, color: 'text-rose-500' },

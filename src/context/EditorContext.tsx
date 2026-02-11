@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
+import { MonitorData } from '@/lib/types';
 
 // --- Types ---
 export type Theme = 'modern' | 'minimal' | 'brutal';
@@ -38,7 +39,7 @@ interface EditorContextType {
     saveStatus: 'idle' | 'saving' | 'saved' | 'error';
     setSaveStatus: (status: 'idle' | 'saving' | 'saved' | 'error') => void;
     loading: boolean;
-    monitorsData: any[]; // Store full monitor objects
+    monitorsData: MonitorData[]; // Store full monitor objects
     fetchMonitors: () => Promise<void>;
     isRealDataEnabled: boolean;
     toggleRealData: () => void;
@@ -68,10 +69,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [config, setConfig] = useState<SiteConfig>(defaultConfig);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
-    const [monitorsData, setMonitorsData] = useState<any[]>([]);
-    const supabase = createClient();
+    const [monitorsData, setMonitorsData] = useState<MonitorData[]>([]);
+    const supabase = React.useMemo(() => createClient(), []);
 
-    const fetchMonitors = async () => {
+    const fetchMonitors = useCallback(async () => {
         if (!config.apiKey) return;
         try {
             const res = await fetch("/api/uptimerobot/monitors", {
@@ -94,7 +95,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         } catch (error) {
             console.error("Failed to fetch monitors:", error);
         }
-    };
+    }, [config.apiKey]);
 
     // Fetch initial data
     useEffect(() => {
@@ -103,7 +104,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return; // Should handle auth redirect elsewhere
 
-                const { data: site, error } = await supabase
+                const { data: site } = await supabase
                     .from('sites')
                     .select('*')
                     .eq('user_id', user.id)
@@ -148,7 +149,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             }
         }
         fetchSite();
-    }, []);
+    }, [supabase]);
 
     const updateConfig = (updates: Partial<SiteConfig>) => {
         setConfig(prev => {
@@ -230,7 +231,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 2000); // 2 second debounce
 
         return () => clearTimeout(timeout);
-    }, [config, loading]);
+    }, [config, loading, supabase]);
 
     // --- Real-time Data Logic ---
     const [isRealDataEnabled, setIsRealDataEnabled] = useState(false);
@@ -245,7 +246,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [isRealDataEnabled, config.apiKey]);
+    }, [isRealDataEnabled, config.apiKey, fetchMonitors]);
 
     const toggleRealData = () => {
         setIsRealDataEnabled(prev => {

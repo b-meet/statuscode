@@ -1,7 +1,7 @@
 "use client";
 
 import React, { memo } from 'react';
-import { CheckCircle2, AlertTriangle, ArrowRight, Construction } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Construction } from 'lucide-react';
 import { ThemeConfig, StatusColors } from '@/lib/themes';
 import { classNames } from '@/lib/utils';
 

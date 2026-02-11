@@ -9,7 +9,7 @@ export async function createClient() {
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
     if (!supabaseUrl || !supabaseAnonKey) {
-        return {} as any;
+        return {} as any; // eslint-disable-line @typescript-eslint/no-explicit-any
     }
 
     return createServerClient(

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 interface SparklineProps {
@@ -11,7 +11,7 @@ interface SparklineProps {
     interactive?: boolean;
 }
 
-export const Sparkline = ({ data, color = "#6366f1", width = 120, height = 40, interactive = false }: SparklineProps) => {
+export const Sparkline = React.memo(({ data, color = "#6366f1", width = 120, height = 40, interactive = false }: SparklineProps) => {
     const [hoveredData, setHoveredData] = useState<{ value: number; datetime?: number; x: number; y: number } | null>(null);
     const [tooltipPos, setTooltipPos] = useState({ x: 0, y: 0 });
     const svgRef = useRef<SVGSVGElement>(null);
@@ -121,7 +121,7 @@ export const Sparkline = ({ data, color = "#6366f1", width = 120, height = 40, i
             )}
         </>
     );
-};
+}, (prev, next) => prev.data === next.data && prev.color === next.color && prev.width === next.width && prev.height === next.height && prev.interactive === next.interactive);
 
 // Simple Portal Tooltip component
 const Tooltip = ({ x, y, value, datetime }: { x: number, y: number, value: number, datetime?: number }) => {
@@ -143,5 +143,6 @@ const Tooltip = ({ x, y, value, datetime }: { x: number, y: number, value: numbe
         document.body
     );
 };
+
 
 Sparkline.displayName = 'Sparkline';

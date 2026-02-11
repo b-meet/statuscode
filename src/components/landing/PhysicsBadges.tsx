@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Matter, { Engine, Render, World, Bodies, Composite, Mouse, MouseConstraint, Runner, Events, Body } from "matter-js";
+import Matter from "matter-js";
 
 const BADGES = [
     { text: "All Systems Operational", status: "success", w: 220, h: 40 },
@@ -91,7 +91,7 @@ export function PhysicsBadges() {
         const badgeBodies = BADGES.map((badge, i) => {
             const isLeft = i % 2 === 0;
             const xOffset = width * 0.15;
-            let startX = isLeft ? xOffset : width - xOffset;
+            const startX = isLeft ? xOffset : width - xOffset;
             const startY = height * (0.25 + (i * 0.15));
 
             return Bodies.rectangle(startX, startY, badge.w, badge.h, {
@@ -122,7 +122,7 @@ export function PhysicsBadges() {
                 body.torque -= body.angle * uprightStiffness;
 
                 // Also dampen angular velocity specifically to stop endless oscillation
-                Body.setAngularVelocity(body, body.angularVelocity * 0.95);
+                Matter.Body.setAngularVelocity(body, body.angularVelocity * 0.95);
             });
         });
 
@@ -138,8 +138,10 @@ export function PhysicsBadges() {
         });
 
         // Fix scroll issue: Remove Matter.js interactions that block scrolling
-        (mouseConstraint.mouse as any).element.removeEventListener("mousewheel", (mouseConstraint.mouse as any).mousewheel);
-        (mouseConstraint.mouse as any).element.removeEventListener("DOMMouseScroll", (mouseConstraint.mouse as any).mousewheel);
+        // @ts-expect-error - Matter.js mouse object has undocumented internal properties like 'element' and 'mousewheel'
+        (mouseConstraint.mouse as { element: HTMLElement }).element.removeEventListener("mousewheel", (mouseConstraint.mouse as { mousewheel: unknown }).mousewheel);
+        // @ts-expect-error - Matter.js mouse object has undocumented internal properties like 'element' and 'mousewheel'
+        (mouseConstraint.mouse as { element: HTMLElement }).element.removeEventListener("DOMMouseScroll", (mouseConstraint.mouse as { mousewheel: unknown }).mousewheel);
 
         // Important: Reset touch-action on the container so page scrolling works on mobile/touch
         // Matter.js sets this to 'none' by default. 'pan-y' allows vertical scrolling.

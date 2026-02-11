@@ -18,10 +18,10 @@ export function ProblemSolution() {
                             The Problem
                         </h2>
                         <h3 className="text-3xl md:text-4xl font-bold text-zinc-900 dark:text-white mb-6">
-                            Stop settling for "Standard".
+                            Stop settling for &quot;Standard&quot;.
                         </h3>
                         <p className="text-lg text-zinc-600 dark:text-zinc-400 leading-relaxed">
-                            Most status pages are gray, static, and clinical. They tell your users when things are down, but they don't reflect the quality of your product.
+                            Most status pages are gray, static, and clinical. They tell your users when things are down, but they don&apos;t reflect the quality of your product.
                         </p>
                     </motion.div>
 
@@ -37,7 +37,7 @@ export function ProblemSolution() {
                             The Designer Layer
                         </h2>
                         <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
-                            Statuscode doesn't replace your monitoring; it elevates it.
+                            Statuscode doesn&apos;t replace your monitoring; it elevates it.
                         </h3>
                         <p className="text-base text-zinc-600 dark:text-zinc-400 leading-relaxed mb-6">
                             Keep using UptimeRobot, Better Stack, Cronitor, Checkly, or Instatus for the data—use Statuscode to make it beautiful.
