@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Activity, ArrowUpRight } from "lucide-react";
-import { ThemeConfig } from "@/lib/themes";
-import { Sparkline } from "./Sparkline";
+import { Activity, ArrowRight } from "lucide-react";
+import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
+import { Sparkline } from './Sparkline';
 import { MonitorData } from "./StatusPageClient";
 
 // --- Helpers ---
@@ -28,10 +28,34 @@ interface MonitorListProps {
     monitors: MonitorData[];
     theme: ThemeConfig;
     setSelectedMonitorId: (id: string | null) => void;
+    colors?: StatusColors;
 }
 
-export function MonitorList({ monitors, theme: t, setSelectedMonitorId }: MonitorListProps) {
+export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }: MonitorListProps) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
+
+    // Dynamic Colors Helpers
+    const opBase = getBaseColor(colors?.operational) || 'emerald';
+    const maintBase = getBaseColor(colors?.maintenance) || 'blue';
+    const downBase = getBaseColor(colors?.major) || 'red';
+
+    const opHex = getThemeColorHex(opBase);
+    const maintHex = getThemeColorHex(maintBase);
+    const downHex = getThemeColorHex(downBase);
+
+    // Helper to get tailwind class safe color
+    const getColorClass = (base: string) => {
+        if (base === 'white' || base === 'black') return `bg-${base}`;
+        return `bg-${base}-500`;
+    };
+
+    const getTextClass = (base: string) => {
+        if (base === 'white' || base === 'black') return `text-${base}`;
+        // For standard colors, usually -400 looks best on dark bg, -500 on light. 
+        // Assuming dark mode mostly for these themes, or relying on opacity.
+        // Let's stick to -400 for text to match the 'emerald-400' default.
+        return `text-${base}-400`;
+    };
 
     return (
         <div className="space-y-6">
@@ -50,6 +74,12 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId }: Monito
                             const statusType = isUp ? 'up' : isMaintenance ? 'maintenance' : 'down';
                             const hasData = !!uptime;
                             const isHovered = hoveredId === String(monitor.id);
+
+                            // Determine active colors for this item
+                            const activeBase = isUp ? opBase : isMaintenance ? maintBase : downBase;
+                            const activeHex = isUp ? opHex : isMaintenance ? maintHex : downHex;
+                            const activeBgClass = getColorClass(activeBase);
+                            const activeTextClass = getTextClass(activeBase);
 
                             return (
                                 <motion.div
@@ -72,8 +102,8 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId }: Monito
                                         {/* Status & Info */}
                                         <div className="flex items-start gap-5 min-w-[200px]">
                                             <div className="relative mt-1.5 flex-shrink-0">
-                                                <div className={`w-3 h-3 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : isMaintenance ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
-                                                <div className={`absolute inset-0 w-3 h-3 rounded-full animate-ping opacity-20 ${isUp ? 'bg-emerald-500' : isMaintenance ? 'bg-blue-500' : 'bg-red-500'}`} />
+                                                <div className={`w-3 h-3 rounded-full ${activeBgClass}`} style={{ boxShadow: `0 0 10px ${activeHex}` }} />
+                                                <div className={`absolute inset-0 w-3 h-3 rounded-full animate-ping opacity-20 ${activeBgClass}`} />
                                             </div>
                                             <div>
                                                 <h4 className={`text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading}`}>{monitor.friendly_name}</h4>
@@ -88,7 +118,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId }: Monito
 
                                             {/* Sparkline */}
                                             <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                                                <Sparkline data={monitor.response_times || []} color={isUp ? "#10b981" : isMaintenance ? "#3b82f6" : "#ef4444"} />
+                                                <Sparkline data={monitor.response_times || []} color={activeHex} />
                                             </div>
 
                                             {/* Stats */}
@@ -99,12 +129,12 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId }: Monito
                                                 </div>
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
-                                                    <div className={`font-mono text-sm font-bold ${parseFloat(uptime?.day || '0') === 100 ? 'text-emerald-400' : uptime ? 'text-yellow-400' : 'text-zinc-600'}`}>{uptime ? `${uptime.day}%` : '-'}</div>
+                                                    <div className={`font-mono text-sm font-bold ${parseFloat(uptime?.day || '0') === 100 ? activeTextClass : uptime ? 'text-yellow-400' : 'text-zinc-600'}`}>{uptime ? `${uptime.day}%` : '-'}</div>
                                                 </div>
                                             </div>
 
                                             {/* Badge */}
-                                            <div className={t.statusBadge(statusType).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
+                                            <div className={t.statusBadge(statusType, colors).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
                                                 {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
                                             </div>
                                         </div>
@@ -172,6 +202,6 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId }: Monito
                     <p className={`${t.mutedText} text-sm`}>No monitors being tracked.</p>
                 </div>
             )}
-        </div>
+        </div >
     );
 }

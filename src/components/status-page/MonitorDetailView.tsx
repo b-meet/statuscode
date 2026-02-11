@@ -3,7 +3,7 @@
 import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock } from 'lucide-react';
-import { ThemeConfig } from '@/lib/themes';
+import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
 import { MonitorData } from './StatusPageClient';
@@ -12,6 +12,7 @@ interface MonitorDetailViewProps {
     monitor: MonitorData;
     setSelectedMonitorId: (id: string | null) => void;
     theme: ThemeConfig;
+    colors?: StatusColors;
 }
 
 // Helper to format duration
@@ -27,8 +28,40 @@ function formatDuration(seconds: number) {
     return `${minutes} mins`;
 }
 
-export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t }: MonitorDetailViewProps) => {
+export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t, colors }: MonitorDetailViewProps) => {
     if (!monitor) return null;
+
+    // Dynamic Colors Helpers
+    const opBase = getBaseColor(colors?.operational) || 'emerald';
+    const majBase = getBaseColor(colors?.major) || 'red';
+    // const maintBase = getBaseColor(colors?.maintenance) || 'blue';
+
+    const opHex = getThemeColorHex(opBase);
+    // const majHex = getThemeColorHex(majBase);
+
+    // Helper for subtle backgrounds
+    const getLowAlphaClass = (base: string) => {
+        if (base === 'white' || base === 'black') return `bg-${base}/10`;
+        return `bg-${base}-500/10`;
+    };
+
+    // Helper for text
+    const getTextClass = (base: string) => {
+        if (base === 'white' || base === 'black') return `text-${base}`;
+        return `text-${base}-400`;
+    };
+
+    // Helper for bars (higher opacity)
+    const getBarClass = (base: string, isHover: boolean = false) => {
+        const suffix = isHover ? '-400' : '-500/40';
+        if (base === 'white' || base === 'black') return isHover ? `bg-${base}` : `bg-${base}/40`;
+        return `bg-${base}${suffix}`;
+    };
+
+    const opBgLow = getLowAlphaClass(opBase);
+    const majBgLow = getLowAlphaClass(majBase);
+    const opText = getTextClass(opBase);
+    const majText = getTextClass(majBase);
 
     const isUp = monitor.status === 2;
     const uptime = formatUptime(monitor.custom_uptime_ratio);
@@ -57,7 +90,6 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
             const dateStr = dateObj.toLocaleDateString();
 
             // Check if this date is before the monitor was created
-            // We compare only the date part to avoid time issues, effectively 00:00:00
             const isBeforeCreation = dateObj < creationDate && dateObj.toDateString() !== creationDate.toDateString();
 
             if (isBeforeCreation) {
@@ -94,7 +126,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
             {/* Service Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
                 <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${isUp ? 'bg-emerald-500/10 text-emerald-400' : 'bg-red-500/10 text-red-500'} ring-1 ring-white/5`}>
+                    <div className={`p-3 rounded-xl ${isUp ? `${opBgLow} ${opText}` : `${majBgLow} ${majText}`} ring-1 ring-white/5`}>
                         {isUp ? <CheckCircle2 className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
                     </div>
                     <div>
@@ -112,9 +144,12 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <div className={`px-4 py-2 ${t.rounded} border ${isUp ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-500'} font-medium text-sm flex items-center gap-2`}>
-                        <div className={`w-2 h-2 rounded-full ${isUp ? 'bg-emerald-500 animate-pulse' : 'bg-red-500 animate-pulse'}`} />
-                        {isUp ? 'Operational' : 'Major Outage'}
+                    {/* Status Badge */}
+                    <div className={t.statusBadge(
+                        monitor.status === 2 ? 'up' : (monitor.status === 0 ? 'maintenance' : 'down'),
+                        colors
+                    )}>
+                        {monitor.status === 2 ? 'Operational' : (monitor.status === 0 ? 'Maintenance' : 'Downtime')}
                     </div>
                 </div>
             </div>
@@ -129,7 +164,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                     <div className={`p-6 ${t.card} ${t.rounded}`}>
                         <div className="flex items-center justify-between mb-6">
                             <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>90-Day Uptime</h3>
-                            <span className="text-emerald-400 text-sm font-mono font-bold">{uptime?.month || '99.9'}%</span>
+                            <span className={`${opText} text-sm font-mono font-bold`}>{uptime?.month || '99.9'}%</span>
                         </div>
                         <div className="flex items-end gap-[2px] h-16 w-full opacity-80">
                             {dayBars.map((bar, i) => {
@@ -138,11 +173,16 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                                 let title = `${bar.date}: Not monitored yet`;
 
                                 if (bar.status === 'up') {
-                                    colorClass = 'bg-emerald-500/40 hover:bg-emerald-400';
+                                    colorClass = `transition-all hover:opacity-100 ${getBarClass(opBase, false)} hover:${getBarClass(opBase, true)}`;
+                                    // Manually fixing hover class construction since getBarClass returns full string
+                                    // A simpler approach:
+                                    const base = opBase === 'white' || opBase === 'black' ? opBase : `${opBase}-500`;
+                                    colorClass = `bg-${base}/40 hover:bg-${base}`;
                                     title = `${bar.date}: 100% Uptime`;
                                 } else if (bar.status === 'down') {
-                                    colorClass = 'bg-red-500/80 hover:bg-red-500';
-                                    heightStyle = `${30 + Math.random() * 40}%`; // Keep the variation for visual interest on down bars
+                                    const base = majBase === 'white' || majBase === 'black' ? majBase : `${majBase}-500`;
+                                    colorClass = `bg-${base}/80 hover:bg-${base}`;
+                                    heightStyle = `${30 + Math.random() * 40}%`;
                                     title = `${bar.date}: Downtime Detected`;
                                 }
 
@@ -163,7 +203,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                         <div className="flex items-center justify-between mb-6">
                             <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
                             <div className="flex items-center gap-4 text-xs font-mono">
-                                <span className="text-emerald-400">Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map(r => r.value)) : '-'}ms</span>
+                                <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map(r => r.value)) : '-'}ms</span>
                                 <span className="text-white/40">|</span>
                                 <span className="text-white">Avg: {avgResponse}ms</span>
                                 <span className="text-white/40">|</span>
@@ -172,8 +212,8 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                         </div>
                         <div className="h-48 w-full">
                             <Sparkline
-                                data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)} // Mock extended data for smoother look or use actual if enough
-                                color="#6366f1"
+                                data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
+                                color={opHex}
                                 width={1200}
                                 height={200}
                                 interactive={true}
@@ -240,14 +280,17 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                                 { label: '7 Days', val: uptime?.week },
                                 { label: '30 Days', val: uptime?.month },
                                 { label: '90 Days', val: uptime?.month }
-                            ].map((stat, i) => (
-                                <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
-                                    <span className="text-sm text-white/60">{stat.label}</span>
-                                    <span className={`font-mono text-sm font-bold ${stat.val && parseFloat(stat.val) === 100 ? 'text-emerald-400' : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                        {stat.val ? `${stat.val}%` : '-'}
-                                    </span>
-                                </div>
-                            ))}
+                            ].map((stat, i) => {
+                                const is100 = stat.val && parseFloat(stat.val) === 100;
+                                return (
+                                    <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                                        <span className="text-sm text-white/60">{stat.label}</span>
+                                        <span className={`font-mono text-sm font-bold ${is100 ? opText : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                            {stat.val ? `${stat.val}%` : '-'}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </div>

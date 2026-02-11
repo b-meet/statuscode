@@ -24,6 +24,7 @@ export interface SiteConfig {
     logoUrl: string;
     theme: Theme;
     layout: Layout;
+    colorPreset: string; // New field
     primaryColor: string; // Hex code
     monitors: string[]; // List of Monitor IDs
     apiKey: string; // UptimeRobot API Key (mask in UI)
@@ -52,6 +53,7 @@ const defaultConfig: SiteConfig = {
     logoUrl: '',
     theme: 'modern',
     layout: 'layout1',
+    colorPreset: 'default', // Default preset
     primaryColor: '#6366f1', // Indigo-500
     monitors: [],
     apiKey: '',
@@ -116,6 +118,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         logoUrl: site.logo_url || defaultConfig.logoUrl,
                         theme: site.theme_config?.theme || defaultConfig.theme,
                         layout: site.theme_config?.layout || defaultConfig.layout,
+                        colorPreset: site.theme_config?.colorPreset || defaultConfig.colorPreset, // Load it
                         primaryColor: site.theme_config?.primaryColor || defaultConfig.primaryColor,
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
@@ -180,6 +183,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     theme_config: {
                         theme: config.theme,
                         layout: config.layout,
+                        colorPreset: config.colorPreset, // Save it
                         primaryColor: config.primaryColor
                     },
                     // Automatically update subdomain based on brand name (slugified)

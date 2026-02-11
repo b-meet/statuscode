@@ -2,7 +2,7 @@
 
 import { useState, memo, useEffect, useMemo } from "react";
 import { Clock, ArrowRight } from "lucide-react";
-import { themes, ThemeConfig } from "@/lib/themes";
+import { themes, ThemeConfig, colorPresets, StatusColors } from "@/lib/themes";
 import { StatusBanner } from "./StatusBanner";
 import { MonitorList } from "./MonitorList";
 import { IncidentHistory } from "./IncidentHistory";
@@ -27,6 +27,7 @@ interface RenderLayoutProps {
     showHistoryOverlay: boolean;
     setShowHistoryOverlay: (show: boolean) => void;
     theme: ThemeConfig;
+    colors?: StatusColors;
     header: React.ReactNode;
     maintenanceBanner: React.ReactNode;
     // Data props
@@ -43,6 +44,7 @@ const RenderLayout = memo(({
     showHistoryOverlay,
     setShowHistoryOverlay,
     theme: t,
+    colors,
     header,
     maintenanceBanner,
     monitors,
@@ -67,13 +69,14 @@ const RenderLayout = memo(({
                     monitor={monitor}
                     setSelectedMonitorId={setSelectedMonitorId}
                     theme={t}
+                    colors={colors}
                 />
             </div>
         );
     }
 
-    const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} />;
-    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} />;
+    const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} colors={colors} />;
+    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} />;
     const maintenance = <Maintenance theme={t} />;
 
     // History is only used in overlay currently to match Editor
@@ -168,6 +171,7 @@ RenderLayout.displayName = 'RenderLayout';
 interface StatusPageClientProps {
     layout: string;
     themeCode: string;
+    colorPreset?: string;
     header: React.ReactNode;
     maintenanceBanner: React.ReactNode;
     footer: React.ReactNode;
@@ -184,6 +188,7 @@ function getAverageResponseTime(times: { value: number }[] = []) {
 export default function StatusPageClient({
     layout,
     themeCode,
+    colorPreset = 'default',
     header,
     maintenanceBanner,
     footer,
@@ -194,6 +199,11 @@ export default function StatusPageClient({
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
     const [monitors, setMonitors] = useState<MonitorData[]>(initialMonitors);
     const t = themes[themeCode as keyof typeof themes] || themes.modern;
+
+    // Resolve Colors
+    const themePresets = colorPresets[themeCode as keyof typeof colorPresets] || colorPresets.modern;
+    const activePreset = themePresets.find((p: any) => p.id === colorPreset) || themePresets[0];
+    const colors = activePreset?.colors;
 
     // Polling Effect
     useEffect(() => {
@@ -251,6 +261,7 @@ export default function StatusPageClient({
                 showHistoryOverlay={showHistoryOverlay}
                 setShowHistoryOverlay={setShowHistoryOverlay}
                 theme={t}
+                colors={colors}
                 header={header}
                 maintenanceBanner={maintenanceBanner}
                 monitors={monitors}

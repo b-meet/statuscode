@@ -1,11 +1,12 @@
 "use client";
 
 import React, { memo, useState } from 'react';
-import { ThemeConfig } from '@/lib/themes';
+import { ThemeConfig, colorPresets } from '@/lib/themes';
 import { MonitorList } from './MonitorList';
 import { MonitorDetailView } from '../status-page/MonitorDetailView';
 import { StatusBanner } from './StatusBanner';
 import { Clock, ArrowRight, Calendar } from 'lucide-react';
+import { classNames } from '@/lib/utils';
 
 interface RenderLayoutProps {
     config: any;
@@ -20,8 +21,6 @@ interface RenderLayoutProps {
     History: React.ReactNode;
     Maintenance: React.ReactNode;
 }
-
-import { classNames } from '@/lib/utils';
 
 export const RenderLayout = memo(({
     config,
@@ -38,6 +37,11 @@ export const RenderLayout = memo(({
 }: RenderLayoutProps) => {
 
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
+
+    // Resolve colors
+    const themePresets = colorPresets[config.theme] || [];
+    const activePreset = themePresets.find((p: any) => p.id === config.colorPreset) || themePresets[0];
+    const colors = activePreset?.colors;
 
     const MaintenanceBanner = config.showDummyData ? (
         <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8">
@@ -58,6 +62,7 @@ export const RenderLayout = memo(({
                     monitor={monitor}
                     setSelectedMonitorId={setSelectedMonitorId}
                     theme={t}
+                    colors={colors}
                 />
             </div>
         );
@@ -69,6 +74,7 @@ export const RenderLayout = memo(({
             setSelectedMonitorId={setSelectedMonitorId}
             primaryColor={config.primaryColor}
             theme={t}
+            colors={colors}
         />
     );
 
@@ -78,6 +84,7 @@ export const RenderLayout = memo(({
             isMobileLayout={isMobileLayout}
             totalAvgResponse={totalAvgResponse}
             theme={t}
+            colors={colors}
         />
     );
 

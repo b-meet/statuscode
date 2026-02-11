@@ -2,25 +2,44 @@
 
 import React, { memo } from 'react';
 import { CheckCircle2, AlertTriangle, ArrowRight, Construction } from 'lucide-react';
-import { ThemeConfig } from '@/lib/themes';
+import { ThemeConfig, StatusColors } from '@/lib/themes';
+import { classNames } from '@/lib/utils';
 
 interface StatusBannerProps {
     status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial';
     isMobileLayout: boolean;
     totalAvgResponse: number;
     theme: ThemeConfig;
+    colors?: StatusColors;
 }
 
-import { classNames } from '@/lib/utils'; // Keep import if needed, but it was already there. 
-
-export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors }: StatusBannerProps) => {
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
     const isMaintenance = status === 'maintenance';
     const isMaintenancePartial = status === 'maintenance_partial';
     const isOperational = status === 'operational';
 
+    const getBaseColor = (type: 'operational' | 'partial' | 'major' | 'maintenance') => {
+        if (!colors) return null;
+        const classString = colors[type];
+        const match = classString.match(/(?:bg|text)-([a-z]+)(?:-\d+)?/);
+        return match ? match[1] : null;
+    };
+
+    const opColor = getBaseColor('operational') || 'emerald';
+    const partColor = getBaseColor('partial') || 'amber';
+    const majColor = getBaseColor('major') || 'red';
+    const maintColor = getBaseColor('maintenance') || 'blue';
+
     const statusBannerStyle = () => {
+        if (colors) {
+            if (isMajor) return `bg-${majColor}-500/5 ring-1 ring-${majColor}-500/20`;
+            if (isPartial) return `bg-${partColor}-500/5 ring-1 ring-${partColor}-500/20`;
+            if (isMaintenance) return `bg-${maintColor}-500/5 ring-1 ring-${maintColor}-500/20`;
+            if (isMaintenancePartial) return `bg-${partColor}-500/5 ring-1 ring-${partColor}-500/20`;
+            return `bg-${opColor}-500/5 ring-1 ring-${opColor}-500/20`;
+        }
         if (isMajor) return "bg-red-500/5 ring-1 ring-red-500/20";
         if (isPartial) return "bg-amber-500/5 ring-1 ring-amber-500/20";
         if (isMaintenance) return "bg-blue-500/5 ring-1 ring-blue-500/20";
@@ -29,6 +48,14 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
     };
 
     const statusIconColor = () => {
+        if (colors) {
+            if (isMajor) return `bg-${majColor}-500/10 text-${majColor}-500 ring-1 ring-${majColor}-500/50 shadow-[0_0_30px_rgba(var(--color-${majColor}-500),0.3)] shadow-${majColor}-500/20`;
+            if (isMajor) return `bg-${majColor}-500/10 text-${majColor}-500 ring-1 ring-${majColor}-500/50`;
+            if (isPartial) return `bg-${partColor}-500/10 text-${partColor}-500 ring-1 ring-${partColor}-500/50`;
+            if (isMaintenance) return `bg-${maintColor}-500/10 text-${maintColor}-500 ring-1 ring-${maintColor}-500/50`;
+            if (isMaintenancePartial) return `bg-${partColor}-500/10 text-${partColor}-500 ring-1 ring-${partColor}-500/50`;
+            return `bg-${opColor}-500/10 text-${opColor}-500 ring-1 ring-${opColor}-500/50`;
+        }
         if (isMajor) return "bg-red-500/10 text-red-500 ring-1 ring-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)]";
         if (isPartial) return "bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/50 shadow-[0_0_30px_rgba(245,158,11,0.3)]";
         if (isMaintenance) return "bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/50 shadow-[0_0_30px_rgba(59,130,246,0.3)]";
@@ -58,6 +85,12 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
 
     // Helper for gradient color
     const getGradientColor = () => {
+        if (colors) {
+            if (isMajor) return `from-${majColor}-500`;
+            if (isPartial || isMaintenancePartial) return `from-${partColor}-500`;
+            if (isMaintenance) return `from-${maintColor}-500`;
+            return `from-${opColor}-500`;
+        }
         if (isMajor) return "from-red-500";
         if (isPartial || isMaintenancePartial) return "from-amber-500";
         if (isMaintenance) return "from-blue-500";

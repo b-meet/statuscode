@@ -7,6 +7,7 @@ import ThemeSelector from "./ThemeSelector";
 import LayoutSelector from "./LayoutSelector";
 import MonitorManager from "./MonitorManager";
 import PreviewSelector from "./PreviewSelector";
+import ColorPresetSelector from "./ColorPresetSelector";
 
 export default function Sidebar() {
     return (
@@ -35,6 +36,7 @@ export default function Sidebar() {
                     {/* Section 2: Configuration (Theme, Layout, Monitors) */}
                     <div className="space-y-1">
                         <ThemeSelector />
+                        <ColorPresetSelector />
                         <LayoutSelector />
                         <MonitorManager />
                     </div>

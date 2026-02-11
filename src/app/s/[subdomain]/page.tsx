@@ -135,6 +135,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
     const downMonitors = monitors.filter((m) => m.status === 8 || m.status === 9);
     const isAllUp = downMonitors.length === 0;
     const themeName = (site.theme_config?.theme || 'modern') as Theme;
+    const colorPreset = site.theme_config?.colorPreset || 'default';
     const t = themes[themeName]; // Helper for current theme config
     const primaryColor = site.theme_config?.primaryColor || '#6366f1';
 
@@ -144,8 +145,6 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
     );
 
     const layout = (site.theme_config?.layout || 'layout1') as string;
-
-    // --- SECTIONS ---
 
     // --- SECTIONS ---
 
@@ -189,17 +188,6 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
 
     // TODO: Fetch real maintenance windows
     const maintenanceBannerDisplay = null;
-    /* 
-    const maintenanceBannerDisplay = (
-        <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8">
-            <Calendar className="w-4 h-4 text-indigo-400" />
-            <span className="text-sm font-medium text-indigo-200">
-                Scheduled Maintenance: <span className="text-white">Database Migration</span> &mdash; Oct 24, 13:00 UTC
-            </span>
-            <ArrowRight className="w-4 h-4 text-indigo-400/50" />
-        </div>
-    );
-    */
 
     return (
         <div className={`min-h-screen text-white selection:bg-indigo-500/30 font-sans ${t.pageBg}`}>
@@ -234,6 +222,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
                 maintenanceBanner={maintenanceBannerDisplay}
                 footer={footerDisplay}
                 themeCode={themeName}
+                colorPreset={colorPreset}
                 subdomain={subdomain}
                 initialMonitors={monitors}
             />
