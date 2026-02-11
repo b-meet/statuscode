@@ -4,11 +4,24 @@ export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
     try {
-        const { apiKey } = await req.json();
+        const body = await req.json();
+        const { apiKey, ...rest } = body;
 
         if (!apiKey) {
             return NextResponse.json({ error: "API Key is required" }, { status: 400 });
         }
+
+        // Construct search params from rest
+        const params = new URLSearchParams();
+        params.append('api_key', apiKey);
+        params.append('format', 'json');
+
+        // Add other parameters if they exist
+        Object.keys(rest).forEach(key => {
+            if (rest[key] !== undefined && rest[key] !== null) {
+                params.append(key, String(rest[key]));
+            }
+        });
 
         const response = await fetch("https://api.uptimerobot.com/v2/getMonitors", {
             method: "POST",
@@ -16,7 +29,7 @@ export async function POST(req: NextRequest) {
                 "Content-Type": "application/x-www-form-urlencoded",
                 "Cache-Control": "no-cache",
             },
-            body: `api_key=${apiKey}&format=json`,
+            body: params.toString(),
         });
 
         const data = await response.json();
