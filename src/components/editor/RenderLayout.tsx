@@ -3,7 +3,7 @@
 import React, { memo, useState } from 'react';
 import { ThemeConfig } from '@/lib/themes';
 import { MonitorList } from './MonitorList';
-import { MonitorDetailView } from './MonitorDetailView';
+import { MonitorDetailView } from '../status-page/MonitorDetailView';
 import { StatusBanner } from './StatusBanner';
 import { Clock, ArrowRight, Calendar } from 'lucide-react';
 

@@ -16,7 +16,7 @@ const scenarios: { id: PreviewScenario; label: string; icon: any; color: string 
 ];
 
 export default function PreviewSelector() {
-    const { config, updateConfig } = useEditor();
+    const { config, updateConfig, setIsRealDataEnabled } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
@@ -103,6 +103,7 @@ export default function PreviewSelector() {
                             <button
                                 onClick={() => {
                                     updateConfig({ previewScenario: 'none' });
+                                    setIsRealDataEnabled(true);
                                 }}
                                 className={`w-full group relative p-2 rounded-lg border text-left transition-all ${config.previewScenario === 'none' || !config.previewScenario
                                     ? 'bg-zinc-900 border-zinc-700'
@@ -123,6 +124,7 @@ export default function PreviewSelector() {
                                     key={scenario.id}
                                     onClick={() => {
                                         updateConfig({ previewScenario: scenario.id });
+                                        setIsRealDataEnabled(false);
                                     }}
                                     className={`w-full group relative p-2 rounded-lg border text-left transition-all ${config.previewScenario === scenario.id
                                         ? 'bg-zinc-900 border-zinc-700'

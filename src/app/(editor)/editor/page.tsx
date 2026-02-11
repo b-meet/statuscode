@@ -14,7 +14,7 @@ import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 
 
 export default function EditorPage() {
-    const { config, updateConfig, saveStatus, monitorsData } = useEditor();
+    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
     const [isMaximized, setIsMaximized] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
@@ -197,9 +197,26 @@ export default function EditorPage() {
                     </div>
                     <div className="h-4 w-[1px] bg-zinc-800" />
 
-                    <a href={previewUrl} target="_blank" className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2">
-                        Publish <ExternalLink className="w-3 h-3" />
-                    </a>
+                    {/* Real Data Toggle */}
+                    <div className="flex items-center gap-2 mr-2">
+                        <span className={`text-xs font-medium ${isRealDataEnabled ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                            Real Data
+                        </span>
+                        <button
+                            onClick={toggleRealData}
+                            className={`w-8 h-4 rounded-full transition-colors relative ${isRealDataEnabled ? 'bg-emerald-500/20' : 'bg-zinc-800'}`}
+                        >
+                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${isRealDataEnabled ? 'translate-x-4 bg-emerald-400' : 'bg-zinc-500'}`} />
+                        </button>
+                    </div>
+
+                    <button
+                        onClick={publishSite}
+                        disabled={isPublishing}
+                        className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isPublishing ? 'Publishing...' : 'Publish'} <ExternalLink className="w-3 h-3" />
+                    </button>
                 </div>
             </header>
 
@@ -282,6 +299,18 @@ export default function EditorPage() {
                             <div className={`absolute inset-0 pointer-events-none z-0 mix-blend-overlay ${t.noiseOpacity}`}
                                 style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='1'/%3E%3C/svg%3E")` }}
                             />
+
+                            {/* Dummy Preview Data Banner */}
+                            {!isRealDataEnabled && (
+                                <div className="sticky top-4 z-50 w-full flex justify-center pointer-events-none h-0 overflow-visible">
+                                    <div className="bg-amber-500/10 border border-amber-500/20 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 shadow-lg">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                                        <span className="text-[10px] font-medium text-amber-200 uppercase tracking-wide">
+                                            Dummy Preview Data
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className={`${t.container} flex flex-col min-h-[90vh] relative z-10`}>
                                 <RenderLayout

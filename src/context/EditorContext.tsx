@@ -39,6 +39,11 @@ interface EditorContextType {
     loading: boolean;
     monitorsData: any[]; // Store full monitor objects
     fetchMonitors: () => Promise<void>;
+    isRealDataEnabled: boolean;
+    toggleRealData: () => void;
+    setIsRealDataEnabled: (enabled: boolean) => void;
+    publishSite: () => Promise<void>;
+    isPublishing: boolean;
 }
 
 // --- Default State ---
@@ -223,8 +228,85 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         return () => clearTimeout(timeout);
     }, [config, loading]);
 
+    // --- Real-time Data Logic ---
+    const [isRealDataEnabled, setIsRealDataEnabled] = useState(false);
+
+    // Poll for real data if enabled
+    useEffect(() => {
+        if (!isRealDataEnabled || !config.apiKey) return;
+
+        fetchMonitors(); // Fetch immediately on toggle
+        const interval = setInterval(() => {
+            fetchMonitors();
+        }, 30000);
+
+        return () => clearInterval(interval);
+    }, [isRealDataEnabled, config.apiKey]);
+
+    const toggleRealData = () => {
+        setIsRealDataEnabled(prev => {
+            const newValue = !prev;
+            if (newValue) {
+                updateConfig({ previewScenario: 'none' });
+            } else {
+                // If disabling real data, default to Full Maintenance
+                updateConfig({ previewScenario: 'maintenance_full' });
+            }
+            return newValue;
+        });
+    };
+
+    // --- Publish Logic ---
+    const [isPublishing, setIsPublishing] = useState(false);
+
+    const publishSite = async () => {
+        if (!config.id) return;
+        setIsPublishing(true);
+
+        const promise = fetch("/api/sites/publish", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ siteId: config.id }),
+        }).then(async (res) => {
+            if (!res.ok) throw new Error("Failed to publish");
+            return res.json();
+        });
+
+        toast.promise(promise, {
+            loading: 'Publishing your status page...',
+            success: () => {
+                const slug = config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
+                const url = `${window.location.origin}/s/${slug}`;
+                window.open(url, '_blank');
+                return "Congratulations! Your site is live.";
+            },
+            error: 'Failed to publish site'
+        });
+
+        try {
+            await promise;
+        } catch (error) {
+            console.error("Publish error:", error);
+        } finally {
+            setIsPublishing(false);
+        }
+    };
+
     return (
-        <EditorContext.Provider value={{ config, updateConfig, saveStatus, setSaveStatus, loading, monitorsData, fetchMonitors }}>
+        <EditorContext.Provider value={{
+            config,
+            updateConfig,
+            saveStatus,
+            setSaveStatus,
+            loading,
+            monitorsData,
+            fetchMonitors,
+            isRealDataEnabled,
+            toggleRealData,
+            setIsRealDataEnabled,
+            publishSite,
+            isPublishing
+        }}>
             {children}
         </EditorContext.Provider>
     );

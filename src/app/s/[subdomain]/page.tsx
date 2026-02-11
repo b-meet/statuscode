@@ -119,11 +119,13 @@ const Sparkline = ({ data, color = "#6366f1" }: { data: { value: number }[], col
 export default async function StatusPage({ params }: { params: Promise<{ subdomain: string }> }) {
     const { subdomain } = await params;
 
-    const site = await getSite(subdomain);
+    const siteData = await getSite(subdomain);
 
-    if (!site) {
+    if (!siteData || !siteData.published_config) {
         notFound();
     }
+
+    const site = siteData.published_config as any;
 
     let monitors: MonitorData[] = [];
     if (site.uptimerobot_api_key && site.monitors && site.monitors.length > 0) {
@@ -231,7 +233,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
                 header={headerDisplay}
                 maintenanceBanner={maintenanceBannerDisplay}
                 footer={footerDisplay}
-                themeCode={site.theme || 'modern'}
+                themeCode={themeName}
                 subdomain={subdomain}
                 initialMonitors={monitors}
             />

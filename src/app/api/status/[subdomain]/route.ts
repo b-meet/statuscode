@@ -17,21 +17,30 @@ export async function GET(
         const supabase = await createClient();
 
         // 1. Get site config
+        // We fetch published_config as well
         const { data: site } = await supabase
             .from('sites')
-            .select('uptimerobot_api_key, monitors')
+            .select('published_config, subdomain')
             .eq('subdomain', subdomain)
             .single();
 
-        if (!site || !site.uptimerobot_api_key) {
-            return NextResponse.json({ error: "Site not found or not configured" }, { status: 404 });
+        if (!site || !site.published_config) {
+            return NextResponse.json({ error: "Site not found or not published" }, { status: 404 });
+        }
+
+        // Extract config from the JSONB column
+        // This ensures the public page ONLY sees what was snapshotted at publish time
+        const config = site.published_config as any;
+
+        if (!config.uptimerobot_api_key) {
+            return NextResponse.json({ error: "Site configuration invalid" }, { status: 500 });
         }
 
         // 2. Fetch from UptimeRobot
         const uptimerobotParams = new URLSearchParams({
-            api_key: site.uptimerobot_api_key,
+            api_key: config.uptimerobot_api_key,
             format: 'json',
-            monitors: (site.monitors || []).join('-'),
+            monitors: (config.monitors || []).join('-'),
             custom_uptime_ratios: '1-7-30', // 24h, 7d, 30d
             response_times: '1',
             response_times_limit: '20',
@@ -51,6 +60,17 @@ export async function GET(
         if (data.stat !== 'ok') {
             throw new Error(data.error?.message || "UptimeRobot API Error");
         }
+
+        // We also need to inject the published theme config into the response
+        // so the frontend can render the correct theme without querying Supabase again
+        // OPTIONAL: The frontend currently fetches theme? No, the frontend currently hardcodes theme or expects it?
+        // Wait, the frontend `StatusPageClient` seems to take props. 
+        // The `page.tsx` for the public status page must be fetching the theme.
+        // Let's check how the public page gets its data. 
+        // For now, just return monitors as requested. The public page main component likely fetches the theme separately or we need to update how it gets props.
+        // NOTE: The previous code only returned monitors. 
+        // If the public page needs theme, it might be fetching it in `page.tsx` (server component). 
+        // Let's stick to returning monitors here.
 
         return NextResponse.json({ monitors: data.monitors });
 
