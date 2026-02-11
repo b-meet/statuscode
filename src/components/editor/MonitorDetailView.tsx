@@ -59,7 +59,7 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                                 {monitor.url}
                             </a>
                             <span className="w-1 h-1 rounded-full bg-white/20" />
-                            <span className={`text-sm ${t.mutedText}`}>Checked every 5 mins</span>
+                            <span className={`text-sm ${t.mutedText}`}>Checked every {monitor.interval ? Math.round(monitor.interval / 60) : 5} mins</span>
                         </div>
                     </div>
                 </div>
@@ -72,10 +72,10 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
             </div>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+            <div className="space-y-8">
 
-                {/* Left Column: Charts */}
-                <div className="lg:col-span-2 space-y-6 sm:space-y-8">
+                {/* Top Section: Charts (Full Width) */}
+                <div className="space-y-6 sm:space-y-8">
 
                     {/* 90-Day Uptime Bars */}
                     <div className={`p-6 ${t.card} ${t.rounded}`}>
@@ -111,15 +111,19 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                             <Sparkline
                                 data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
                                 color="#6366f1"
-                                width={800}
+                                width={1200}
                                 height={200}
                             />
                         </div>
                     </div>
+                </div>
 
-                    {/* Recent Incidents (Timeline) */}
-                    <div className={`p-6 ${t.card} ${t.rounded}`}>
-                        <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-6`}>Log Timeline</h3>
+                {/* Bottom Section: Timeline & Stats */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+
+                    {/* Log Timeline */}
+                    <div className={`lg:col-span-2 p-6 ${t.card} ${t.rounded}`}>
+                        <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-6`}>Incident History</h3>
                         <div className="space-y-6 border-l border-white/10 ml-3 pl-6 sm:pl-8 py-2">
                             {(monitor.logs || []).slice(0, 5).map((log: any, i: number) => (
                                 <div key={i} className="relative group">
@@ -146,41 +150,40 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                         </div>
                     </div>
 
-                </div>
-
-                {/* Right Column: Stats Grid */}
-                <div className="space-y-6">
-                    <div className={`p-6 ${t.card} ${t.rounded} space-y-6`}>
-                        <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-2`}>Availability</h3>
-
-                        {[
-                            { label: '24 Hours', val: uptime?.day },
-                            { label: '7 Days', val: uptime?.week },
-                            { label: '30 Days', val: uptime?.month },
-                            { label: '90 Days', val: uptime?.month } // Mock 90d same as 30d for now
-                        ].map((stat, i) => (
-                            <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
-                                <span className="text-sm text-white/60">{stat.label}</span>
-                                <span className={`font-mono text-sm font-bold ${stat.val && parseFloat(stat.val) === 100 ? 'text-emerald-400' : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                    {stat.val ? `${stat.val}%` : '-'}
-                                </span>
+                    {/* Stats Column */}
+                    <div className="space-y-6">
+                        <div className={`p-6 bg-indigo-500/10 border border-indigo-500/20 ${t.rounded}`}>
+                            <h3 className="text-xs text-indigo-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                                <Clock className="w-3 h-3" /> Quick Stats
+                            </h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
+                                    <div className="text-indigo-200 font-mono text-sm">{monitor.interval ? Math.round(monitor.interval / 60) : 5} mins</div>
+                                </div>
+                                <div>
+                                    <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
+                                    <div className="text-indigo-200 font-mono text-sm">Just now</div>
+                                </div>
                             </div>
-                        ))}
-                    </div>
+                        </div>
 
-                    <div className={`p-6 bg-indigo-500/10 border border-indigo-500/20 ${t.rounded}`}>
-                        <h3 className="text-xs text-indigo-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
-                            <Clock className="w-3 h-3" /> Quick Stats
-                        </h3>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
-                                <div className="text-indigo-200 font-mono text-sm">5 mins</div>
-                            </div>
-                            <div>
-                                <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
-                                <div className="text-indigo-200 font-mono text-sm">Just now</div>
-                            </div>
+                        <div className={`p-6 ${t.card} ${t.rounded} space-y-6`}>
+                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-2`}>Availability</h3>
+
+                            {[
+                                { label: '24 Hours', val: uptime?.day },
+                                { label: '7 Days', val: uptime?.week },
+                                { label: '30 Days', val: uptime?.month },
+                                { label: '90 Days', val: uptime?.month }
+                            ].map((stat, i) => (
+                                <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                                    <span className="text-sm text-white/60">{stat.label}</span>
+                                    <span className={`font-mono text-sm font-bold ${stat.val && parseFloat(stat.val) === 100 ? 'text-emerald-400' : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                        {stat.val ? `${stat.val}%` : '-'}
+                                    </span>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

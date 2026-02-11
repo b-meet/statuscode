@@ -10,7 +10,7 @@ import { Clock, ArrowRight, Calendar } from 'lucide-react';
 interface RenderLayoutProps {
     config: any;
     selectedMonitors: any[];
-    status: 'operational' | 'partial' | 'major';
+    status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial';
     totalAvgResponse: number;
     isMobileLayout: boolean;
     selectedMonitorId: string | null;
@@ -53,7 +53,7 @@ export const RenderLayout = memo(({
     if (selectedMonitorId) {
         const monitor = selectedMonitors.find(m => String(m.id) === selectedMonitorId);
         return (
-            <div className="max-w-[1200px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-12">
                 <MonitorDetailView
                     monitor={monitor}
                     setSelectedMonitorId={setSelectedMonitorId}
@@ -89,13 +89,7 @@ export const RenderLayout = memo(({
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
-                        <div className={classNames(
-                            "grid gap-12 sm:gap-16",
-                            isMobileLayout ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"
-                        )}>
-                            {History}
-                            {Maintenance}
-                        </div>
+                        {Maintenance}
                     </div>
                 </>
             );
@@ -121,7 +115,6 @@ export const RenderLayout = memo(({
                                 {Maintenance}
                             </div>
                         </div>
-                        {History}
                     </div>
                 </>
             );
@@ -133,7 +126,6 @@ export const RenderLayout = memo(({
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
-                        {History}
                     </div>
                 </>
             );
@@ -162,16 +154,6 @@ export const RenderLayout = memo(({
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
-                        <div className="flex justify-center pt-8 border-t border-white/5">
-                            <button
-                                onClick={() => setShowHistoryOverlay(true)}
-                                className={`px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 ${t.rounded} text-sm font-medium text-white transition-all flex items-center gap-2 group`}
-                            >
-                                <Clock className="w-4 h-4 text-white/50 group-hover:text-white transition-colors" />
-                                View Incident History
-                                <ArrowRight className="w-4 h-4 opacity-50 group-hover:translate-x-1 transition-transform" />
-                            </button>
-                        </div>
                     </div>
                 </>
             );

@@ -23,11 +23,16 @@ export const Sparkline = memo(({ data, color = "#6366f1", width = 120, height = 
     }).join(' ');
 
     return (
-        <svg width={width} height={height} className="overflow-visible opacity-50 block">
+        <svg
+            viewBox={`0 0 ${width} ${height}`}
+            preserveAspectRatio="none"
+            className="overflow-visible opacity-50 block w-full h-full"
+        >
             <polyline
                 fill="none"
                 stroke={color}
                 strokeWidth="2"
+                vectorEffect="non-scaling-stroke"
                 points={points}
                 strokeLinecap="round"
                 strokeLinejoin="round"

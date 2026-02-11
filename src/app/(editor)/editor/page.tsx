@@ -48,21 +48,78 @@ export default function EditorPage() {
     // Derived state (Memoized)
     const isMobileLayout = viewport === 'mobile' || containerWidth < 800;
 
+    const selectedMonitorsData = useMemo(() => {
+        if (!config.previewScenario || config.previewScenario === 'none') return monitorsData;
+
+        // Mock data based on scenario
+        return monitorsData.map((m, idx) => {
+            const mockMonitor = { ...m };
+            const isDown = (config.previewScenario === 'under_50_down' && idx === 0) ||
+                (config.previewScenario === 'over_50_down' && idx % 2 === 0);
+
+            if (isDown) {
+                mockMonitor.status = 9; // Down
+            } else if (config.previewScenario === 'all_good') {
+                mockMonitor.status = 2; // Up
+            } else if (config.previewScenario === 'maintenance_full') {
+                mockMonitor.status = 0; // Paused/Maintenance
+            } else if (config.previewScenario === 'maintenance_partial' && idx === 0) {
+                mockMonitor.status = 0; // Paused/Maintenance for first monitor
+            }
+
+            if (config.previewScenario === 'slow_response') {
+                mockMonitor.response_times = Array(20).fill(0).map(() => ({ datetime: Date.now() / 1000, value: 2000 + Math.random() * 1000 }));
+            }
+
+            if (config.previewScenario === 'heavy_incidents' && idx === 0) {
+                mockMonitor.logs = [
+                    {
+                        type: 1, // Down
+                        datetime: Date.now() / 1000 - 3600, // 1 hour ago
+                        duration: 1800,
+                        reason: { code: 'Database Connection Timeout' }
+                    },
+                    {
+                        type: 2, // Up
+                        datetime: Date.now() / 1000 - 10000,
+                        duration: 0,
+                    },
+                    {
+                        type: 1,
+                        datetime: Date.now() / 1000 - 86400, // 1 day ago
+                        duration: 3200,
+                        reason: { code: 'API Gateway Error' }
+                    }
+                ];
+            }
+
+            return mockMonitor;
+        });
+    }, [monitorsData, config.previewScenario]);
+
     const selectedMonitors = useMemo(() =>
-        monitorsData.filter(m => config.monitors.includes(String(m.id))),
-        [monitorsData, config.monitors]);
+        selectedMonitorsData.filter(m => config.monitors.includes(String(m.id))),
+        [selectedMonitorsData, config.monitors]);
 
     const stats = useMemo(() => {
         const downCount = selectedMonitors.filter(m => m.status === 8 || m.status === 9).length;
         const totalCount = selectedMonitors.length;
 
-        let status: 'operational' | 'partial' | 'major' = 'operational';
+        let status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial' = 'operational';
 
-        if (totalCount > 0) {
-            if (downCount >= totalCount / 2 && downCount > 0) {
-                status = 'major';
-            } else if (downCount > 0) {
-                status = 'partial';
+        // Override status for maintenance previews
+        if (config.previewScenario === 'maintenance_full') {
+            status = 'maintenance';
+        } else if (config.previewScenario === 'maintenance_partial') {
+            status = 'maintenance_partial';
+        } else {
+            // Normal calculation based on monitor status
+            if (totalCount > 0) {
+                if (downCount >= totalCount / 2 && downCount > 0) {
+                    status = 'major';
+                } else if (downCount > 0) {
+                    status = 'partial';
+                }
             }
         }
 
@@ -130,18 +187,7 @@ export default function EditorPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    {/* Example Data Toggle */}
-                    <div className="flex items-center gap-3 bg-zinc-900 rounded-full px-3 py-1.5 border border-zinc-800">
-                        <span className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">Example Data</span>
-                        <button
-                            onClick={() => updateConfig({ showDummyData: !config.showDummyData })}
-                            className={`relative inline-flex h-4 w-7 items-center rounded-full transition-colors focus:outline-none ${config.showDummyData ? 'bg-indigo-500' : 'bg-zinc-700'}`}
-                        >
-                            <span className={`${config.showDummyData ? 'translate-x-3.5' : 'translate-x-[2px]'} inline-block h-3 w-3 transform rounded-full bg-white transition-transform`} />
-                        </button>
-                    </div>
 
-                    <div className="h-4 w-[1px] bg-zinc-800" />
 
                     <div className="flex items-center gap-3">
                         <span className="text-xs text-zinc-500 font-medium uppercase tracking-wider hidden md:block w-24 text-right">

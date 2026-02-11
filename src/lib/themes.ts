@@ -21,7 +21,7 @@ export interface ThemeConfig {
     shadow: string; // Shadow style
 
     // Status Elements
-    statusBadge: (isUp: boolean) => string;
+    statusBadge: (status: 'up' | 'down' | 'maintenance') => string;
 
     // Specifics
     noiseOpacity: string; // 'opacity-5' etc.
@@ -46,9 +46,11 @@ export const themes: Record<Theme, ThemeConfig> = {
 
         noiseOpacity: "opacity-[0.03]",
 
-        statusBadge: (isUp) => isUp
-            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)] whitespace-nowrap"
-            : "bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)] whitespace-nowrap",
+        statusBadge: (status) => {
+            if (status === 'up') return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)] whitespace-nowrap";
+            if (status === 'maintenance') return "bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)] whitespace-nowrap";
+            return "bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)] whitespace-nowrap";
+        },
 
         bannerStyle: (isAllUp) => isAllUp
             ? "bg-zinc-900/50 backdrop-blur-2xl border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.5)]"
@@ -72,9 +74,11 @@ export const themes: Record<Theme, ThemeConfig> = {
 
         noiseOpacity: "opacity-0",
 
-        statusBadge: (isUp) => isUp
-            ? "text-emerald-500 font-mono text-[10px] uppercase tracking-widest border-b border-emerald-500/50 pb-0.5 whitespace-nowrap"
-            : "text-red-500 font-mono text-[10px] uppercase tracking-widest border-b border-red-500/50 pb-0.5 whitespace-nowrap",
+        statusBadge: (status) => {
+            if (status === 'up') return "text-emerald-500 font-mono text-[10px] uppercase tracking-widest border-b border-emerald-500/50 pb-0.5 whitespace-nowrap";
+            if (status === 'maintenance') return "text-blue-500 font-mono text-[10px] uppercase tracking-widest border-b border-blue-500/50 pb-0.5 whitespace-nowrap";
+            return "text-red-500 font-mono text-[10px] uppercase tracking-widest border-b border-red-500/50 pb-0.5 whitespace-nowrap";
+        },
 
         bannerStyle: (isAllUp) => isAllUp
             ? "bg-transparent border border-zinc-800 border-l-4 border-l-white"
@@ -98,9 +102,11 @@ export const themes: Record<Theme, ThemeConfig> = {
 
         noiseOpacity: "opacity-[0.15]",
 
-        statusBadge: (isUp) => isUp
-            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)] whitespace-nowrap"
-            : "bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)] whitespace-nowrap",
+        statusBadge: (status) => {
+            if (status === 'up') return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.2)] whitespace-nowrap";
+            if (status === 'maintenance') return "bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_10px_rgba(59,130,246,0.2)] whitespace-nowrap";
+            return "bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)] whitespace-nowrap";
+        },
 
         bannerStyle: (isAllUp) => isAllUp
             ? "bg-[#1E1E1E] border-2 border-zinc-700 shadow-[6px_6px_0px_0px_#3f3f46]"

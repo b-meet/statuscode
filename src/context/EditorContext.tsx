@@ -7,6 +7,16 @@ import { toast } from 'sonner';
 // --- Types ---
 export type Theme = 'modern' | 'minimal' | 'brutal';
 export type Layout = 'layout1' | 'layout2' | 'layout3' | 'layout4';
+export type PreviewScenario =
+    | 'none'
+    | 'under_50_down'
+    | 'over_50_down'
+    | 'slow_response'
+    | 'all_good'
+    | 'maintenance_full'
+    | 'maintenance_partial'
+    | 'heavy_incidents'
+    | 'long_history';
 
 export interface SiteConfig {
     id?: string; // Supabase ID
@@ -18,6 +28,7 @@ export interface SiteConfig {
     monitors: string[]; // List of Monitor IDs
     apiKey: string; // UptimeRobot API Key (mask in UI)
     showDummyData?: boolean; // Preview only
+    previewScenario?: PreviewScenario;
 }
 
 interface EditorContextType {
@@ -40,6 +51,7 @@ const defaultConfig: SiteConfig = {
     monitors: [],
     apiKey: '',
     showDummyData: false,
+    previewScenario: 'none',
 };
 
 // --- Context Creation ---

@@ -1,12 +1,11 @@
 "use client";
 
-import React, { memo } from 'react';
+import { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity } from 'lucide-react';
 import { ThemeConfig } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
-import { classNames } from '@/lib/utils';
 
 interface MonitorListProps {
     monitors: any[];
@@ -16,6 +15,8 @@ interface MonitorListProps {
 }
 
 export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t }: MonitorListProps) => {
+    const [hoveredId, setHoveredId] = useState<string | null>(null);
+
     return (
         <div className="space-y-6">
             <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
@@ -29,29 +30,34 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                             const uptime = formatUptime(monitor.custom_uptime_ratio);
                             const avgResponse = getAverageResponseTime(monitor.response_times);
                             const isUp = monitor.status === 2;
+                            const isMaintenance = monitor.status === 0;
+                            const statusType = isUp ? 'up' : isMaintenance ? 'maintenance' : 'down';
                             const hasData = !!uptime;
+                            const isHovered = hoveredId === String(monitor.id);
 
                             return (
                                 <motion.div
+                                    layout
                                     key={monitor.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     exit={{ opacity: 0, scale: 0.95 }}
                                     transition={{
-                                        duration: 0.4,
-                                        delay: index * 0.05,
-                                        ease: [0.25, 1, 0.5, 1]
+                                        layout: { duration: 0.2, ease: "easeInOut" },
+                                        opacity: { duration: 0.2 }
                                     }}
                                     onClick={() => setSelectedMonitorId(String(monitor.id))}
-                                    className={`group p-4 sm:p-6 relative overflow-hidden ${t.card} ${t.cardHover} ${t.rounded} cursor-pointer`}
+                                    className={`group relative overflow-hidden ${t.card} ${t.cardHover} ${t.rounded} cursor-pointer transition-colors duration-200`}
+                                    onMouseEnter={() => setHoveredId(String(monitor.id))}
+                                    onMouseLeave={() => setHoveredId(null)}
                                 >
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
+                                    <motion.div layout className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
 
                                         {/* Status & Info */}
                                         <div className="flex items-start gap-5 min-w-[200px]">
                                             <div className="relative mt-1.5 flex-shrink-0">
-                                                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
-                                                <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${isUp ? 'bg-emerald-500' : 'bg-red-500'}`} />
+                                                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${isUp ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : isMaintenance ? 'bg-blue-500 shadow-[0_0_10px_#3b82f6]' : 'bg-red-500 shadow-[0_0_10px_#ef4444]'}`} />
+                                                <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${isUp ? 'bg-emerald-500' : isMaintenance ? 'bg-blue-500' : 'bg-red-500'}`} />
                                             </div>
                                             <div>
                                                 <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1`}>{monitor.friendly_name}</h4>
@@ -66,7 +72,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
 
                                             {/* Sparkline */}
                                             <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                                                <Sparkline data={monitor.response_times || []} color={isUp ? "#10b981" : "#ef4444"} />
+                                                <Sparkline data={monitor.response_times || []} color={isUp ? "#10b981" : isMaintenance ? "#3b82f6" : "#ef4444"} />
                                             </div>
 
                                             {/* Stats */}
@@ -86,11 +92,64 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                             </div>
 
                                             {/* Badge */}
-                                            <div className={t.statusBadge(isUp).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
-                                                {isUp ? 'OPERATIONAL' : 'DOWN'}
+                                            <div className={t.statusBadge(statusType).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
+                                                {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
                                             </div>
                                         </div>
-                                    </div>
+                                    </motion.div>
+
+                                    {/* Expandable Incident Section */}
+                                    <AnimatePresence>
+                                        {isHovered && (
+                                            <motion.div
+                                                initial={{ height: 0, opacity: 0 }}
+                                                animate={{ height: "auto", opacity: 1 }}
+                                                exit={{ height: 0, opacity: 0 }}
+                                                transition={{ duration: 0.2, ease: "easeInOut" }}
+                                                className="overflow-hidden bg-zinc-900/50 border-t border-white/5"
+                                            >
+                                                <div className="p-4 sm:px-6 pb-6">
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <h5 className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Recent Incidents</h5>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setSelectedMonitorId(String(monitor.id));
+                                                            }}
+                                                            className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
+                                                        >
+                                                            See All <Activity className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+
+                                                    {(monitor.logs && monitor.logs.length > 0) ? (
+                                                        <div className="space-y-3">
+                                                            {monitor.logs.slice(0, 3).map((log: any, i: number) => (
+                                                                <div key={i} className="flex gap-3 text-sm">
+                                                                    <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <div className="flex items-baseline justify-between gap-2">
+                                                                            <span className={`font-medium truncate ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                                                {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
+                                                                            </span>
+                                                                            <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
+                                                                                {new Date(log.datetime * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                                            </span>
+                                                                        </div>
+                                                                        <p className="text-xs text-zinc-500 truncate mt-0.5">
+                                                                            {log.type === 1 ? (log.reason?.code || 'Service Unavailable') : `Duration: ${Math.round(log.duration / 60)} mins`}
+                                                                        </p>
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="text-xs text-zinc-500 py-2">No recent incidents.</div>
+                                                    )}
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </motion.div>
                             );
                         })}

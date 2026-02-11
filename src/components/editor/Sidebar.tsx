@@ -6,6 +6,7 @@ import BrandSettings from "./BrandSettings";
 import ThemeSelector from "./ThemeSelector";
 import LayoutSelector from "./LayoutSelector";
 import MonitorManager from "./MonitorManager";
+import PreviewSelector from "./PreviewSelector";
 
 export default function Sidebar() {
     return (
@@ -37,6 +38,11 @@ export default function Sidebar() {
                         <LayoutSelector />
                         <MonitorManager />
                     </div>
+
+                    <div className="border-t border-zinc-800/50" />
+
+                    {/* Section 3: Preview Scenarios */}
+                    <PreviewSelector />
                 </div>
             </div>
 
