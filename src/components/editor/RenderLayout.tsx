@@ -9,6 +9,7 @@ import { ArrowRight, Calendar } from 'lucide-react';
 import { classNames } from '@/lib/utils';
 import { MonitorData } from '@/lib/types';
 import { SiteConfig } from '@/context/EditorContext';
+import { toDemoStringId } from '@/lib/mockMonitors';
 
 interface RenderLayoutProps {
     config: SiteConfig;
@@ -55,9 +56,18 @@ export const RenderLayout = memo(({
         </div>
     ) : null;
 
+    // --- VISIBILITY OVERRIDE FOR PREVIEW ---
+    const isScenarioActive = config.previewScenario && config.previewScenario !== 'none';
+    const effectiveVisibility = isScenarioActive
+        ? { showSparklines: true, showUptimeBars: true, showIncidentHistory: true, showPerformanceMetrics: true }
+        : config.visibility;
+
     // --- DETAIL VIEW OVERRIDE ---
     if (selectedMonitorId) {
-        const monitor = selectedMonitors.find(m => String(m.id) === selectedMonitorId);
+        const monitor = selectedMonitors.find(m => {
+            const idStr = m.id < 0 ? toDemoStringId(m.id) : String(m.id);
+            return idStr === selectedMonitorId;
+        });
         if (!monitor) return null;
 
         return (
@@ -67,6 +77,7 @@ export const RenderLayout = memo(({
                     setSelectedMonitorId={setSelectedMonitorId}
                     theme={t}
                     colors={colors}
+                    visibility={effectiveVisibility}
                 />
             </div>
         );
@@ -79,6 +90,7 @@ export const RenderLayout = memo(({
             primaryColor={config.primaryColor}
             theme={t}
             colors={colors}
+            visibility={effectiveVisibility}
         />
     );
 
@@ -89,6 +101,7 @@ export const RenderLayout = memo(({
             totalAvgResponse={totalAvgResponse}
             theme={t}
             colors={colors}
+            visibility={effectiveVisibility}
         />
     );
 
@@ -100,7 +113,7 @@ export const RenderLayout = memo(({
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
-                        {Maintenance}
+                        {effectiveVisibility?.showIncidentHistory !== false && Maintenance}
                     </div>
                 </>
             );
@@ -120,11 +133,13 @@ export const RenderLayout = memo(({
                             )}>
                                 {Monitors}
                             </div>
-                            <div className={classNames(
-                                isMobileLayout ? "col-span-1" : "lg:col-span-1"
-                            )}>
-                                {Maintenance}
-                            </div>
+                            {effectiveVisibility?.showIncidentHistory !== false && (
+                                <div className={classNames(
+                                    isMobileLayout ? "col-span-1" : "lg:col-span-1"
+                                )}>
+                                    {Maintenance}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>
@@ -135,8 +150,11 @@ export const RenderLayout = memo(({
                     {MaintenanceBanner}
                     {Header}
                     {Banner}
+                    {Header}
+                    {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
+                        {effectiveVisibility?.showIncidentHistory !== false && Maintenance}
                     </div>
                 </>
             );

@@ -100,24 +100,26 @@ export default function PreviewSelector() {
                             </p>
                         </div>
                         <div className="space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            <button
-                                onClick={() => {
-                                    updateConfig({ previewScenario: 'none' });
-                                    setIsRealDataEnabled(true);
-                                }}
-                                className={`w-full group relative p-2 rounded-lg border text-left transition-all ${config.previewScenario === 'none' || !config.previewScenario
-                                    ? 'bg-zinc-900 border-zinc-700'
-                                    : 'bg-transparent border-transparent hover:bg-zinc-900/50'
-                                    }`}
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 ml-1.5" />
-                                    <span className={`text-sm ${!config.previewScenario || config.previewScenario === 'none' ? 'text-white' : 'text-zinc-400'}`}>Real-time Data</span>
-                                    {(!config.previewScenario || config.previewScenario === 'none') && (
-                                        <Check className="w-3 h-3 text-white ml-auto" />
-                                    )}
-                                </div>
-                            </button>
+                            {config.apiKey && config.monitors.some(id => !id.startsWith('demo-')) && (
+                                <button
+                                    onClick={() => {
+                                        updateConfig({ previewScenario: 'none' });
+                                        setIsRealDataEnabled(true);
+                                    }}
+                                    className={`w-full group relative p-2 rounded-lg border text-left transition-all ${config.previewScenario === 'none' || !config.previewScenario
+                                        ? 'bg-zinc-900 border-zinc-700'
+                                        : 'bg-transparent border-transparent hover:bg-zinc-900/50'
+                                        }`}
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 ml-1.5" />
+                                        <span className={`text-sm ${!config.previewScenario || config.previewScenario === 'none' ? 'text-white' : 'text-zinc-400'}`}>Real-time Data</span>
+                                        {(!config.previewScenario || config.previewScenario === 'none') && (
+                                            <Check className="w-3 h-3 text-white ml-auto" />
+                                        )}
+                                    </div>
+                                </button>
+                            )}
 
                             {scenarios.map((scenario) => (
                                 <button

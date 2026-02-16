@@ -5,14 +5,17 @@ import { motion } from 'framer-motion';
 import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock } from 'lucide-react';
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
+import { UptimeBars } from './UptimeBars';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
 import { MonitorData, Log } from '@/lib/types';
+import { VisibilityConfig } from '@/context/EditorContext';
 
 interface MonitorDetailViewProps {
     monitor: MonitorData;
     setSelectedMonitorId: (id: string | null) => void;
     theme: ThemeConfig;
     colors?: StatusColors;
+    visibility?: VisibilityConfig;
 }
 
 // Helper to format duration
@@ -28,7 +31,7 @@ function formatDuration(seconds: number) {
     return `${minutes} mins`;
 }
 
-export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t, colors }: MonitorDetailViewProps) => {
+export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t, colors, visibility }: MonitorDetailViewProps) => {
     // Dynamic Colors Helpers
     const opBase = getBaseColor(colors?.operational) || 'emerald';
     const majBase = getBaseColor(colors?.major) || 'red';
@@ -164,139 +167,122 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
             {/* Main Content Grid */}
             <div className="space-y-8">
 
-                {/* Top Section: Charts (Full Width) */}
+                {/* Top Section: Charts */}
                 <div className="space-y-6 sm:space-y-8">
 
                     {/* 90-Day Uptime Bars */}
-                    <div className={`p-6 ${t.card} ${t.rounded}`}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>90-Day Uptime</h3>
-                            <span className={`${opText} text-sm font-mono font-bold`}>{uptime?.month || '99.9'}%</span>
-                        </div>
-                        <div className="flex items-end gap-[2px] h-16 w-full opacity-80">
-                            {dayBars.map((bar, i) => {
-                                let colorClass = 'bg-white/5 hover:bg-white/10';
-                                let title = `${bar.date}: Not monitored yet`;
-
-                                if (bar.status === 'up') {
-                                    // Manually fixing hover class construction since getBarClass returns full string
-                                    // A simpler approach:
-                                    const base = opBase === 'white' || opBase === 'black' ? opBase : `${opBase}-500`;
-                                    colorClass = `bg-${base}/40 hover:bg-${base}`;
-                                    title = `${bar.date}: 100% Uptime`;
-                                } else if (bar.status === 'down') {
-                                    const base = majBase === 'white' || majBase === 'black' ? majBase : `${majBase}-500`;
-                                    colorClass = `bg-${base}/80 hover:bg-${base}`;
-                                    title = `${bar.date}: Downtime Detected`;
-                                }
-
-                                return (
-                                    <div
-                                        key={i}
-                                        className={`flex-1 rounded-sm transition-all hover:scale-y-125 hover:opacity-100 ${colorClass}`}
-                                        style={{ height: bar.height }}
-                                        title={title}
-                                    />
-                                );
-                            })}
-                        </div>
-                    </div>
-
-                    {/* Response Time Graph */}
-                    <div className={`p-6 ${t.card} ${t.rounded}`}>
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
-                            <div className="flex items-center gap-4 text-xs font-mono">
-                                <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
-                                <span className="text-white/40">|</span>
-                                <span className="text-white">Avg: {avgResponse}ms</span>
-                                <span className="text-white/40">|</span>
-                                <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
+                    {visibility?.showUptimeBars !== false && (
+                        <div className={`p-6 ${t.card} ${t.rounded}`}>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>90-Day Uptime</h3>
+                                <span className={`${opText} text-sm font-mono font-bold`}>{uptime?.month || '99.9'}%</span>
+                            </div>
+                            <div className="h-16 w-full opacity-80">
+                                <UptimeBars monitor={monitor} theme={t} colors={colors} days={90} height={64} />
                             </div>
                         </div>
-                        <div className="h-48 w-full">
-                            <Sparkline
-                                data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
-                                color={opHex}
-                                width={1200}
-                                height={200}
-                                interactive={true}
-                            />
+                    )}
+
+                    {/* Response Time Graph */}
+                    {visibility?.showSparklines !== false && (
+                        <div className={`p-6 ${t.card} ${t.rounded}`}>
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
+                                <div className="flex items-center gap-4 text-xs font-mono">
+                                    <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
+                                    <span className="text-white/40">|</span>
+                                    <span className="text-white">Avg: {avgResponse}ms</span>
+                                    <span className="text-white/40">|</span>
+                                    <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
+                                </div>
+                            </div>
+                            <div className="h-48 w-full">
+                                <Sparkline
+                                    data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
+                                    color={opHex}
+                                    width={1200}
+                                    height={200}
+                                    interactive={true}
+                                />
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
 
-                {/* Bottom Section: Timeline & Stats */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
 
                     {/* Log Timeline */}
-                    <div className={`lg:col-span-2 p-6 ${t.card} ${t.rounded}`}>
-                        <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-6`}>Incident History</h3>
-                        <div className="space-y-6 border-l border-white/10 ml-3 pl-6 sm:pl-8 py-2">
-                            {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
-                                <div key={i} className="relative group">
-                                    <div className={`absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1`} />
-                                    <div className="flex flex-col gap-1">
-                                        <div className="flex items-center justify-between">
-                                            <span className={`text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
-                                            </span>
-                                            <span className={`text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
-                                                {new Date(log.datetime * 1000).toLocaleString()}
-                                            </span>
+                    {visibility?.showIncidentHistory !== false && (
+                        <div className={`${visibility?.showPerformanceMetrics === false ? 'lg:col-span-3' : 'lg:col-span-2'} p-6 ${t.card} ${t.rounded}`}>
+                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-6`}>Incident History</h3>
+                            <div className="space-y-6 border-l border-white/10 ml-3 pl-6 sm:pl-8 py-2">
+                                {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
+                                    <div key={i} className="relative group">
+                                        <div className={`absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1`} />
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center justify-between">
+                                                <span className={`text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                    {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
+                                                </span>
+                                                <span className={`text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
+                                                    {new Date(log.datetime * 1000).toLocaleString()}
+                                                </span>
+                                            </div>
+                                            <p className={`text-xs ${t.mutedText}`}>
+                                                {log.type === 1 ? `Error details: ${log.reason?.code || 'Service Unavailable'}` : `Duration: ${formatDuration(log.duration)}`}
+                                            </p>
                                         </div>
-                                        <p className={`text-xs ${t.mutedText}`}>
-                                            {log.type === 1 ? `Error details: ${log.reason?.code || 'Service Unavailable'}` : `Duration: ${formatDuration(log.duration)}`}
-                                        </p>
                                     </div>
+                                ))}
+                                <div className="relative group opacity-50">
+                                    <div className="absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 bg-zinc-600 top-1" />
+                                    <span className="text-xs text-zinc-500 font-medium">Monitoring Started</span>
                                 </div>
-                            ))}
-                            <div className="relative group opacity-50">
-                                <div className="absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 bg-zinc-600 top-1" />
-                                <span className="text-xs text-zinc-500 font-medium">Monitoring Started</span>
                             </div>
                         </div>
-                    </div>
+                    )}
 
                     {/* Stats Column */}
-                    <div className="space-y-6">
-                        <div className={`p-6 bg-indigo-500/10 border border-indigo-500/20 ${t.rounded}`}>
-                            <h3 className="text-xs text-indigo-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
-                                <Clock className="w-3 h-3" /> Quick Stats
-                            </h3>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
-                                    <div className="text-indigo-200 font-mono text-sm">5 mins</div>
-                                </div>
-                                <div>
-                                    <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
-                                    <div className="text-indigo-200 font-mono text-sm">Just now</div>
+                    {visibility?.showPerformanceMetrics !== false && (
+                        <div className={`${visibility?.showIncidentHistory === false ? 'lg:col-span-3' : 'lg:col-span-1'} space-y-6`}>
+                            <div className={`p-6 bg-indigo-500/10 border border-indigo-500/20 ${t.rounded}`}>
+                                <h3 className="text-xs text-indigo-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                                    <Clock className="w-3 h-3" /> Quick Stats
+                                </h3>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
+                                        <div className="text-indigo-200 font-mono text-sm">5 mins</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
+                                        <div className="text-indigo-200 font-mono text-sm">Just now</div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        <div className={`p-6 ${t.card} ${t.rounded} space-y-6`}>
-                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-2`}>Availability</h3>
+                            <div className={`p-6 ${t.card} ${t.rounded} space-y-6`}>
+                                <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-2`}>Availability</h3>
 
-                            {[
-                                { label: '24 Hours', val: uptime?.day },
-                                { label: '7 Days', val: uptime?.week },
-                                { label: '30 Days', val: uptime?.month },
-                                { label: '90 Days', val: uptime?.month }
-                            ].map((stat, i) => {
-                                const is100 = stat.val && parseFloat(stat.val) === 100;
-                                return (
-                                    <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
-                                        <span className="text-sm text-white/60">{stat.label}</span>
-                                        <span className={`font-mono text-sm font-bold ${is100 ? opText : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                            {stat.val ? `${stat.val}%` : '-'}
-                                        </span>
-                                    </div>
-                                );
-                            })}
+                                {[
+                                    { label: '24 Hours', val: uptime?.day },
+                                    { label: '7 Days', val: uptime?.week },
+                                    { label: '30 Days', val: uptime?.month },
+                                    { label: '90 Days', val: uptime?.month }
+                                ].map((stat, i) => {
+                                    const is100 = stat.val && parseFloat(stat.val) === 100;
+                                    return (
+                                        <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                                            <span className="text-sm text-white/60">{stat.label}</span>
+                                            <span className={`font-mono text-sm font-bold ${is100 ? opText : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                                {stat.val ? `${stat.val}%` : '-'}
+                                            </span>
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             </div>
         </motion.div>

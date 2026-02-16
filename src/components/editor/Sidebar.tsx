@@ -8,6 +8,7 @@ import LayoutSelector from "./LayoutSelector";
 import MonitorManager from "./MonitorManager";
 import PreviewSelector from "./PreviewSelector";
 import ColorPresetSelector from "./ColorPresetSelector";
+import VisibilitySettings from "./VisibilitySettings";
 
 export default function Sidebar() {
     return (
@@ -33,11 +34,12 @@ export default function Sidebar() {
 
                     <div className="border-t border-zinc-800/50" />
 
-                    {/* Section 2: Configuration (Theme, Layout, Monitors) */}
+                    {/* Section 2: Configuration (Theme, Layout, Monitors, Visibility) */}
                     <div className="space-y-1">
                         <ThemeSelector />
                         <ColorPresetSelector />
                         <LayoutSelector />
+                        <VisibilitySettings />
                         <MonitorManager />
                     </div>
 

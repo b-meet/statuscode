@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
 import { MonitorData } from '@/lib/types';
+import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
 
 // --- Types ---
 export type Theme = 'modern' | 'minimal' | 'brutal';
@@ -18,6 +19,12 @@ export type PreviewScenario =
     | 'maintenance_partial'
     | 'heavy_incidents'
     | 'long_history';
+export interface VisibilityConfig {
+    showSparklines: boolean;
+    showUptimeBars: boolean;
+    showIncidentHistory: boolean;
+    showPerformanceMetrics: boolean;
+}
 
 export interface SiteConfig {
     id?: string; // Supabase ID
@@ -25,12 +32,13 @@ export interface SiteConfig {
     logoUrl: string;
     theme: Theme;
     layout: Layout;
-    colorPreset: string; // New field
+    colorPreset: string;
     primaryColor: string; // Hex code
     monitors: string[]; // List of Monitor IDs
     apiKey: string; // UptimeRobot API Key (mask in UI)
     showDummyData?: boolean; // Preview only
     previewScenario?: PreviewScenario;
+    visibility: VisibilityConfig; // New field
 }
 
 interface EditorContextType {
@@ -46,6 +54,7 @@ interface EditorContextType {
     setIsRealDataEnabled: (enabled: boolean) => void;
     publishSite: () => Promise<void>;
     isPublishing: boolean;
+    addDemoMonitors: () => void;
 }
 
 // --- Default State ---
@@ -54,12 +63,18 @@ const defaultConfig: SiteConfig = {
     logoUrl: '',
     theme: 'modern',
     layout: 'layout1',
-    colorPreset: 'default', // Default preset
-    primaryColor: '#6366f1', // Indigo-500
+    colorPreset: 'default',
+    primaryColor: '#6366f1',
     monitors: [],
     apiKey: '',
     showDummyData: false,
     previewScenario: 'none',
+    visibility: {
+        showSparklines: true,
+        showUptimeBars: true,
+        showIncidentHistory: true,
+        showPerformanceMetrics: true,
+    }
 };
 
 // --- Context Creation ---
@@ -73,29 +88,48 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const supabase = React.useMemo(() => createClient(), []);
 
     const fetchMonitors = useCallback(async () => {
-        if (!config.apiKey) return;
-        try {
-            const res = await fetch("/api/uptimerobot/monitors", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    apiKey: config.apiKey,
-                    // Request rich data
-                    custom_uptime_ratios: '1-7-30',
-                    response_times: '1',
-                    response_times_limit: '20',
-                    logs: '1',
-                    logs_limit: '5'
-                }),
-            });
-            const data = await res.json();
-            if (res.ok) {
-                setMonitorsData(data.monitors || []);
+        // If we have API key, fetch real ones
+        let realMonitors: MonitorData[] = [];
+        if (config.apiKey) {
+            try {
+                const res = await fetch("/api/uptimerobot/monitors", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        apiKey: config.apiKey,
+                        custom_uptime_ratios: '1-7-30',
+                        response_times: '1',
+                        response_times_limit: '20',
+                        logs: '1',
+                        logs_limit: '5'
+                    }),
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    realMonitors = data.monitors || [];
+                }
+            } catch (error) {
+                console.error("Failed to fetch monitors:", error);
             }
-        } catch (error) {
-            console.error("Failed to fetch monitors:", error);
         }
-    }, [config.apiKey]);
+
+        // Combine with demo monitors if they are in the config
+        const demoMonitors = getDemoMonitors().filter(m =>
+            config.monitors.includes(toDemoStringId(m.id))
+        );
+
+        setMonitorsData(prev => {
+            // Keep existing demo monitors that might not be in the fresh getDemoMonitors() call if we had custom state (though currently we don't)
+            // But main goal is to merge results.
+            const merged = [...realMonitors];
+            demoMonitors.forEach(dm => {
+                if (!merged.find(m => m.id === dm.id)) {
+                    merged.push(dm);
+                }
+            });
+            return merged;
+        });
+    }, [config.apiKey, config.monitors]);
 
     // Fetch initial data
     useEffect(() => {
@@ -119,18 +153,18 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         logoUrl: site.logo_url || defaultConfig.logoUrl,
                         theme: site.theme_config?.theme || defaultConfig.theme,
                         layout: site.theme_config?.layout || defaultConfig.layout,
-                        colorPreset: site.theme_config?.colorPreset || defaultConfig.colorPreset, // Load it
+                        colorPreset: site.theme_config?.colorPreset || defaultConfig.colorPreset,
                         primaryColor: site.theme_config?.primaryColor || defaultConfig.primaryColor,
+                        visibility: {
+                            ...defaultConfig.visibility,
+                            ...(site.theme_config?.visibility || {})
+                        },
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
                     });
 
                     // If we have an API key, fetch monitors immediately
                     if (site.uptimerobot_api_key) {
-                        // We need to call it but config isn't updated yet in this render cycle
-                        // So we pass the key directly or use a separate effect.
-                        // Let's use a separate effect or just call it here with the key if we refactor fetchMonitors.
-                        // Simple hack:
                         fetch("/api/uptimerobot/monitors", {
                             method: "POST",
                             headers: { "Content-Type": "application/json" },
@@ -138,8 +172,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         })
                             .then(r => r.json())
                             .then(d => {
-                                if (d.monitors) setMonitorsData(d.monitors);
+                                const real = d.monitors || [];
+                                const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
+                                setMonitorsData([...real, ...demos]);
                             });
+                    } else {
+                        // Just load demo monitors if they are in the list
+                        const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
+                        if (demos.length > 0) setMonitorsData(demos);
                     }
                 }
             } catch (error) {
@@ -184,8 +224,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     theme_config: {
                         theme: config.theme,
                         layout: config.layout,
-                        colorPreset: config.colorPreset, // Save it
-                        primaryColor: config.primaryColor
+                        colorPreset: config.colorPreset,
+                        primaryColor: config.primaryColor,
+                        visibility: config.visibility
                     },
                     // Automatically update subdomain based on brand name (slugified)
                     subdomain: config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'
@@ -297,6 +338,30 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }
     };
 
+    const addDemoMonitors = () => {
+        const demos = getDemoMonitors();
+        const demoIds = demos.map(m => toDemoStringId(m.id));
+
+        // Add to config.monitors
+        const current = new Set(config.monitors);
+        demoIds.forEach(id => current.add(id));
+
+        updateConfig({ monitors: Array.from(current) });
+
+        // Add to monitorsData
+        setMonitorsData(prev => {
+            const next = [...prev];
+            demos.forEach(d => {
+                if (!next.find(m => m.id === d.id)) {
+                    next.push(d);
+                }
+            });
+            return next;
+        });
+
+        toast.success("Added 3 demo monitors");
+    };
+
     return (
         <EditorContext.Provider value={{
             config,
@@ -310,7 +375,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             toggleRealData,
             setIsRealDataEnabled,
             publishSite,
-            isPublishing
+            isPublishing,
+            addDemoMonitors
         }}>
             {children}
         </EditorContext.Provider>

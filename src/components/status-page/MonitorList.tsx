@@ -5,7 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Activity } from "lucide-react";
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
+import { UptimeBars } from './UptimeBars';
 import { MonitorData } from "@/lib/types";
+import { toDemoStringId } from "@/lib/mockMonitors";
 
 // --- Helpers ---
 function formatUptime(ratioString: string) {
@@ -29,9 +31,10 @@ interface MonitorListProps {
     theme: ThemeConfig;
     setSelectedMonitorId: (id: string | null) => void;
     colors?: StatusColors;
+    visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showUptimeBars: boolean };
 }
 
-export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }: MonitorListProps) {
+export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, visibility }: MonitorListProps) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Dynamic Colors Helpers
@@ -91,7 +94,10 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
                                         layout: { duration: 0.2, ease: "easeInOut" },
                                         opacity: { duration: 0.2 }
                                     }}
-                                    onClick={() => setSelectedMonitorId(String(monitor.id))}
+                                    onClick={() => {
+                                        const idStr = monitor.id < 0 ? toDemoStringId(monitor.id) : String(monitor.id);
+                                        setSelectedMonitorId(idStr);
+                                    }}
                                     className={`group relative overflow-hidden ${t.card} ${t.cardHover} ${t.rounded} cursor-pointer transition-colors duration-200`}
                                     onMouseEnter={() => setHoveredId(String(monitor.id))}
                                     onMouseLeave={() => setHoveredId(null)}
@@ -106,8 +112,15 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
                                             </div>
                                             <div>
                                                 <h4 className={`text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading}`}>{monitor.friendly_name}</h4>
-                                                <div className={`text-xs ${t.mutedText} mt-1`}>
-                                                    99.9% Uptime
+                                                <div className="flex flex-col gap-2 mt-2">
+                                                    <div className={`text-xs ${t.mutedText}`}>
+                                                        {uptime?.month || '99.9'}% Uptime
+                                                    </div>
+                                                    {visibility?.showUptimeBars !== false && (
+                                                        <div className="h-5 w-48 sm:w-64 opacity-60 group-hover:opacity-100 transition-opacity">
+                                                            <UptimeBars monitor={monitor} theme={t} colors={colors} />
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -116,9 +129,11 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
                                         <div className="flex-1 flex items-center justify-between sm:justify-end gap-8 sm:gap-12">
 
                                             {/* Sparkline */}
-                                            <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
-                                                <Sparkline data={monitor.response_times || []} color={activeHex} />
-                                            </div>
+                                            {visibility?.showSparklines !== false && (
+                                                <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                    <Sparkline data={monitor.response_times || []} color={activeHex} />
+                                                </div>
+                                            )}
 
                                             {/* Stats */}
                                             <div className="flex items-center gap-6 text-right">
@@ -141,7 +156,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
 
                                     {/* Expandable Incident Section */}
                                     <AnimatePresence>
-                                        {isHovered && (
+                                        {(isHovered && visibility?.showIncidentHistory !== false) && (
                                             <motion.div
                                                 initial={{ height: 0, opacity: 0 }}
                                                 animate={{ height: "auto", opacity: 1 }}
@@ -155,7 +170,8 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors }
                                                         <button
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
-                                                                setSelectedMonitorId(String(monitor.id));
+                                                                const idStr = monitor.id < 0 ? toDemoStringId(monitor.id) : String(monitor.id);
+                                                                setSelectedMonitorId(idStr);
                                                             }}
                                                             className="text-[10px] text-indigo-400 hover:text-indigo-300 font-medium flex items-center gap-1"
                                                         >

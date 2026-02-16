@@ -10,6 +10,8 @@ import { Maintenance } from "./Maintenance";
 import { MonitorDetailView } from "./MonitorDetailView";
 
 import { MonitorData } from "@/lib/types";
+import { VisibilityConfig } from "@/context/EditorContext";
+import { toDemoStringId } from "@/lib/mockMonitors";
 
 interface RenderLayoutProps {
     layout: string;
@@ -26,6 +28,7 @@ interface RenderLayoutProps {
     // Selection for Detail View
     selectedMonitorId: string | null;
     setSelectedMonitorId: (id: string | null) => void;
+    visibility?: VisibilityConfig;
 }
 
 const RenderLayout = memo(({
@@ -40,7 +43,8 @@ const RenderLayout = memo(({
     status,
     totalAvgResponse,
     selectedMonitorId,
-    setSelectedMonitorId
+    setSelectedMonitorId,
+    visibility
 }: RenderLayoutProps) => {
     // History is only used in overlay currently to match Editor
     const historyLogs = useMemo(() =>
@@ -53,7 +57,10 @@ const RenderLayout = memo(({
 
     // --- DETAIL VIEW OVERRIDE ---
     if (selectedMonitorId) {
-        const monitor = monitors.find(m => String(m.id) === selectedMonitorId);
+        const monitor = monitors.find(m => {
+            const idStr = m.id < 0 ? toDemoStringId(m.id) : String(m.id);
+            return idStr === selectedMonitorId;
+        });
         // If monitor not found (e.g. data update removed it), clear selection
         if (!monitor) {
             setSelectedMonitorId(null);
@@ -67,13 +74,14 @@ const RenderLayout = memo(({
                     setSelectedMonitorId={setSelectedMonitorId}
                     theme={t}
                     colors={colors}
+                    visibility={visibility}
                 />
             </div>
         );
     }
 
-    const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} colors={colors} />;
-    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} />;
+    const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} colors={colors} visibility={visibility} />;
+    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} visibility={visibility} />;
     const maintenance = <Maintenance theme={t} />;
 
 
@@ -94,7 +102,7 @@ const RenderLayout = memo(({
                     {banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {monitorsDisplay}
-                        {maintenance}
+                        {visibility?.showIncidentHistory !== false && maintenance}
                     </div>
                 </>
             );
@@ -108,9 +116,11 @@ const RenderLayout = memo(({
                             <div className="lg:col-span-2 space-y-12">
                                 {monitorsDisplay}
                             </div>
-                            <div className="lg:col-span-1">
-                                {maintenance}
-                            </div>
+                            {visibility?.showIncidentHistory !== false && (
+                                <div className="lg:col-span-1">
+                                    {maintenance}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </>
@@ -123,6 +133,7 @@ const RenderLayout = memo(({
                     {banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {monitorsDisplay}
+                        {visibility?.showIncidentHistory !== false && maintenance}
                     </div>
                 </>
             );
@@ -151,6 +162,7 @@ const RenderLayout = memo(({
                     {banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {monitorsDisplay}
+                        {visibility?.showIncidentHistory !== false && maintenance}
                     </div>
                 </>
             );
@@ -170,6 +182,7 @@ interface StatusPageClientProps {
     footer: React.ReactNode;
     subdomain: string;
     initialMonitors: MonitorData[];
+    visibility?: VisibilityConfig;
 }
 
 function getAverageResponseTime(times: { value: number }[] = []) {
@@ -187,6 +200,7 @@ export default function StatusPageClient({
     footer,
     subdomain,
     initialMonitors,
+    visibility
 }: StatusPageClientProps) {
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
@@ -262,6 +276,7 @@ export default function StatusPageClient({
                 totalAvgResponse={totalAvgResponse}
                 selectedMonitorId={selectedMonitorId}
                 setSelectedMonitorId={setSelectedMonitorId}
+                visibility={visibility}
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

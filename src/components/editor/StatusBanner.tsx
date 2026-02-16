@@ -11,9 +11,10 @@ interface StatusBannerProps {
     totalAvgResponse: number;
     theme: ThemeConfig;
     colors?: StatusColors;
+    visibility?: { showPerformanceMetrics: boolean };
 }
 
-export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors, visibility }: StatusBannerProps) => {
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
     const isMaintenance = status === 'maintenance';
@@ -122,24 +123,26 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
                 </div>
 
                 {/* Global Metrics Pill */}
-                <div className={classNames(
-                    "bg-black/20 p-4 sm:p-6 backdrop-blur-sm border border-white/5",
-                    t.rounded,
-                    isMobileLayout ? "w-full flex flex-col gap-4" : "w-auto flex flex-row items-center gap-8"
-                )}>
-                    <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Avg Latency</div>
-                        <div className="text-xl sm:text-2xl font-mono text-white flex items-baseline gap-1">
-                            {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-xs sm:text-sm text-white/40">ms</span>
+                {visibility?.showPerformanceMetrics !== false && (
+                    <div className={classNames(
+                        "bg-black/20 p-4 sm:p-6 backdrop-blur-sm border border-white/5",
+                        t.rounded,
+                        isMobileLayout ? "w-full flex flex-col gap-4" : "w-auto flex flex-row items-center gap-8"
+                    )}>
+                        <div>
+                            <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Avg Latency</div>
+                            <div className="text-xl sm:text-2xl font-mono text-white flex items-baseline gap-1">
+                                {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-xs sm:text-sm text-white/40">ms</span>
+                            </div>
+                        </div>
+                        {!isMobileLayout && <div className="w-px h-10 bg-white/10" />}
+                        {isMobileLayout && <div className="h-px w-full bg-white/10" />}
+                        <div>
+                            <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
+                            <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
                         </div>
                     </div>
-                    {!isMobileLayout && <div className="w-px h-10 bg-white/10" />}
-                    {isMobileLayout && <div className="h-px w-full bg-white/10" />}
-                    <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
-                        <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );

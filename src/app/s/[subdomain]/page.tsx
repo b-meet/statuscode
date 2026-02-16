@@ -126,10 +126,27 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
     }
 
     const site = siteData.published_config as any;
+    const monitorIds = (site.monitors || []) as string[];
+
+    const demoIds = monitorIds.filter(id => id.startsWith('demo-'));
+    const realIds = monitorIds.filter(id => !id.startsWith('demo-'));
 
     let monitors: MonitorData[] = [];
-    if (site.uptimerobot_api_key && site.monitors && site.monitors.length > 0) {
-        monitors = await getMonitorStatuses(site.uptimerobot_api_key, site.monitors);
+
+    // Add Demo Monitors
+    if (demoIds.length > 0) {
+        const { getDemoMonitors } = require('@/lib/mockMonitors');
+        const allDemos = getDemoMonitors();
+        const selectedDemos = allDemos.filter((dm: MonitorData) =>
+            demoIds.includes(`demo-${Math.abs(dm.id)}`)
+        );
+        monitors = [...selectedDemos];
+    }
+
+    // Add Real Monitors
+    if (realIds.length > 0 && site.uptimerobot_api_key) {
+        const realMonitors = await getMonitorStatuses(site.uptimerobot_api_key, realIds);
+        monitors = [...monitors, ...realMonitors];
     }
 
     const downMonitors = monitors.filter((m) => m.status === 8 || m.status === 9);
@@ -225,6 +242,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
                 colorPreset={colorPreset}
                 subdomain={subdomain}
                 initialMonitors={monitors}
+                visibility={site.theme_config?.visibility}
             />
         </div>
     );

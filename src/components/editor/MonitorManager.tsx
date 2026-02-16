@@ -3,7 +3,8 @@
 import { useEditor } from "@/context/EditorContext";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, CheckCircle2, ChevronRight, Activity as ActivityIcon } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronRight, Activity as ActivityIcon, Sparkles } from "lucide-react";
+import { toDemoStringId } from "@/lib/mockMonitors";
 
 interface Monitor {
     id: number;
@@ -13,12 +14,21 @@ interface Monitor {
 }
 
 export default function MonitorManager() {
-    const { config, updateConfig, monitorsData, fetchMonitors, loading: globalLoading } = useEditor();
+    const { config, updateConfig, monitorsData, fetchMonitors, loading: globalLoading, addDemoMonitors } = useEditor();
     const [fetching, setFetching] = useState(false);
     const [error, setError] = useState("");
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
+    const [isAddingDemos, setIsAddingDemos] = useState(false);
+
+    const handleAddDemos = async () => {
+        setIsAddingDemos(true);
+        // Artificial delay for "refilling" effect
+        await new Promise(resolve => setTimeout(resolve, 800));
+        addDemoMonitors();
+        setIsAddingDemos(false);
+    };
 
     const handleFetch = async () => {
         if (!config.apiKey) {
@@ -139,15 +149,41 @@ export default function MonitorManager() {
                         </div>
 
                         <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight mb-2">Select Services</div>
+
+                        {/* Demo Action */}
+                        {!monitorsData?.length && (
+                            <button
+                                onClick={handleAddDemos}
+                                disabled={isAddingDemos}
+                                className="w-full mb-4 p-3 border border-dashed border-indigo-500/30 bg-indigo-500/5 hover:bg-indigo-500/10 rounded-lg text-center transition-all group/demo disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <div className="text-[11px] font-bold text-indigo-400 group-hover/demo:text-indigo-300 flex items-center justify-center gap-2">
+                                    {isAddingDemos ? (
+                                        <>
+                                            <Loader2 className="w-3 h-3 animate-spin" />
+                                            Adding Monitors...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-3 h-3" />
+                                            Add 3 Demo Monitors
+                                        </>
+                                    )}
+                                </div>
+                                <p className="text-[9px] text-indigo-500/60 mt-0.5">Quickly see how it looks without an API key</p>
+                            </button>
+                        )}
+
                         {/* Monitor List */}
                         {monitorsData && monitorsData.length > 0 ? (
                             <div className="space-y-1 max-h-60 overflow-y-auto pr-1 custom-scrollbar">
                                 {monitorsData.map((monitor: Monitor) => {
-                                    const isSelected = config.monitors.includes(String(monitor.id));
+                                    const monitorIdStr = monitor.id < 0 ? toDemoStringId(monitor.id) : String(monitor.id);
+                                    const isSelected = config.monitors.includes(monitorIdStr);
                                     return (
                                         <button
                                             key={monitor.id}
-                                            onClick={() => toggleMonitor(String(monitor.id))}
+                                            onClick={() => toggleMonitor(monitorIdStr)}
                                             className={`w-full text-left p-2 rounded border flex items-center justify-between transition-all ${isSelected
                                                 ? 'bg-zinc-900 border-zinc-800'
                                                 : 'bg-transparent border-transparent hover:bg-zinc-900/50'
@@ -157,7 +193,9 @@ export default function MonitorManager() {
                                                 <div className={`w-1.5 h-1.5 rounded-full shrink-0 ${monitor.status === 2 ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' :
                                                     monitor.status === 8 || monitor.status === 9 ? 'bg-red-500 shadow-[0_0_5px_rgba(239,68,68,0.5)]' : 'bg-zinc-500'
                                                     }`} />
-                                                <span className={`text-[11px] truncate ${isSelected ? 'text-white font-medium' : 'text-zinc-400 group-hover:text-zinc-300'}`}>{monitor.friendly_name}</span>
+                                                <span className={`text-[11px] truncate ${isSelected ? 'text-white font-medium' : 'text-zinc-400 group-hover:text-zinc-300'}`}>
+                                                    {monitor.friendly_name}
+                                                </span>
                                             </div>
                                             {isSelected && <CheckCircle2 className="w-3 h-3 text-indigo-500" />}
                                         </button>

@@ -11,6 +11,7 @@ import { EditorHistory } from "@/components/editor/EditorHistory";
 import { EditorMaintenance } from "@/components/editor/EditorMaintenance";
 import { getAverageResponseTime, classNames } from "@/lib/utils";
 import { IncidentHistory } from "@/components/status-page/IncidentHistory";
+import { toDemoStringId } from "@/lib/mockMonitors";
 
 
 export default function EditorPage() {
@@ -77,7 +78,7 @@ export default function EditorPage() {
                         type: 1, // Down
                         datetime: Date.now() / 1000 - 3600, // 1 hour ago
                         duration: 1800,
-                        reason: { code: 'Database Connection Timeout' }
+                        reason: { code: 'Database Connection Timeout', detail: 'Connection refused by peer' }
                     },
                     {
                         type: 2, // Up
@@ -88,7 +89,7 @@ export default function EditorPage() {
                         type: 1,
                         datetime: Date.now() / 1000 - 86400, // 1 day ago
                         duration: 3200,
-                        reason: { code: 'API Gateway Error' }
+                        reason: { code: 'API Gateway Error', detail: 'Upstream timed out' }
                     }
                 ];
             }
@@ -98,7 +99,10 @@ export default function EditorPage() {
     }, [monitorsData, config.previewScenario]);
 
     const selectedMonitors = useMemo(() =>
-        selectedMonitorsData.filter(m => config.monitors.includes(String(m.id))),
+        selectedMonitorsData.filter(m => {
+            const idStr = m.id < 0 ? toDemoStringId(m.id) : String(m.id);
+            return config.monitors.includes(idStr);
+        }),
         [selectedMonitorsData, config.monitors]);
 
     const stats = useMemo(() => {
@@ -198,25 +202,36 @@ export default function EditorPage() {
                     <div className="h-4 w-[1px] bg-zinc-800" />
 
                     {/* Real Data Toggle */}
-                    <div className="flex items-center gap-2 mr-2">
-                        <span className={`text-xs font-medium ${isRealDataEnabled ? 'text-emerald-400' : 'text-zinc-500'}`}>
-                            Real Data
-                        </span>
-                        <button
-                            onClick={toggleRealData}
-                            className={`w-8 h-4 rounded-full transition-colors relative ${isRealDataEnabled ? 'bg-emerald-500/20' : 'bg-zinc-800'}`}
-                        >
-                            <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${isRealDataEnabled ? 'translate-x-4 bg-emerald-400' : 'bg-zinc-500'}`} />
-                        </button>
-                    </div>
+                    {config.apiKey && config.monitors.length > 0 && (
+                        <div className="flex items-center gap-2 mr-2">
+                            <span className={`text-xs font-medium ${isRealDataEnabled ? 'text-emerald-400' : 'text-zinc-500'}`}>
+                                Real Data
+                            </span>
+                            <button
+                                onClick={toggleRealData}
+                                className={`w-8 h-4 rounded-full transition-colors relative ${isRealDataEnabled ? 'bg-emerald-500/20' : 'bg-zinc-800'}`}
+                            >
+                                <div className={`absolute top-0.5 left-0.5 w-3 h-3 rounded-full transition-transform ${isRealDataEnabled ? 'translate-x-4 bg-emerald-400' : 'bg-zinc-500'}`} />
+                            </button>
+                        </div>
+                    )}
 
-                    <button
-                        onClick={publishSite}
-                        disabled={isPublishing}
-                        className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {isPublishing ? 'Publishing...' : 'Publish'} <ExternalLink className="w-3 h-3" />
-                    </button>
+                    {(() => {
+                        const hasRealMonitors = config.monitors.some(id => !id.startsWith('demo-'));
+                        const isDisabled = isPublishing || !hasRealMonitors;
+                        const tooltip = !hasRealMonitors ? "You need at least 1 active (non-demo) monitor to publish your page" : undefined;
+
+                        return (
+                            <button
+                                onClick={publishSite}
+                                disabled={isDisabled}
+                                title={tooltip}
+                                className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isPublishing ? 'Publishing...' : 'Publish'} <ExternalLink className="w-3 h-3" />
+                            </button>
+                        );
+                    })()}
                 </div>
             </header>
 

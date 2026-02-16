@@ -10,6 +10,7 @@ interface StatusBannerProps {
     totalAvgResponse: number;
     theme: ThemeConfig;
     colors?: StatusColors;
+    visibility?: { showPerformanceMetrics: boolean };
 }
 
 // Safelist for dynamic classes (Tailwind JIT needs to see these)
@@ -33,7 +34,7 @@ interface StatusBannerProps {
 // bg-zinc-500/5 ring-zinc-500/20 bg-zinc-500/10 text-zinc-500 ring-zinc-500/50 from-zinc-500
 // bg-stone-500/5 ring-stone-500/20 bg-stone-500/10 text-stone-500 ring-stone-500/50 from-stone-500
 
-export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors, visibility }: StatusBannerProps) => {
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
     const isMaintenance = status === 'maintenance';
@@ -144,26 +145,28 @@ export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors }
                 </div>
 
                 {/* Global Metrics Pill */}
-                <div className={classNames(
-                    "bg-black/20 p-4 sm:p-6 backdrop-blur-sm border border-white/5",
-                    t.rounded,
-                    "w-full md:w-auto flex flex-col md:flex-row items-center gap-4 md:gap-8"
-                )}>
-                    <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Avg Latency</div>
-                        <div className="text-xl sm:text-2xl font-mono text-white flex items-baseline gap-1">
-                            {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-xs sm:text-sm text-white/40">ms</span>
+                {visibility?.showPerformanceMetrics !== false && (
+                    <div className={classNames(
+                        "bg-black/20 p-4 sm:p-6 backdrop-blur-sm border border-white/5",
+                        t.rounded,
+                        "w-full md:w-auto flex flex-col md:flex-row items-center gap-4 md:gap-8"
+                    )}>
+                        <div>
+                            <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Avg Latency</div>
+                            <div className="text-xl sm:text-2xl font-mono text-white flex items-baseline gap-1">
+                                {totalAvgResponse === 0 ? '< 1' : totalAvgResponse}<span className="text-xs sm:text-sm text-white/40">ms</span>
+                            </div>
+                        </div>
+
+                        <div className="w-px h-10 bg-white/10 hidden md:block" />
+                        <div className="h-px w-full bg-white/10 block md:hidden" />
+
+                        <div>
+                            <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
+                            <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
                         </div>
                     </div>
-
-                    <div className="w-px h-10 bg-white/10 hidden md:block" />
-                    <div className="h-px w-full bg-white/10 block md:hidden" />
-
-                    <div>
-                        <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
-                        <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
-                    </div>
-                </div>
+                )}
             </div>
         </div>
     );

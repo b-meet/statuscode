@@ -29,50 +29,58 @@ export async function GET(
         }
 
         // Extract config from the JSONB column
-        // This ensures the public page ONLY sees what was snapshotted at publish time
         const config = site.published_config as any;
+        const monitorIds = config.monitors || [];
 
-        if (!config.uptimerobot_api_key) {
-            return NextResponse.json({ error: "Site configuration invalid" }, { status: 500 });
+        // 2. Handle Demo Monitors vs Real Monitors
+        const demoIds = monitorIds.filter((id: string) => id.startsWith('demo-'));
+        const realIds = monitorIds.filter((id: string) => !id.startsWith('demo-'));
+
+        let allMonitors: any[] = [];
+
+        // Fetch demo data if needed
+        if (demoIds.length > 0) {
+            const { getDemoMonitors, fromDemoStringId } = require('@/lib/mockMonitors');
+            const allDemos = getDemoMonitors();
+            const selectedDemos = allDemos.filter((dm: any) =>
+                demoIds.includes(`demo-${Math.abs(dm.id)}`)
+            );
+            allMonitors = [...selectedDemos];
         }
 
-        // 2. Fetch from UptimeRobot
-        const uptimerobotParams = new URLSearchParams({
-            api_key: config.uptimerobot_api_key,
-            format: 'json',
-            monitors: (config.monitors || []).join('-'),
-            custom_uptime_ratios: '1-7-30', // 24h, 7d, 30d
-            response_times: '1',
-            response_times_limit: '20',
-            logs: '1',
-            logs_limit: '5'
-        });
+        // Fetch from UptimeRobot if we have real IDs and an API key
+        if (realIds.length > 0) {
+            if (!config.uptimerobot_api_key) {
+                // If we have real IDs but no API key, we have a config issue, 
+                // but we can still return whatever demo data we found.
+                console.warn("[Status API] Real monitors requested but no API key present.");
+            } else {
+                const uptimerobotParams = new URLSearchParams({
+                    api_key: config.uptimerobot_api_key,
+                    format: 'json',
+                    monitors: realIds.join('-'),
+                    custom_uptime_ratios: '1-7-30',
+                    response_times: '1',
+                    response_times_limit: '20',
+                    logs: '1',
+                    logs_limit: '5'
+                });
 
-        const res = await fetch("https://api.uptimerobot.com/v2/getMonitors", {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: uptimerobotParams.toString(),
-            next: { revalidate: 30 } // Cache for 30s
-        });
+                const res = await fetch("https://api.uptimerobot.com/v2/getMonitors", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: uptimerobotParams.toString(),
+                    next: { revalidate: 30 }
+                });
 
-        const data = await res.json();
-
-        if (data.stat !== 'ok') {
-            throw new Error(data.error?.message || "UptimeRobot API Error");
+                const data = await res.json();
+                if (data.stat === 'ok' && data.monitors) {
+                    allMonitors = [...allMonitors, ...data.monitors];
+                }
+            }
         }
 
-        // We also need to inject the published theme config into the response
-        // so the frontend can render the correct theme without querying Supabase again
-        // OPTIONAL: The frontend currently fetches theme? No, the frontend currently hardcodes theme or expects it?
-        // Wait, the frontend `StatusPageClient` seems to take props. 
-        // The `page.tsx` for the public status page must be fetching the theme.
-        // Let's check how the public page gets its data. 
-        // For now, just return monitors as requested. The public page main component likely fetches the theme separately or we need to update how it gets props.
-        // NOTE: The previous code only returned monitors. 
-        // If the public page needs theme, it might be fetching it in `page.tsx` (server component). 
-        // Let's stick to returning monitors here.
-
-        return NextResponse.json({ monitors: data.monitors });
+        return NextResponse.json({ monitors: allMonitors });
 
     } catch (error) {
         console.error("[Status API] Error:", error);

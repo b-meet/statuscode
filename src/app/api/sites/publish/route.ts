@@ -31,11 +31,14 @@ export async function POST(req: NextRequest) {
 
         // Construct published config from current columns
         // We snapshot the current state of the editor columns into the published_config JSONB
+        // SECURITY: Filter out any demo/mock monitors before publishing
+        const filteredMonitors = (site.monitors || []).filter((id: string) => !id.startsWith('demo-'));
+
         const publishedConfig = {
             brand_name: site.brand_name,
             logo_url: site.logo_url,
             uptimerobot_api_key: site.uptimerobot_api_key,
-            monitors: site.monitors,
+            monitors: filteredMonitors,
             theme_config: site.theme_config,
             subdomain: site.subdomain,
             published_at: new Date().toISOString()
