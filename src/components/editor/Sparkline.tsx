@@ -2,13 +2,6 @@
 
 import React, { memo } from 'react';
 
-interface SparklineProps {
-    data: { value: number }[];
-    color?: string;
-    width?: number;
-    height?: number;
-}
-
 // Define types locally if not importing from types.ts to keep component self-contained or import if preferred
 // But here we'll stick to the passed props structure
 interface SparklineProps {

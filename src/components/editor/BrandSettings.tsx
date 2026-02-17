@@ -2,7 +2,7 @@
 
 import { useEditor } from "@/context/EditorContext";
 import { UploadCloud, Image as ImageIcon, Loader2, X, ExternalLink } from "lucide-react";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 
@@ -10,7 +10,12 @@ export default function BrandSettings() {
     const { config, updateConfig } = useEditor();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [host, setHost] = useState('');
     const supabase = createClient();
+
+    useEffect(() => {
+        setHost(window.location.host);
+    }, []);
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -84,7 +89,7 @@ export default function BrandSettings() {
                 <label className="text-xs text-zinc-500">Subdomain</label>
                 <div className="flex gap-2">
                     <div className="flex-1 bg-black border border-zinc-800 rounded-lg flex items-center px-3 gap-1 overflow-hidden">
-                        <span className="text-zinc-600 text-sm whitespace-nowrap">{window.location.host}/s/</span>
+                        <span className="text-zinc-600 text-sm whitespace-nowrap">{host || 'statuscode.in'}/s/</span>
                         <input
                             type="text"
                             value={config.subdomain || ''}
