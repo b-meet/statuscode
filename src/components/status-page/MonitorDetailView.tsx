@@ -9,6 +9,7 @@ import { UptimeBars } from './UptimeBars';
 import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
 import { MonitorData, Log, IncidentUpdate, IncidentVariant } from '@/lib/types';
 import { VisibilityConfig } from '@/context/EditorContext';
+import { Markdown } from '@/components/ui/markdown';
 
 interface MonitorDetailViewProps {
     monitor: MonitorData;
@@ -20,46 +21,6 @@ interface MonitorDetailViewProps {
     onAddUpdate?: (content: string, variant?: IncidentVariant) => void;
     onDeleteUpdate?: (id: string) => void;
 }
-
-// Simple Markdown Parser (Bold, Italic, Link, Lines)
-const parseMarkdown = (text: string) => {
-    if (!text) return null;
-    return text.split('\n').map((line, i) => (
-        <React.Fragment key={i}>
-            {line.split(/(\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))/g).map((part, j) => {
-                // Bold
-                if (part.startsWith('**') && part.endsWith('**')) {
-                    return <strong key={j}>{part.slice(2, -2)}</strong>;
-                }
-                // Italic
-                if (part.startsWith('*') && part.endsWith('*')) {
-                    return <em key={j}>{part.slice(1, -1)}</em>;
-                }
-                // Link
-                if (part.match(/\[(.*?)\]\((.*?)\)/)) {
-                    const match = part.match(/\[(.*?)\]\((.*?)\)/);
-                    if (match) {
-                        return (
-                            <a
-                                key={j}
-                                href={match[2]}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline hover:text-blue-100"
-                            >
-                                {match[1]}
-                            </a>
-                        );
-                    }
-                }
-                return part;
-            })}
-            <br />
-        </React.Fragment>
-    ));
-};
-
-
 
 export const MonitorDetailView = memo(({
     monitor,
@@ -219,7 +180,7 @@ export const MonitorDetailView = memo(({
                                                 )}
                                             </div>
                                             <div className="text-xs @[600px]:text-sm opacity-80 leading-relaxed font-sans prose prose-invert max-w-none prose-sm">
-                                                {parseMarkdown(update.content)}
+                                                <Markdown content={update.content} />
                                             </div>
                                         </div>
                                     </div>
@@ -264,7 +225,7 @@ export const MonitorDetailView = memo(({
 
                                 {isPreviewMode ? (
                                     <div className="min-h-[80px] @[600px]:min-h-[100px] p-2 @[600px]:p-3 text-xs @[600px]:text-sm text-zinc-300 bg-zinc-950 rounded border border-zinc-800">
-                                        {newUpdateContent ? parseMarkdown(newUpdateContent) : <span className="text-zinc-600 italic">Nothing to preview</span>}
+                                        {newUpdateContent ? <Markdown content={newUpdateContent} /> : <span className="text-zinc-600 italic">Nothing to preview</span>}
                                     </div>
                                 ) : (
                                     <textarea

@@ -8,7 +8,8 @@ import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
 import { MonitorData, IncidentUpdate } from "@/lib/types";
 import { toDemoStringId } from "@/lib/mockMonitors";
-import { formatUptime, getAverageResponseTime } from "@/lib/utils";
+import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from "@/lib/utils";
+import { Markdown } from "@/components/ui/markdown";
 
 // --- Helpers ---
 // These functions are now imported from "@/lib/utils"
@@ -116,7 +117,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
 
                                                 {/* Mobile Badge */}
                                                 <div className={`sm:hidden ${t.statusBadge(statusType, colors).replace("absolute", "")} px-2.5 py-0.5 text-[10px] rounded-full font-medium shrink-0`}>
-                                                    {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
+                                                    {isUp ? 'OPERATIONAL' : 'MAINTENANCE'}
                                                 </div>
                                             </div>
 
@@ -174,7 +175,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
 
                                             {/* Desktop Badge */}
                                             <div className={t.statusBadge(statusType, colors).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
-                                                {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
+                                                {isUp ? 'OPERATIONAL' : 'MAINTENANCE'}
                                             </div>
                                         </div>
                                     </motion.div>
@@ -213,16 +214,33 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                                 type: 'update',
                                                                 date: new Date(u.createdAt),
                                                                 title: 'Status Update',
+                                                                // Pass raw content for Markdown rendering
                                                                 description: u.content,
-                                                                variant: u.variant || 'info'
+                                                                variant: u.variant || 'info',
+                                                                isMarkdown: true
                                                             })),
-                                                            ...logs.map(l => ({
-                                                                type: 'log',
-                                                                date: new Date(l.datetime * 1000),
-                                                                title: l.type === 1 ? 'Outage Detected' : 'Service Recovered',
-                                                                description: l.type === 1 ? (l.reason?.code || 'Service Unavailable') : `Duration: ${Math.round(l.duration / 60)} mins`,
-                                                                variant: l.type === 1 ? 'error' : 'success'
-                                                            }))
+                                                            ...logs.map(l => {
+                                                                const isDown = l.type === 1;
+                                                                const reasonData = getLogReason(l.reason?.code, l.reason?.detail);
+
+                                                                let desc = '';
+                                                                if (isDown) {
+                                                                    desc = reasonData.reason;
+                                                                    if (l.duration > 0) desc += ` • ${formatDuration(l.duration)}`;
+                                                                } else {
+                                                                    // Use Time for Recovery to match Editor
+                                                                    desc = new Date(l.datetime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                                }
+
+                                                                return {
+                                                                    type: 'log',
+                                                                    date: new Date(l.datetime * 1000),
+                                                                    title: isDown ? 'Outage Detected' : 'Service Recovered',
+                                                                    description: desc,
+                                                                    variant: isDown ? 'error' : 'success',
+                                                                    isMarkdown: false
+                                                                };
+                                                            })
                                                         ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 3);
 
                                                         if (combinedHistory.length > 0) {
@@ -246,10 +264,13 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                                                         {item.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                                                                     </span>
                                                                                 </div>
-                                                                                <div className="text-xs text-zinc-500 truncate mt-0.5" dangerouslySetInnerHTML={{
-                                                                                    // Strip markdown for list view, just simple text
-                                                                                    __html: item.type === 'update' ? item.description.replace(/[#*`_]/g, '') : item.description
-                                                                                }} />
+                                                                                {item.isMarkdown ? (
+                                                                                    <Markdown content={item.description} className="text-xs text-zinc-500 mt-0.5" />
+                                                                                ) : (
+                                                                                    <p className="text-xs text-zinc-500 truncate mt-0.5">
+                                                                                        {item.description}
+                                                                                    </p>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                     ))}
