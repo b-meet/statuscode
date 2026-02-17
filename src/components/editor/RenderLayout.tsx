@@ -50,11 +50,26 @@ export const RenderLayout = memo(({
     const activePreset = themePresets.find((p: ColorPreset) => p.id === config.colorPreset) || themePresets[0];
     const colors = activePreset?.colors;
 
-    const MaintenanceBanner = config.showDummyData ? (
+    const activeMaintenance = config.maintenance?.find(m => {
+        const start = new Date(m.startTime).getTime();
+        const end = start + m.durationMinutes * 60000;
+        return end > Date.now();
+    });
+
+    const MaintenanceBanner = (config.showDummyData || activeMaintenance) ? (
         <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8">
             <Calendar className="w-4 h-4 text-indigo-400" />
             <span className="text-sm font-medium text-indigo-200">
-                Scheduled Maintenance: <span className="text-white">Database Migration</span> &mdash; Oct 24, 13:00 UTC
+                {activeMaintenance
+                    ? `Scheduled Maintenance: ${activeMaintenance.title}`
+                    : "Scheduled Maintenance: Database Migration"
+                }
+                <span className="text-white ml-2">
+                    {activeMaintenance
+                        ? new Date(activeMaintenance.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
+                        : "Oct 24, 13:00 UTC"
+                    }
+                </span>
             </span>
             <ArrowRight className="w-4 h-4 text-indigo-400/50" />
         </div>

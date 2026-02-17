@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { MonitorData, IncidentUpdate } from '@/lib/types';
+import { MonitorData, IncidentUpdate, MaintenanceWindow } from '@/lib/types';
 import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
 
 // --- Types ---
@@ -29,6 +29,7 @@ export interface VisibilityConfig {
 export interface SiteConfig {
     id?: string; // Supabase ID
     brandName: string;
+    subdomain: string; // Custom subdomain
     logoUrl: string;
     theme: Theme;
     layout: Layout;
@@ -40,6 +41,7 @@ export interface SiteConfig {
     previewScenario?: PreviewScenario;
     visibility: VisibilityConfig; // New field
     annotations: Record<string, IncidentUpdate[]>; // Monitor ID -> Timeline of Updates
+    maintenance: MaintenanceWindow[];
 }
 
 interface EditorContextType {
@@ -56,11 +58,13 @@ interface EditorContextType {
     publishSite: () => Promise<void>;
     isPublishing: boolean;
     addDemoMonitors: () => void;
+    user: any | null; // Supabase user
 }
 
 // --- Default State ---
 const defaultConfig: SiteConfig = {
     brandName: 'My Status Page',
+    subdomain: '',
     logoUrl: '',
     theme: 'modern',
     layout: 'layout1',
@@ -76,7 +80,8 @@ const defaultConfig: SiteConfig = {
         showIncidentHistory: true,
         showPerformanceMetrics: true,
     },
-    annotations: {}
+    annotations: {},
+    maintenance: []
 };
 
 // --- Context Creation ---
@@ -87,6 +92,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
     const [monitorsData, setMonitorsData] = useState<MonitorData[]>([]);
+    const [user, setUser] = useState<any | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
 
     const fetchMonitors = useCallback(async () => {
@@ -121,7 +127,31 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         );
 
         setMonitorsData(prev => {
-            // Keep existing demo monitors that might not be in the fresh getDemoMonitors() call if we had custom state (though currently we don't)
+            // If we have real monitors, ignore demo monitors to avoid duplicates
+            if (realMonitors.length > 0) {
+                // Remove demo monitors AND any stale IDs (e.g. deleted monitors) from selected list
+                const realIds = realMonitors.map(m => String(m.id));
+                const validSelected = config.monitors.filter(id => realIds.includes(id));
+
+                if (validSelected.length !== config.monitors.length) {
+                    // We filtered something out (demos or deleted monitors)
+                    if (validSelected.length === 0) {
+                        // User had no real monitors selected (only demos or empty or all deleted)
+                        // Auto-select ALL fetched real monitors
+                        updateConfig({ monitors: realIds });
+                    } else {
+                        updateConfig({ monitors: validSelected });
+                    }
+                } else if (validSelected.length === 0) {
+                    // Config didn't change (no demos to remove), BUT we have no real monitors selected
+                    // Auto-select ALL fetched real monitors
+                    updateConfig({ monitors: realIds });
+                }
+
+                return realMonitors;
+            }
+
+            // Otherwise, keep existing demo monitors that might not be in the fresh getDemoMonitors() call if we had custom state (though currently we don't)
             // But main goal is to merge results.
             const merged = [...realMonitors];
             demoMonitors.forEach(dm => {
@@ -139,6 +169,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
                 if (!user) return; // Should handle auth redirect elsewhere
+                setUser(user);
 
                 const { data: site } = await supabase
                     .from('sites')
@@ -152,6 +183,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     setConfig({
                         id: site.id,
                         brandName: site.brand_name || defaultConfig.brandName,
+                        subdomain: site.subdomain || '',
                         logoUrl: site.logo_url || defaultConfig.logoUrl,
                         theme: site.theme_config?.theme || defaultConfig.theme,
                         layout: site.theme_config?.layout || defaultConfig.layout,
@@ -179,9 +211,15 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                             });
                             return migrated;
                         })(),
+                        maintenance: site.theme_config?.maintenance || [],
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
                     });
+
+                    // Sync local real-time state with config
+                    if (site.theme_config?.previewScenario === 'none') {
+                        setIsRealDataEnabled(true);
+                    }
 
                     // If we have an API key, fetch monitors immediately
                     if (site.uptimerobot_api_key) {
@@ -193,8 +231,44 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                             .then(r => r.json())
                             .then(d => {
                                 const real = d.monitors || [];
-                                const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
-                                setMonitorsData([...real, ...demos]);
+                                // If we have real monitors, don't show demos AND clean up config
+                                if (real.length > 0) {
+                                    setMonitorsData(real);
+
+                                    // Clean up selected monitors in config
+                                    // We need to do this carefully as config might not be fully loaded or we are inside useEffect
+                                    // But we have 'site' variable here which is the raw data
+                                    if (site.monitors && site.monitors.length > 0) {
+                                        const demoIds = getDemoMonitors().map(m => toDemoStringId(m.id));
+                                        const cleaned = site.monitors.filter((id: string) => !demoIds.includes(id));
+
+                                        if (cleaned.length !== site.monitors.length) {
+                                            // We need to update the DB/State
+                                            // We can call updateConfig but we are inside the 'fetched' callback
+                                            // Let's defer it or call it if updateConfig is stable
+
+                                            // Check if we should auto-select all
+                                            const hasSelectedReal = cleaned.some((id: string) => !demoIds.includes(id));
+                                            if (!hasSelectedReal) {
+                                                const allRealIds = real.map((m: any) => String(m.id));
+                                                updateConfig({ monitors: allRealIds });
+                                            } else {
+                                                updateConfig({ monitors: cleaned });
+                                            }
+                                        } else {
+                                            // Even if no demos were removed, if we have active real monitors but NONE selected
+                                            // We should auto select them
+                                            const hasSelectedReal = cleaned.some((id: string) => !demoIds.includes(id));
+                                            if (!hasSelectedReal) {
+                                                const allRealIds = real.map((m: any) => String(m.id));
+                                                updateConfig({ monitors: allRealIds });
+                                            }
+                                        }
+                                    }
+                                } else {
+                                    const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
+                                    setMonitorsData(demos);
+                                }
                             });
                     } else {
                         // Just load demo monitors if they are in the list
@@ -247,10 +321,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         colorPreset: config.colorPreset,
                         primaryColor: config.primaryColor,
                         visibility: config.visibility,
-                        annotations: config.annotations
+                        annotations: config.annotations,
+                        maintenance: config.maintenance
                     },
-                    // Automatically update subdomain based on brand name (slugified)
-                    subdomain: config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'
+                    // Use custom subdomain if set, otherwise auto-generate from brand name
+                    subdomain: config.subdomain || config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'
                 };
 
                 if (config.id) {
@@ -342,7 +417,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         toast.promise(promise, {
             loading: 'Publishing your status page...',
             success: () => {
-                const slug = config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
+                const slug = config.subdomain || config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
                 const url = `${window.location.origin}/s/${slug}`;
                 window.open(url, '_blank');
                 return "Congratulations! Your site is live.";
@@ -397,7 +472,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             setIsRealDataEnabled,
             publishSite,
             isPublishing,
-            addDemoMonitors
+            addDemoMonitors,
+            user
         }}>
             {children}
         </EditorContext.Provider>

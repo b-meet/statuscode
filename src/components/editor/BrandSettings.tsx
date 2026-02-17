@@ -1,7 +1,7 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { UploadCloud, Image as ImageIcon, Loader2, X } from "lucide-react";
+import { UploadCloud, Image as ImageIcon, Loader2, X, ExternalLink } from "lucide-react";
 import { useRef, useState } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
@@ -77,6 +77,36 @@ export default function BrandSettings() {
                     placeholder="e.g. Acme Corp"
                     className="w-full h-9 px-3 rounded-lg bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors"
                 />
+            </div>
+
+            {/* Subdomain Input */}
+            <div className="space-y-1.5">
+                <label className="text-xs text-zinc-500">Subdomain</label>
+                <div className="flex gap-2">
+                    <div className="flex-1 bg-black border border-zinc-800 rounded-lg flex items-center px-3 gap-1 overflow-hidden">
+                        <span className="text-zinc-600 text-sm whitespace-nowrap">{window.location.host}/s/</span>
+                        <input
+                            type="text"
+                            value={config.subdomain || ''}
+                            onChange={(e) => updateConfig({ subdomain: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })}
+                            placeholder={config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}
+                            className="flex-1 h-9 bg-transparent border-none text-white text-sm placeholder:text-zinc-800 focus:outline-none focus:ring-0 p-0 min-w-0"
+                        />
+                    </div>
+                    <button
+                        onClick={() => {
+                            const slug = config.subdomain || config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
+                            window.open(`${window.location.origin}/s/${slug}`, '_blank');
+                        }}
+                        className="px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors"
+                        title="Preview Public Page"
+                    >
+                        <ExternalLink className="w-4 h-4" />
+                    </button>
+                </div>
+                <p className="text-[10px] text-zinc-600">
+                    The URL where your status page will be publicly accessible.
+                </p>
             </div>
 
             {/* Logo Input */}

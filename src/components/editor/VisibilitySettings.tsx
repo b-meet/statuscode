@@ -9,6 +9,7 @@ export default function VisibilitySettings() {
     const { config, updateConfig } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
 
     const toggleOpen = () => {
@@ -24,14 +25,19 @@ export default function VisibilitySettings() {
 
     // Close on scroll or resize to prevent detachment
     useEffect(() => {
-        const handleScroll = () => setIsOpen(false);
+        const handleScroll = (e: Event) => {
+            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
+                return;
+            }
+            setIsOpen(false);
+        };
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
         return () => {
             window.removeEventListener('scroll', handleScroll, true);
             window.removeEventListener('resize', handleScroll);
         };
-    }, []);
+    }, [isOpen]);
 
     const toggles = [
         {
@@ -105,6 +111,7 @@ export default function VisibilitySettings() {
 
                     {/* Popover Menu */}
                     <div
+                        ref={popupRef}
                         className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
                         style={{
                             top: Math.min(position.top, window.innerHeight - 350),

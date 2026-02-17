@@ -1,6 +1,7 @@
 "use client";
 
 import { LayoutDashboard } from "lucide-react";
+import { useEditor } from "@/context/EditorContext";
 import Link from "next/link";
 import BrandSettings from "./BrandSettings";
 import ThemeSelector from "./ThemeSelector";
@@ -9,8 +10,10 @@ import MonitorManager from "./MonitorManager";
 import PreviewSelector from "./PreviewSelector";
 import ColorPresetSelector from "./ColorPresetSelector";
 import VisibilitySettings from "./VisibilitySettings";
+import MaintenanceManager from "./MaintenanceManager";
 
 export default function Sidebar() {
+    const { user } = useEditor();
     return (
         <aside className="flex flex-col shrink-0 h-full overflow-hidden">
             {/* Header */}
@@ -41,6 +44,7 @@ export default function Sidebar() {
                         <LayoutSelector />
                         <VisibilitySettings />
                         <MonitorManager />
+                        <MaintenanceManager />
                     </div>
 
                     <div className="border-t border-zinc-800/50" />
@@ -53,13 +57,46 @@ export default function Sidebar() {
             {/* Footer / Account */}
             <div className="p-4 border-t border-zinc-800 bg-zinc-950/30">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500" />
+                    <UserAvatar user={user} />
                     <div className="text-xs">
-                        <div className="text-white font-medium">Logged In User</div>
+                        <div className="text-white font-medium">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</div>
                         <div className="text-zinc-500">Free Plan</div>
                     </div>
                 </div>
             </div>
         </aside>
+    );
+}
+
+function UserAvatar({ user }: { user: any }) {
+    if (!user) return <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />;
+
+    const initials = (user.user_metadata?.full_name || user.email || '?')
+        .split(' ')
+        .map((n: string) => n[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+
+    // Generate a consistent deep color based on user ID
+    const getDeepColor = (id: string) => {
+        const colors = [
+            'bg-indigo-900', 'bg-blue-900', 'bg-emerald-900',
+            'bg-rose-900', 'bg-purple-900', 'bg-amber-900',
+            'bg-cyan-900', 'bg-fuchsia-900', 'bg-lime-950'
+        ];
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+            hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
+
+    const bgClass = getDeepColor(user.id);
+
+    return (
+        <div className={`w-8 h-8 rounded-full ${bgClass} flex items-center justify-center border border-white/10`}>
+            <span className="text-xs font-bold text-white/90 tracking-wide">{initials}</span>
+        </div>
     );
 }

@@ -74,6 +74,7 @@ export default function LayoutSelector() {
     const { config, updateConfig } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
 
     const activeLayout = layouts.find(l => l.id === config.layout) || layouts[0];
@@ -91,14 +92,19 @@ export default function LayoutSelector() {
 
     // Close on scroll or resize
     useEffect(() => {
-        const handleScroll = () => setIsOpen(false);
+        const handleScroll = (e: Event) => {
+            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
+                return;
+            }
+            setIsOpen(false);
+        };
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
         return () => {
             window.removeEventListener('scroll', handleScroll, true);
             window.removeEventListener('resize', handleScroll);
         };
-    }, []);
+    }, [isOpen]);
 
     return (
         <>
@@ -133,6 +139,7 @@ export default function LayoutSelector() {
 
                     {/* Popover Menu */}
                     <div
+                        ref={popupRef}
                         className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
                         style={{
                             top: Math.min(position.top, window.innerHeight - 400),

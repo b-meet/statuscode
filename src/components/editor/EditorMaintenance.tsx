@@ -5,6 +5,7 @@ import { Activity } from 'lucide-react';
 import { ThemeConfig } from '@/lib/themes';
 import { classNames } from '@/lib/utils';
 import { useEditor } from '@/context/EditorContext';
+import { Markdown } from '@/components/ui/markdown';
 
 interface EditorMaintenanceProps {
     showDummyData: boolean;
@@ -14,17 +15,30 @@ interface EditorMaintenanceProps {
 export const EditorMaintenance = memo(({ showDummyData, theme: t }: EditorMaintenanceProps) => {
     const { config } = useEditor();
 
-    const isFullMaintenance = config.previewScenario === 'maintenance_full';
-    const isPartialMaintenance = config.previewScenario === 'maintenance_partial';
+    const maintenanceList = config.maintenance || [];
+    const activeWindows = maintenanceList.filter(m => {
+        const start = new Date(m.startTime).getTime();
+        const end = start + m.durationMinutes * 60000;
+        const now = Date.now();
+        // Show if active OR upcoming within 24 hours
+        return end > now;
+    }).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime());
 
-    const isMaintenanceActive = showDummyData || isFullMaintenance || isPartialMaintenance || config.previewScenario === 'heavy_incidents';
+    const isMaintenanceActive = showDummyData || config.previewScenario === 'heavy_incidents' || activeWindows.length > 0;
 
-    // Determine styles based on maintenance type
-    const isAmber = isPartialMaintenance;
+    const firstWindow = activeWindows[0];
+    const isAmber = (firstWindow && firstWindow.monitorId !== 'all');
+
+    // Derived values for the display
     const activeColor = isAmber ? 'text-amber-400' : 'text-indigo-400';
     const activeBg = isAmber ? 'bg-amber-500/20' : 'bg-indigo-500/20';
     const activeBorder = isAmber ? 'border-amber-500/20' : 'border-indigo-500/20';
     const activeBorderL = isAmber ? 'border-l-amber-500' : 'border-l-indigo-500';
+
+    const displayTitle = firstWindow ? firstWindow.title : (isAmber ? 'Partial System Maintenance' : 'System-wide Maintenance');
+    const displayDesc = firstWindow ? (firstWindow.description || "Scheduled maintenance is currently in progress.") : (isAmber ? "Some systems are currently under maintenance." : "Scheduled updates to the cluster.");
+    const displayDate = firstWindow ? new Date(firstWindow.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' }) : "Oct 24";
+    const statusLabel = firstWindow ? (new Date(firstWindow.startTime) > new Date() ? 'UPCOMING' : 'IN PROGRESS') : (isAmber ? 'PARTIAL OUTAGE' : 'UPCOMING');
 
     return (
         <div>
@@ -43,18 +57,16 @@ export const EditorMaintenance = memo(({ showDummyData, theme: t }: EditorMainte
                 )}>
                     <div className="flex items-center justify-between mb-2">
                         <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${activeBg} ${activeColor} border ${activeBorder}`}>
-                            {isAmber ? 'PARTIAL OUTAGE' : 'UPCOMING'}
+                            {statusLabel}
                         </span>
-                        <span className="text-xs text-white/50 font-mono">Oct 24</span>
+                        <span className="text-xs text-white/50 font-mono">{displayDate}</span>
                     </div>
                     <h4 className="font-medium text-white text-sm">
-                        {isAmber ? 'Partial System Maintenance' : 'System-wide Maintenance'}
+                        {displayTitle}
                     </h4>
-                    <p className={classNames("text-xs mt-2 leading-relaxed", t.mutedText)}>
-                        {isAmber
-                            ? "Some systems are currently under maintenance."
-                            : "Scheduled updates to the cluster."}
-                    </p>
+                    <div className={classNames("text-xs mt-2 leading-relaxed", t.mutedText)}>
+                        <Markdown content={displayDesc} />
+                    </div>
                 </div>
             ) : (
                 <div className={classNames(

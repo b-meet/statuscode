@@ -19,11 +19,12 @@ export default function PreviewSelector() {
     const { config, updateConfig, setIsRealDataEnabled } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
 
     const activeScenario = scenarios.find(s => s.id === config.previewScenario) || {
         id: 'none',
-        label: 'Real-time Data',
+        label: 'Live',
         icon: Eye,
         color: 'text-zinc-400'
     };
@@ -41,14 +42,19 @@ export default function PreviewSelector() {
 
     // Close on scroll or resize to prevent detachment
     useEffect(() => {
-        const handleScroll = () => setIsOpen(false);
+        const handleScroll = (e: Event) => {
+            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
+                return;
+            }
+            setIsOpen(false);
+        };
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
         return () => {
             window.removeEventListener('scroll', handleScroll, true);
             window.removeEventListener('resize', handleScroll);
         };
-    }, []);
+    }, [isOpen]);
 
     return (
         <>
@@ -68,7 +74,7 @@ export default function PreviewSelector() {
                                 {activeScenario?.id !== 'none' && (
                                     <activeScenario.icon className={`w-3 h-3 ${activeScenario.color}`} />
                                 )}
-                                <span className="truncate">{activeScenario?.label || 'Real-time Data'}</span>
+                                <span className="truncate">{activeScenario?.label || 'Live'}</span>
                             </div>
                         </div>
                     </div>
@@ -86,6 +92,7 @@ export default function PreviewSelector() {
 
                     {/* Popover Menu */}
                     <div
+                        ref={popupRef}
                         className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
                         style={{
                             top: Math.min(position.top, window.innerHeight - 400), // Adjusted for longer list
@@ -93,33 +100,27 @@ export default function PreviewSelector() {
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50">
-                            <div className="text-xs font-semibold text-white">Preview Experience</div>
-                            <p className="text-[10px] text-zinc-500 mt-0.5">
-                                Simulate different system states.
-                            </p>
-                        </div>
-                        <div className="space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            {config.apiKey && config.monitors.some(id => !id.startsWith('demo-')) && (
+                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50 flex items-center justify-between">
+                            <div>
+                                <div className="text-xs font-semibold text-white">Preview</div>
+                                <p className="text-[10px] text-zinc-500 mt-0.5">
+                                    Simulate states
+                                </p>
+                            </div>
+                            {config.previewScenario && config.previewScenario !== 'none' && (
                                 <button
                                     onClick={() => {
                                         updateConfig({ previewScenario: 'none' });
                                         setIsRealDataEnabled(true);
                                     }}
-                                    className={`w-full group relative p-2 rounded-lg border text-left transition-all ${config.previewScenario === 'none' || !config.previewScenario
-                                        ? 'bg-zinc-900 border-zinc-700'
-                                        : 'bg-transparent border-transparent hover:bg-zinc-900/50'
-                                        }`}
+                                    className="text-[10px] px-1.5 py-0.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded border border-zinc-700 transition-colors"
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-zinc-500 ml-1.5" />
-                                        <span className={`text-sm ${!config.previewScenario || config.previewScenario === 'none' ? 'text-white' : 'text-zinc-400'}`}>Real-time Data</span>
-                                        {(!config.previewScenario || config.previewScenario === 'none') && (
-                                            <Check className="w-3 h-3 text-white ml-auto" />
-                                        )}
-                                    </div>
+                                    Reset
                                 </button>
                             )}
+                        </div>
+                        <div className="space-y-1 max-h-[400px] overflow-y-auto custom-scrollbar">
+
 
                             {scenarios.map((scenario) => (
                                 <button

@@ -9,7 +9,7 @@ import { IncidentHistory } from "./IncidentHistory";
 import { Maintenance } from "./Maintenance";
 import { MonitorDetailView } from "./MonitorDetailView";
 
-import { MonitorData, IncidentUpdate } from "@/lib/types";
+import { MonitorData, IncidentUpdate, MaintenanceWindow } from "@/lib/types";
 import { VisibilityConfig } from "@/context/EditorContext";
 import { toDemoStringId } from "@/lib/mockMonitors";
 
@@ -30,6 +30,7 @@ interface RenderLayoutProps {
     setSelectedMonitorId: (id: string | null) => void;
     visibility?: VisibilityConfig;
     annotations?: Record<string, IncidentUpdate[]>;
+    maintenance?: MaintenanceWindow[];
 }
 
 const RenderLayout = memo(({
@@ -46,7 +47,8 @@ const RenderLayout = memo(({
     selectedMonitorId,
     setSelectedMonitorId,
     visibility,
-    annotations
+    annotations,
+    maintenance: maintenanceWindows
 }: RenderLayoutProps) => {
     // History is only used in overlay currently to match Editor
     const historyLogs = useMemo(() =>
@@ -85,7 +87,7 @@ const RenderLayout = memo(({
 
     const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} colors={colors} visibility={visibility} />;
     const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} visibility={visibility} annotations={annotations} />;
-    const maintenance = <Maintenance theme={t} />;
+    const maintenance = <Maintenance theme={t} windows={maintenanceWindows} />;
 
 
     const history = (
@@ -301,6 +303,7 @@ export default function StatusPageClient({
                 setSelectedMonitorId={setSelectedMonitorId}
                 visibility={visibility}
                 annotations={annotations}
+                maintenance={[]} // TODO: Fetch from API or prop
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

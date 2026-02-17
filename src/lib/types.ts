@@ -25,3 +25,13 @@ export interface IncidentUpdate {
     variant?: IncidentVariant;
     createdAt: string; // ISO string
 }
+
+export interface MaintenanceWindow {
+    id: string;
+    monitorId: string; // "all" or specific monitor ID
+    title: string;
+    description?: string;
+    startTime: string; // ISO string
+    durationMinutes: number;
+    status: 'scheduled' | 'in_progress' | 'completed';
+}

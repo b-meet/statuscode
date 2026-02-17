@@ -19,6 +19,7 @@ export default function MonitorManager() {
     const [error, setError] = useState("");
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
     const [isAddingDemos, setIsAddingDemos] = useState(false);
 
@@ -71,14 +72,19 @@ export default function MonitorManager() {
 
     // Close on scroll or resize
     useEffect(() => {
-        const handleScroll = () => setIsOpen(false);
+        const handleScroll = (e: Event) => {
+            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
+                return;
+            }
+            setIsOpen(false);
+        };
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
         return () => {
             window.removeEventListener('scroll', handleScroll, true);
             window.removeEventListener('resize', handleScroll);
         };
-    }, []);
+    }, [isOpen]);
 
     const selectedCount = config.monitors.length;
     const totalCount = monitorsData?.length || 0;
@@ -114,6 +120,7 @@ export default function MonitorManager() {
                     />
 
                     <div
+                        ref={popupRef}
                         className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-4 animate-in fade-in zoom-in-95 duration-200"
                         style={{
                             top: Math.min(position.top, window.innerHeight - 450),
@@ -141,7 +148,7 @@ export default function MonitorManager() {
                                     disabled={fetching || globalLoading || !config.apiKey}
                                     className="px-2 h-8 bg-white text-black rounded text-[10px] font-bold hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
-                                    {fetching ? <Loader2 className="w-3 h-3 animate-spin" /> : "FETCH"}
+                                    {fetching ? <Loader2 className="w-3 h-3 animate-spin" /> : (monitorsData && monitorsData.length > 0 ? "REFRESH" : "FETCH")}
                                 </button>
                             </div>
                             {globalLoading && <p className="text-[9px] text-zinc-500 animate-pulse">Loading settings...</p>}

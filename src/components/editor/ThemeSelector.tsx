@@ -15,6 +15,7 @@ export default function ThemeSelector() {
     const { config, updateConfig } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
+    const popupRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
 
     const activeTheme = themes.find(t => t.id === config.theme) || themes[0];
@@ -32,14 +33,19 @@ export default function ThemeSelector() {
 
     // Close on scroll or resize to prevent detachment
     useEffect(() => {
-        const handleScroll = () => setIsOpen(false);
+        const handleScroll = (e: Event) => {
+            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
+                return;
+            }
+            setIsOpen(false);
+        };
         window.addEventListener('scroll', handleScroll, true);
         window.addEventListener('resize', handleScroll);
         return () => {
             window.removeEventListener('scroll', handleScroll, true);
             window.removeEventListener('resize', handleScroll);
         };
-    }, []);
+    }, [isOpen]);
 
     return (
         <>
@@ -49,15 +55,15 @@ export default function ThemeSelector() {
                     onClick={toggleOpen}
                     className={`w-full flex items-center justify-between group p-2 -ml-2 rounded-lg transition-colors ${isOpen ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'}`}
                 >
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 group-hover:text-zinc-300'}`}>
                             <Palette className="w-4 h-4" />
                         </div>
                         <div className="text-left">
                             <h3 className="text-xs font-semibold text-zinc-300">Theme</h3>
                             <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: activeTheme.color }} />
-                                {activeTheme.name}
+                                <div className="w-1.5 h-1.5 rounded-full shrink-0 ring-1 ring-white/20" style={{ backgroundColor: activeTheme.color }} />
+                                <span className="truncate">{activeTheme.name}</span>
                             </div>
                         </div>
                     </div>
@@ -75,6 +81,7 @@ export default function ThemeSelector() {
 
                     {/* Popover Menu */}
                     <div
+                        ref={popupRef}
                         className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
                         style={{
                             top: Math.min(position.top, window.innerHeight - 300), // Prevent overflow bottom
@@ -114,7 +121,7 @@ export default function ThemeSelector() {
 
                                     {/* Color Preview Dot */}
                                     <div
-                                        className="absolute bottom-3 right-3 w-1.5 h-1.5 rounded-full"
+                                        className="absolute bottom-3 right-3 w-1.5 h-1.5 rounded-full ring-1 ring-white/20"
                                         style={{ backgroundColor: theme.color }}
                                     />
                                 </button>
