@@ -28,3 +28,44 @@ export function formatDate(timestamp: number): string {
         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
     });
 }
+
+export function formatDuration(seconds: number) {
+    if (!seconds) return '0 mins';
+    const totalMinutes = Math.round(seconds / 60);
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+
+    return parts.join(' ');
+}
+
+export function getLogReason(code?: string, originalDetail?: string): { reason: string; detail?: string } {
+    if (!code) return { reason: 'Unknown Error', detail: originalDetail };
+
+    const codeMap: Record<string, { reason: string; detail?: string }> = {
+        '100001': { reason: 'DNS Resolving Problem', detail: 'Could not get IP address from the domain.' },
+        '100002': { reason: 'Connection Timeout', detail: 'The server took too long to respond.' },
+        '100003': { reason: 'Connection Refused', detail: 'The server refused the connection.' },
+        'TIMEOUT': { reason: 'Connection Timeout' },
+        'HTTP_ERROR': { reason: 'HTTP Error' },
+        'KEYWORD_MISSING': { reason: 'Keyword Missing' },
+    };
+
+    const mapped = codeMap[code];
+    if (mapped) {
+        return {
+            reason: mapped.reason,
+            detail: mapped.detail || originalDetail
+        };
+    }
+
+    return {
+        reason: originalDetail || `Error ${code}`,
+        detail: originalDetail ? `Code: ${code}` : undefined
+    };
+}

@@ -6,7 +6,7 @@ import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock, MessageSq
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
-import { formatUptime, getAverageResponseTime } from '@/lib/utils';
+import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
 import { MonitorData, Log, IncidentUpdate, IncidentVariant } from '@/lib/types';
 import { VisibilityConfig } from '@/context/EditorContext';
 
@@ -59,18 +59,7 @@ const parseMarkdown = (text: string) => {
     ));
 };
 
-// Helper to format duration
-function formatDuration(seconds: number) {
-    if (!seconds) return '0 mins';
-    const totalMinutes = Math.round(seconds / 60);
-    const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
 
-    if (hours > 0) {
-        return `${hours} hrs ${minutes} mins`;
-    }
-    return `${minutes} mins`;
-}
 
 export const MonitorDetailView = memo(({
     monitor,
@@ -406,7 +395,23 @@ export const MonitorDetailView = memo(({
                                                 </span>
                                             </div>
                                             <p className={`text-xs ${t.mutedText}`}>
-                                                {log.type === 1 ? `Error details: ${log.reason?.code || 'Service Unavailable'}` : `Duration: ${formatDuration(log.duration)}`}
+                                                {log.type === 1 ? (
+                                                    <>
+                                                        <span className="block font-medium text-white/80 mb-0.5">
+                                                            {getLogReason(log.reason?.code, log.reason?.detail).reason}
+                                                        </span>
+                                                        {getLogReason(log.reason?.code, log.reason?.detail).detail && (
+                                                            <span className="block opacity-75">
+                                                                {getLogReason(log.reason?.code, log.reason?.detail).detail}
+                                                            </span>
+                                                        )}
+                                                        <span className="block mt-1 opacity-60 font-mono text-[10px]">
+                                                            Lasted for: {formatDuration(log.duration)}
+                                                        </span>
+                                                    </>
+                                                ) : (
+                                                    `at ${new Date(log.datetime * 1000).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                                                )}
                                             </p>
                                         </div>
                                     </div>

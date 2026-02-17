@@ -11,6 +11,8 @@ interface EditorHeaderProps {
     isMobileLayout: boolean;
     serviceCount: number;
     theme: ThemeConfig;
+    supportEmail?: string;
+    supportUrl?: string;
 }
 
 export const EditorHeader = memo(({
@@ -18,7 +20,9 @@ export const EditorHeader = memo(({
     brandName,
     isMobileLayout,
     serviceCount,
-    theme: t
+    theme: t,
+    supportEmail,
+    supportUrl
 }: EditorHeaderProps) => {
     return (
         <div className={classNames(
@@ -52,12 +56,19 @@ export const EditorHeader = memo(({
                 </div>
             </div>
             <div className="flex gap-4">
-                <button className={classNames(
-                    "w-full sm:w-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white transition-all backdrop-blur-md flex items-center justify-center gap-2",
-                    t.rounded
-                )}>
-                    Report Issue
-                </button>
+                {(supportEmail || supportUrl) && (
+                    <a
+                        href={supportUrl || `mailto:${supportEmail}`}
+                        target={supportUrl ? "_blank" : undefined}
+                        rel={supportUrl ? "noopener noreferrer" : undefined}
+                        className={classNames(
+                            "w-full sm:w-auto px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white transition-all backdrop-blur-md flex items-center justify-center gap-2",
+                            t.rounded
+                        )}
+                    >
+                        Report Issue
+                    </a>
+                )}
             </div>
         </div>
     );

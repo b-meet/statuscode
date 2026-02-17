@@ -6,7 +6,7 @@ import { Activity } from 'lucide-react';
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from '../status-page/UptimeBars';
-import { formatUptime, getAverageResponseTime } from '@/lib/utils';
+import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
 import { MonitorData, Log, IncidentUpdate } from '@/lib/types';
 import { toDemoStringId } from '@/lib/mockMonitors';
 
@@ -191,7 +191,14 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                                             </span>
                                                                         </div>
                                                                         <p className="text-xs text-zinc-500 truncate mt-0.5">
-                                                                            {log.type === 1 ? (log.reason?.code || 'Service Unavailable') : `Duration: ${Math.round(log.duration / 60)} mins`}
+                                                                            {log.type === 1 ? (
+                                                                                <>
+                                                                                    {getLogReason(log.reason?.code, log.reason?.detail).reason}
+                                                                                    {log.duration > 0 && <span className="opacity-60 ml-1">• {formatDuration(log.duration)}</span>}
+                                                                                </>
+                                                                            ) : (
+                                                                                new Date(log.datetime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                                                                            )}
                                                                         </p>
                                                                     </div>
                                                                 </div>

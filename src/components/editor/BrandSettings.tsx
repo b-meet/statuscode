@@ -109,6 +109,38 @@ export default function BrandSettings() {
                 </p>
             </div>
 
+            {/* Support Configuration */}
+            <div className="space-y-3 pt-2 border-t border-zinc-900/50">
+                <h4 className="text-xs font-medium text-zinc-400">Support / Report Issue</h4>
+
+                {/* Support Email */}
+                <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-500">Support Email (Optional)</label>
+                    <input
+                        type="email"
+                        value={config.supportEmail || ''}
+                        onChange={(e) => updateConfig({ supportEmail: e.target.value })}
+                        placeholder="support@example.com"
+                        className="w-full h-9 px-3 rounded-lg bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-800 focus:outline-none focus:border-zinc-700 transition-colors"
+                    />
+                </div>
+
+                {/* Support URL */}
+                <div className="space-y-1.5">
+                    <label className="text-xs text-zinc-500">Custom Support URL (Optional)</label>
+                    <input
+                        type="url"
+                        value={config.supportUrl || ''}
+                        onChange={(e) => updateConfig({ supportUrl: e.target.value })}
+                        placeholder="https://help.example.com"
+                        className="w-full h-9 px-3 rounded-lg bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-800 focus:outline-none focus:border-zinc-700 transition-colors"
+                    />
+                    <p className="text-[10px] text-zinc-600">
+                        If set, the "Report Issue" button will link here instead of opening a mailto link.
+                    </p>
+                </div>
+            </div>
+
             {/* Logo Input */}
             <div className="space-y-1.5">
                 <label className="text-xs text-zinc-500">Logo</label>

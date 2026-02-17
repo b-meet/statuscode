@@ -30,6 +30,8 @@ export interface SiteConfig {
     id?: string; // Supabase ID
     brandName: string;
     subdomain: string; // Custom subdomain
+    supportEmail?: string;
+    supportUrl?: string; // Custom support URL
     logoUrl: string;
     theme: Theme;
     layout: Layout;
@@ -184,6 +186,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         id: site.id,
                         brandName: site.brand_name || defaultConfig.brandName,
                         subdomain: site.subdomain || '',
+                        supportEmail: site.theme_config?.supportEmail || '',
+                        supportUrl: site.theme_config?.supportUrl || '',
                         logoUrl: site.logo_url || defaultConfig.logoUrl,
                         theme: site.theme_config?.theme || defaultConfig.theme,
                         layout: site.theme_config?.layout || defaultConfig.layout,
@@ -322,7 +326,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         primaryColor: config.primaryColor,
                         visibility: config.visibility,
                         annotations: config.annotations,
-                        maintenance: config.maintenance
+                        maintenance: config.maintenance,
+                        supportEmail: config.supportEmail,
+                        supportUrl: config.supportUrl
                     },
                     // Use custom subdomain if set, otherwise auto-generate from brand name
                     subdomain: config.subdomain || config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'

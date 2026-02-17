@@ -43,6 +43,13 @@ export const RenderLayout = memo(({
     updates
 }: RenderLayoutProps) => {
 
+    const HeaderWithProps = React.isValidElement(Header)
+        ? React.cloneElement(Header as React.ReactElement<any>, {
+            supportEmail: config.supportEmail,
+            supportUrl: config.supportUrl
+        })
+        : Header;
+
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
 
     // Resolve colors
@@ -153,7 +160,7 @@ export const RenderLayout = memo(({
         case 'layout1': // Standard (Split Bottom)
             return (
                 <>
-                    {Header}
+                    {HeaderWithProps}
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
@@ -164,7 +171,7 @@ export const RenderLayout = memo(({
         case 'layout2': // Split Middle
             return (
                 <>
-                    {Header}
+                    {HeaderWithProps}
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         <div className={classNames(
@@ -192,9 +199,9 @@ export const RenderLayout = memo(({
             return (
                 <>
                     {MaintenanceBanner}
-                    {Header}
+                    {HeaderWithProps}
                     {Banner}
-                    {Header}
+                    {HeaderWithProps}
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
@@ -213,7 +220,7 @@ export const RenderLayout = memo(({
                             <ArrowRight className="w-4 h-4 rotate-180 group-hover:-translate-x-1 transition-transform" />
                             Back to Status
                         </button>
-                        {Header}
+                        {HeaderWithProps}
                         <div className="mt-8">
                             {History}
                         </div>
@@ -223,7 +230,7 @@ export const RenderLayout = memo(({
             return (
                 <>
                     {MaintenanceBanner}
-                    {Header}
+                    {HeaderWithProps}
                     {Banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}

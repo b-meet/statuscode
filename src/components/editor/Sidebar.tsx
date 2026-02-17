@@ -30,27 +30,42 @@ export default function Sidebar() {
 
             {/* Content Scroller */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
-                <div className="p-6 space-y-8">
+                <div className="p-4 space-y-6">
 
                     {/* Section 1: Brand */}
                     <BrandSettings />
 
                     <div className="border-t border-zinc-800/50" />
 
-                    {/* Section 2: Configuration (Theme, Layout, Monitors, Visibility) */}
-                    <div className="space-y-1">
-                        <ThemeSelector />
-                        <ColorPresetSelector />
-                        <LayoutSelector />
-                        <VisibilitySettings />
-                        <MonitorManager />
-                        <MaintenanceManager />
+                    {/* Section 2: Appearance (Theme, Colors, Layout, Visibility) */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Appearance</h3>
+                        <div className="space-y-1">
+                            <ThemeSelector />
+                            <ColorPresetSelector />
+                            <LayoutSelector />
+                            <VisibilitySettings />
+                        </div>
                     </div>
 
                     <div className="border-t border-zinc-800/50" />
 
-                    {/* Section 3: Preview Scenarios */}
-                    <PreviewSelector />
+                    {/* Section 3: Monitoring & Maintenance */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Monitoring & Maintenance</h3>
+                        <div className="space-y-1">
+                            <MonitorManager />
+                            <MaintenanceManager />
+                        </div>
+                    </div>
+
+                    <div className="border-t border-zinc-800/50" />
+
+                    {/* Section 4: Preview Scenarios */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Preview</h3>
+                        <PreviewSelector />
+                    </div>
                 </div>
             </div>
 
