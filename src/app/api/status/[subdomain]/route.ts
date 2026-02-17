@@ -80,7 +80,10 @@ export async function GET(
             }
         }
 
-        return NextResponse.json({ monitors: allMonitors });
+        return NextResponse.json({
+            monitors: allMonitors,
+            annotations: config.annotations || {}
+        });
 
     } catch (error) {
         console.error("[Status API] Error:", error);

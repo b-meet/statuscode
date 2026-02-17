@@ -41,7 +41,7 @@ function EditorLayoutContent({ children }: { children: React.ReactNode }) {
 
             {/* Collapse Toggle Button Container */}
             <div
-                className="flex flex-col justify-center relative h-full z-[10] shrink-0"
+                className="flex flex-col justify-center relative h-full z-[100] shrink-0"
             >
                 <div className="relative">
                     <button

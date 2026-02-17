@@ -1,13 +1,13 @@
 "use client";
 
-import React, { memo, useState } from 'react';
+import React, { memo, useState, useRef, useEffect } from 'react';
 import { ThemeConfig, colorPresets, ColorPreset } from '@/lib/themes';
 import { MonitorList } from './MonitorList';
 import { MonitorDetailView } from '../status-page/MonitorDetailView';
 import { StatusBanner } from './StatusBanner';
 import { ArrowRight, Calendar } from 'lucide-react';
 import { classNames } from '@/lib/utils';
-import { MonitorData } from '@/lib/types';
+import { MonitorData, IncidentUpdate } from '@/lib/types';
 import { SiteConfig } from '@/context/EditorContext';
 import { toDemoStringId } from '@/lib/mockMonitors';
 
@@ -19,10 +19,12 @@ interface RenderLayoutProps {
     isMobileLayout: boolean;
     selectedMonitorId: string | null;
     setSelectedMonitorId: (id: string | null) => void;
+    updateConfig: (updates: Partial<SiteConfig>) => void;
     theme: ThemeConfig;
     Header: React.ReactNode;
     History: React.ReactNode;
     Maintenance: React.ReactNode;
+    updates?: IncidentUpdate[]; // Optional for override
 }
 
 export const RenderLayout = memo(({
@@ -33,10 +35,12 @@ export const RenderLayout = memo(({
     isMobileLayout,
     selectedMonitorId,
     setSelectedMonitorId,
+    updateConfig,
     theme: t,
     Header,
     History,
-    Maintenance
+    Maintenance,
+    updates
 }: RenderLayoutProps) => {
 
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
@@ -77,7 +81,32 @@ export const RenderLayout = memo(({
                     setSelectedMonitorId={setSelectedMonitorId}
                     theme={t}
                     colors={colors}
-                    visibility={effectiveVisibility}
+                    visibility={config.visibility}
+                    updates={updates || config.annotations?.[selectedMonitorId] || []}
+                    onAddUpdate={(content, variant) => {
+                        const newUpdate: IncidentUpdate = {
+                            id: crypto.randomUUID(),
+                            content,
+                            variant,
+                            createdAt: new Date().toISOString()
+                        };
+                        const currentUpdates = config.annotations?.[selectedMonitorId] || [];
+                        updateConfig({
+                            annotations: {
+                                ...config.annotations,
+                                [selectedMonitorId]: [newUpdate, ...currentUpdates]
+                            }
+                        });
+                    }}
+                    onDeleteUpdate={(id) => {
+                        const currentUpdates = config.annotations?.[selectedMonitorId] || [];
+                        updateConfig({
+                            annotations: {
+                                ...config.annotations,
+                                [selectedMonitorId]: currentUpdates.filter(u => u.id !== id)
+                            }
+                        });
+                    }}
                 />
             </div>
         );

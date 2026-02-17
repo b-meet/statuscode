@@ -2,12 +2,12 @@
 
 import React, { memo, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock, MessageSquare, Info } from 'lucide-react';
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
-import { MonitorData, Log } from '@/lib/types';
+import { MonitorData, Log, IncidentUpdate, IncidentVariant } from '@/lib/types';
 import { VisibilityConfig } from '@/context/EditorContext';
 
 interface MonitorDetailViewProps {
@@ -16,7 +16,48 @@ interface MonitorDetailViewProps {
     theme: ThemeConfig;
     colors?: StatusColors;
     visibility?: VisibilityConfig;
+    updates?: IncidentUpdate[];
+    onAddUpdate?: (content: string, variant?: IncidentVariant) => void;
+    onDeleteUpdate?: (id: string) => void;
 }
+
+// Simple Markdown Parser (Bold, Italic, Link, Lines)
+const parseMarkdown = (text: string) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => (
+        <React.Fragment key={i}>
+            {line.split(/(\*\*.*?\*\*|\*.*?\*|\[.*?\]\(.*?\))/g).map((part, j) => {
+                // Bold
+                if (part.startsWith('**') && part.endsWith('**')) {
+                    return <strong key={j}>{part.slice(2, -2)}</strong>;
+                }
+                // Italic
+                if (part.startsWith('*') && part.endsWith('*')) {
+                    return <em key={j}>{part.slice(1, -1)}</em>;
+                }
+                // Link
+                if (part.match(/\[(.*?)\]\((.*?)\)/)) {
+                    const match = part.match(/\[(.*?)\]\((.*?)\)/);
+                    if (match) {
+                        return (
+                            <a
+                                key={j}
+                                href={match[2]}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-blue-100"
+                            >
+                                {match[1]}
+                            </a>
+                        );
+                    }
+                }
+                return part;
+            })}
+            <br />
+        </React.Fragment>
+    ));
+};
 
 // Helper to format duration
 function formatDuration(seconds: number) {
@@ -31,7 +72,21 @@ function formatDuration(seconds: number) {
     return `${minutes} mins`;
 }
 
-export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t, colors, visibility }: MonitorDetailViewProps) => {
+export const MonitorDetailView = memo(({
+    monitor,
+    setSelectedMonitorId,
+    theme: t,
+    colors,
+    visibility,
+    updates,
+    onAddUpdate,
+    onDeleteUpdate
+}: MonitorDetailViewProps) => {
+    // Local state for new update input
+    const [newUpdateContent, setNewUpdateContent] = React.useState('');
+    const [newUpdateVariant, setNewUpdateVariant] = React.useState<IncidentVariant>('info');
+    const [isPreviewMode, setIsPreviewMode] = React.useState(false);
+
     // Dynamic Colors Helpers
     const opBase = getBaseColor(colors?.operational) || 'emerald';
     const majBase = getBaseColor(colors?.major) || 'red';
@@ -163,6 +218,128 @@ export const MonitorDetailView = memo(({ monitor, setSelectedMonitorId, theme: t
                     </div>
                 </div>
             </div>
+
+            {/* Timeline / Incident Updates Section */}
+            {(updates && updates.length > 0) || onAddUpdate ? (
+                <div className="mb-10 space-y-6">
+                    <div className={`text-xs font-bold uppercase tracking-widest ${t.mutedText} flex items-center gap-2`}>
+                        <MessageSquare className="w-3 h-3" /> Incident Timeline
+                    </div>
+
+                    {/* List of Updates */}
+                    <div className="space-y-4">
+                        {updates?.map((update, idx) => {
+                            const variant = update.variant || 'info';
+                            let variantStyles = 'border-blue-500 bg-blue-500/10 text-blue-200';
+                            let icon = <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />;
+
+                            if (variant === 'warning') {
+                                variantStyles = 'border-amber-500 bg-amber-500/10 text-amber-200';
+                                icon = <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />;
+                            } else if (variant === 'error') {
+                                variantStyles = 'border-red-500 bg-red-500/10 text-red-200';
+                                icon = <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />;
+                            } else if (variant === 'success') {
+                                variantStyles = 'border-emerald-500 bg-emerald-500/10 text-emerald-200';
+                                icon = <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />;
+                            }
+
+                            return (
+                                <div key={update.id || idx} className={`p-5 border-l-4 ${variantStyles} ${t.rounded} relative group`}>
+                                    <div className="flex items-start gap-4">
+                                        {icon}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <h3 className="text-sm font-bold opacity-90">
+                                                    {new Date(update.createdAt).toLocaleString(undefined, {
+                                                        month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'
+                                                    })}
+                                                </h3>
+                                                {onDeleteUpdate && (
+                                                    <button
+                                                        onClick={() => onDeleteUpdate(update.id)}
+                                                        className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition-opacity bg-black/20 px-2 py-1 rounded"
+                                                    >
+                                                        Delete
+                                                    </button>
+                                                )}
+                                            </div>
+                                            <div className="text-sm opacity-80 leading-relaxed font-sans prose prose-invert max-w-none prose-sm">
+                                                {parseMarkdown(update.content)}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Add New Update (Editor Mode) */}
+                    {onAddUpdate && (
+                        <div className={`mt-6 p-4 border border-zinc-800 bg-zinc-900/30 ${t.rounded}`}>
+                            <div className="flex items-center justify-between mb-3">
+                                <span className="text-sm font-medium text-zinc-300">New Update</span>
+                                <div className="flex gap-2">
+                                    {(['info', 'success', 'warning', 'error'] as const).map((v) => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setNewUpdateVariant(v)}
+                                            className={`w-4 h-4 rounded-full border border-white/10 transition-transform hover:scale-110 ${newUpdateVariant === v ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900' : 'opacity-50 hover:opacity-100'
+                                                } ${v === 'info' ? 'bg-blue-500' : v === 'success' ? 'bg-emerald-500' : v === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
+                                            title={v.charAt(0).toUpperCase() + v.slice(1)}
+                                        />
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="text-xs text-zinc-500">
+                                    Selected: <span className={`font-bold uppercase ${newUpdateVariant === 'info' ? 'text-blue-400' :
+                                        newUpdateVariant === 'success' ? 'text-emerald-400' :
+                                            newUpdateVariant === 'warning' ? 'text-amber-400' : 'text-red-400'
+                                        }`}>{newUpdateVariant}</span>
+                                </div>
+                                <button
+                                    onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                    className="text-xs text-indigo-400 hover:text-indigo-300"
+                                >
+                                    {isPreviewMode ? 'Edit' : 'Preview Markdown'}
+                                </button>
+                            </div>
+
+                            {isPreviewMode ? (
+                                <div className="min-h-[100px] p-3 text-sm text-zinc-300 bg-zinc-950 rounded border border-zinc-800">
+                                    {newUpdateContent ? parseMarkdown(newUpdateContent) : <span className="text-zinc-600 italic">Nothing to preview</span>}
+                                </div>
+                            ) : (
+                                <textarea
+                                    value={newUpdateContent}
+                                    onChange={(e) => setNewUpdateContent(e.target.value)}
+                                    placeholder="Write a status update..."
+                                    className={`w-full p-3 bg-zinc-950 border border-zinc-800 ${t.rounded} text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[100px] resize-y`}
+                                />
+                            )}
+
+                            <div className="flex justify-end mt-3">
+                                <button
+                                    disabled={!newUpdateContent.trim()}
+                                    onClick={() => {
+                                        if (newUpdateContent.trim()) {
+                                            onAddUpdate(newUpdateContent, newUpdateVariant);
+                                            setNewUpdateContent('');
+                                            setIsPreviewMode(false);
+                                            setNewUpdateVariant('info');
+                                        }
+                                    }}
+                                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    Preview Update
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : null}
 
             {/* Main Content Grid */}
             <div className="space-y-8">

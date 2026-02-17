@@ -67,14 +67,15 @@ export const UptimeBars = ({
     return (
         <div className="flex items-end h-full w-full" style={{ gap: `${gap}px` }}>
             {dayBars.map((bar, i) => {
-                let colorClass = 'bg-white/5';
+                let colorClass = 'bg-zinc-800'; // Higher contrast empty state
 
                 if (bar.status === 'up') {
                     const base = opBase === 'white' || opBase === 'black' ? opBase : `${opBase}-500`;
-                    colorClass = `bg-${base}/40 hover:bg-${base}`;
+                    // Full opacity for up state to ensure visibility
+                    colorClass = `bg-${base} hover:brightness-110`;
                 } else if (bar.status === 'down') {
                     const base = majBase === 'white' || majBase === 'black' ? majBase : `${majBase}-500`;
-                    colorClass = `bg-${base}/80 hover:bg-${base}`;
+                    colorClass = `bg-${base} hover:brightness-110`;
                 }
 
                 return (

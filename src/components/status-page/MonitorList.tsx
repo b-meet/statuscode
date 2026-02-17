@@ -6,7 +6,7 @@ import { Activity } from "lucide-react";
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
-import { MonitorData } from "@/lib/types";
+import { MonitorData, IncidentUpdate } from "@/lib/types";
 import { toDemoStringId } from "@/lib/mockMonitors";
 
 // --- Helpers ---
@@ -32,9 +32,10 @@ interface MonitorListProps {
     setSelectedMonitorId: (id: string | null) => void;
     colors?: StatusColors;
     visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showUptimeBars: boolean };
+    annotations?: Record<string, IncidentUpdate[]>;
 }
 
-export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, visibility }: MonitorListProps) {
+export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, visibility, annotations }: MonitorListProps) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Dynamic Colors Helpers
@@ -179,30 +180,60 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                         </button>
                                                     </div>
 
-                                                    {(monitor.logs && monitor.logs.length > 0) ? (
-                                                        <div className="space-y-3">
-                                                            {monitor.logs.slice(0, 3).map((log, i: number) => (
-                                                                <div key={i} className="flex gap-3 text-sm">
-                                                                    <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="flex items-baseline justify-between gap-2">
-                                                                            <span className={`font-medium truncate ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                                                {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
-                                                                            </span>
-                                                                            <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
-                                                                                {new Date(log.datetime * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                                            </span>
+                                                    {(() => {
+                                                        const updates = annotations?.[monitor.id] || [];
+                                                        const logs = monitor.logs || [];
+
+                                                        const combinedHistory = [
+                                                            ...updates.map(u => ({
+                                                                type: 'update',
+                                                                date: new Date(u.createdAt),
+                                                                title: 'Status Update',
+                                                                description: u.content,
+                                                                variant: u.variant || 'info'
+                                                            })),
+                                                            ...logs.map(l => ({
+                                                                type: 'log',
+                                                                date: new Date(l.datetime * 1000),
+                                                                title: l.type === 1 ? 'Outage Detected' : 'Service Recovered',
+                                                                description: l.type === 1 ? (l.reason?.code || 'Service Unavailable') : `Duration: ${Math.round(l.duration / 60)} mins`,
+                                                                variant: l.type === 1 ? 'error' : 'success'
+                                                            }))
+                                                        ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 3);
+
+                                                        if (combinedHistory.length > 0) {
+                                                            return (
+                                                                <div className="space-y-3">
+                                                                    {combinedHistory.map((item, i) => (
+                                                                        <div key={i} className="flex gap-3 text-sm">
+                                                                            <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${item.variant === 'error' ? 'bg-red-500' :
+                                                                                item.variant === 'warning' ? 'bg-amber-500' :
+                                                                                    item.variant === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
+                                                                                }`} />
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-baseline justify-between gap-2">
+                                                                                    <span className={`font-medium truncate ${item.variant === 'error' ? 'text-red-400' :
+                                                                                        item.variant === 'warning' ? 'text-amber-400' :
+                                                                                            item.variant === 'success' ? 'text-emerald-400' : 'text-blue-400'
+                                                                                        }`}>
+                                                                                        {item.title}
+                                                                                    </span>
+                                                                                    <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
+                                                                                        {item.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <div className="text-xs text-zinc-500 truncate mt-0.5" dangerouslySetInnerHTML={{
+                                                                                    // Strip markdown for list view, just simple text
+                                                                                    __html: item.type === 'update' ? item.description.replace(/[#*`_]/g, '') : item.description
+                                                                                }} />
+                                                                            </div>
                                                                         </div>
-                                                                        <p className="text-xs text-zinc-500 truncate mt-0.5">
-                                                                            {log.type === 1 ? (log.reason?.code || 'Service Unavailable') : `Duration: ${Math.round(log.duration / 60)} mins`}
-                                                                        </p>
-                                                                    </div>
+                                                                    ))}
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs text-zinc-500 py-2">No recent incidents.</div>
-                                                    )}
+                                                            );
+                                                        }
+                                                        return <div className="text-xs text-zinc-500 py-2">No recent incidents.</div>
+                                                    })()}
                                                 </div>
                                             </motion.div>
                                         )}

@@ -9,7 +9,7 @@ import { IncidentHistory } from "./IncidentHistory";
 import { Maintenance } from "./Maintenance";
 import { MonitorDetailView } from "./MonitorDetailView";
 
-import { MonitorData } from "@/lib/types";
+import { MonitorData, IncidentUpdate } from "@/lib/types";
 import { VisibilityConfig } from "@/context/EditorContext";
 import { toDemoStringId } from "@/lib/mockMonitors";
 
@@ -29,6 +29,7 @@ interface RenderLayoutProps {
     selectedMonitorId: string | null;
     setSelectedMonitorId: (id: string | null) => void;
     visibility?: VisibilityConfig;
+    annotations?: Record<string, IncidentUpdate[]>;
 }
 
 const RenderLayout = memo(({
@@ -44,7 +45,8 @@ const RenderLayout = memo(({
     totalAvgResponse,
     selectedMonitorId,
     setSelectedMonitorId,
-    visibility
+    visibility,
+    annotations
 }: RenderLayoutProps) => {
     // History is only used in overlay currently to match Editor
     const historyLogs = useMemo(() =>
@@ -75,13 +77,14 @@ const RenderLayout = memo(({
                     theme={t}
                     colors={colors}
                     visibility={visibility}
+                    updates={annotations?.[monitor.id] || []}
                 />
             </div>
         );
     }
 
     const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} colors={colors} visibility={visibility} />;
-    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} visibility={visibility} />;
+    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} visibility={visibility} annotations={annotations} />;
     const maintenance = <Maintenance theme={t} />;
 
 
@@ -205,6 +208,9 @@ export default function StatusPageClient({
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
     const [monitors, setMonitors] = useState<MonitorData[]>(initialMonitors);
+    // Initial annotations should ideally be passed from server prop, but defaulting to empty or fetching is ok for now. 
+    // Ideally page.tsx should pass it. But let's fetch it or assume empty for initial hydration if prop missing.
+    const [annotations, setAnnotations] = useState<Record<string, IncidentUpdate[]>>({});
     const t = themes[themeCode as keyof typeof themes] || themes.modern;
 
     // Resolve Colors
@@ -226,6 +232,23 @@ export default function StatusPageClient({
                     const data = await res.json();
                     if (data.monitors) {
                         setMonitors(data.monitors);
+                        if (data.annotations) {
+                            const raw = data.annotations;
+                            const migrated: Record<string, IncidentUpdate[]> = {};
+                            Object.keys(raw).forEach(key => {
+                                const val = raw[key];
+                                if (Array.isArray(val)) {
+                                    migrated[key] = val;
+                                } else if (typeof val === 'string') {
+                                    migrated[key] = [{
+                                        id: 'legacy-' + Date.now(),
+                                        content: val,
+                                        createdAt: new Date().toISOString()
+                                    }];
+                                }
+                            });
+                            setAnnotations(migrated);
+                        }
                     }
                 }
             } catch (err) {
@@ -277,6 +300,7 @@ export default function StatusPageClient({
                 selectedMonitorId={selectedMonitorId}
                 setSelectedMonitorId={setSelectedMonitorId}
                 visibility={visibility}
+                annotations={annotations}
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { Monitor, Smartphone, Activity, ExternalLink } from "lucide-react";
+import { Monitor, Smartphone, Activity, ExternalLink, AlertTriangle } from "lucide-react";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { themes } from "@/lib/themes";
 import { RenderLayout } from "@/components/editor/RenderLayout";
@@ -15,10 +15,11 @@ import { toDemoStringId } from "@/lib/mockMonitors";
 
 
 export default function EditorPage() {
-    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing } = useEditor();
+    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing, loading } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
     const [isMaximized, setIsMaximized] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
+    const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
     // Resizing logic
     const [containerWidth, setContainerWidth] = useState(1200);
@@ -138,6 +139,19 @@ export default function EditorPage() {
     const previewUrl = useMemo(() => `/s/${config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}`, [config.brandName]);
 
 
+
+    // --- LOADING STATE ---
+    if (loading) {
+        return (
+            <div className="h-screen w-full bg-zinc-950 flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 animate-pulse">
+                    <Activity className="w-12 h-12 text-zinc-700" />
+                    <p className="text-zinc-500 text-sm font-medium">Loading Editor...</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="h-full flex flex-col bg-zinc-950 relative">
 
@@ -223,7 +237,7 @@ export default function EditorPage() {
 
                         return (
                             <button
-                                onClick={publishSite}
+                                onClick={() => setIsPublishModalOpen(true)}
                                 disabled={isDisabled}
                                 title={tooltip}
                                 className="bg-white text-black px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-zinc-200 transition-colors shadow-[0_0_15px_rgba(255,255,255,0.1)] flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -330,6 +344,7 @@ export default function EditorPage() {
                             <div className={`${t.container} flex flex-col min-h-[90vh] relative z-10`}>
                                 <RenderLayout
                                     config={config}
+                                    updateConfig={updateConfig}
                                     selectedMonitors={selectedMonitors}
                                     status={stats.status}
                                     totalAvgResponse={stats.totalAvgResponse}
@@ -366,6 +381,71 @@ export default function EditorPage() {
                     </div>
                 </div>
             </div>
+            {/* Publish Confirmation Modal */}
+            {isPublishModalOpen && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6 m-4 animate-in zoom-in-95 duration-200">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 rounded-full bg-indigo-500/10 flex items-center justify-center">
+                                <ExternalLink className="w-5 h-5 text-indigo-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-lg font-bold text-white">Confirm Publish</h2>
+                                <p className="text-sm text-zinc-400">Review before going live</p>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 mb-6">
+                            <div className="text-sm text-zinc-300">
+                                You are about to publish <strong>{config.monitors.filter(id => !id.startsWith('demo-')).length} active monitors</strong> to your live status page.
+                            </div>
+
+                            {(() => {
+                                const activeUpdates = Object.values(config.annotations || {}).flat();
+                                const totalUpdates = activeUpdates.length;
+                                const monitorsWithUpdates = Object.keys(config.annotations || {}).filter(key => (config.annotations?.[key]?.length ?? 0) > 0).length;
+
+                                if (totalUpdates > 0) {
+                                    return (
+                                        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wide mb-1">
+                                                <AlertTriangle className="w-3 h-3" />
+                                                {totalUpdates} Active Status Update{totalUpdates > 1 ? 's' : ''}
+                                            </div>
+                                            <p className="text-xs text-amber-200/80">
+                                                You have {totalUpdates} manual status notes attached to {monitorsWithUpdates} monitor{monitorsWithUpdates > 1 ? 's' : ''}. These will be visible to the public.
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+
+                            <div className="text-xs text-zinc-500 bg-zinc-800/50 p-2 rounded">
+                                Public URL: <span className="font-mono text-zinc-300 text-[10px]">{window.location.origin}/s/{config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3">
+                            <button
+                                onClick={() => setIsPublishModalOpen(false)}
+                                className="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-white transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setIsPublishModalOpen(false);
+                                    publishSite();
+                                }}
+                                className="px-4 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center gap-2"
+                            >
+                                Confirm & Publish
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

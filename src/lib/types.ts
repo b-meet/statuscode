@@ -16,3 +16,12 @@ export interface MonitorData {
     interval?: number;
     create_datetime?: number;
 }
+
+export type IncidentVariant = 'info' | 'warning' | 'error' | 'success';
+
+export interface IncidentUpdate {
+    id: string;
+    content: string;
+    variant?: IncidentVariant;
+    createdAt: string; // ISO string
+}

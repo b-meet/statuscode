@@ -7,7 +7,7 @@ import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from '../status-page/UptimeBars';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
-import { MonitorData, Log } from '@/lib/types';
+import { MonitorData, Log, IncidentUpdate } from '@/lib/types';
 import { toDemoStringId } from '@/lib/mockMonitors';
 
 // Define explicit types used in the component
@@ -20,7 +20,7 @@ interface MonitorListProps {
     visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showPerformanceMetrics: boolean; showUptimeBars: boolean };
 }
 
-export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t, colors, visibility }: MonitorListProps) => {
+export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t, colors, visibility, annotations }: MonitorListProps & { annotations?: Record<string, IncidentUpdate[]> }) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Dynamic Colors Helpers
@@ -95,7 +95,15 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                 <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${activeBgClass}`} />
                                             </div>
                                             <div>
-                                                <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1`}>{monitor.friendly_name}</h4>
+                                                <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1 flex items-center gap-2`}>
+                                                    {monitor.friendly_name}
+                                                    {annotations?.[monitor.id] && annotations[monitor.id].length > 0 && (
+                                                        <span className="flex h-2 w-2 relative" title="Active Status Update">
+                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                                        </span>
+                                                    )}
+                                                </h4>
                                                 <div className="flex flex-col gap-2 mt-2">
                                                     <div className={`text-xs ${t.mutedText}`} style={{ color: primaryColor }}>
                                                         {uptime?.month || '99.9'}% Uptime

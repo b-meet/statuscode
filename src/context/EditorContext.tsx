@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { MonitorData } from '@/lib/types';
+import { MonitorData, IncidentUpdate } from '@/lib/types';
 import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
 
 // --- Types ---
@@ -39,6 +39,7 @@ export interface SiteConfig {
     showDummyData?: boolean; // Preview only
     previewScenario?: PreviewScenario;
     visibility: VisibilityConfig; // New field
+    annotations: Record<string, IncidentUpdate[]>; // Monitor ID -> Timeline of Updates
 }
 
 interface EditorContextType {
@@ -68,13 +69,14 @@ const defaultConfig: SiteConfig = {
     monitors: [],
     apiKey: '',
     showDummyData: false,
-    previewScenario: 'none',
+    previewScenario: 'slow_response',
     visibility: {
         showSparklines: true,
         showUptimeBars: true,
         showIncidentHistory: true,
         showPerformanceMetrics: true,
-    }
+    },
+    annotations: {}
 };
 
 // --- Context Creation ---
@@ -159,6 +161,24 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                             ...defaultConfig.visibility,
                             ...(site.theme_config?.visibility || {})
                         },
+                        annotations: (() => {
+                            const raw = site.theme_config?.annotations || {};
+                            const migrated: Record<string, IncidentUpdate[]> = {};
+                            Object.keys(raw).forEach(key => {
+                                const val = raw[key];
+                                if (Array.isArray(val)) {
+                                    migrated[key] = val;
+                                } else if (typeof val === 'string') {
+                                    // Migration: Convert legacy string to single update
+                                    migrated[key] = [{
+                                        id: 'legacy-' + Date.now(),
+                                        content: val,
+                                        createdAt: new Date().toISOString()
+                                    }];
+                                }
+                            });
+                            return migrated;
+                        })(),
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
                     });
@@ -226,7 +246,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         layout: config.layout,
                         colorPreset: config.colorPreset,
                         primaryColor: config.primaryColor,
-                        visibility: config.visibility
+                        visibility: config.visibility,
+                        annotations: config.annotations
                     },
                     // Automatically update subdomain based on brand name (slugified)
                     subdomain: config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'

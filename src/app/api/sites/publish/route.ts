@@ -39,6 +39,7 @@ export async function POST(req: NextRequest) {
             logo_url: site.logo_url,
             uptimerobot_api_key: site.uptimerobot_api_key,
             monitors: filteredMonitors,
+            annotations: site.theme_config?.annotations || {},
             theme_config: site.theme_config,
             subdomain: site.subdomain,
             published_at: new Date().toISOString()
