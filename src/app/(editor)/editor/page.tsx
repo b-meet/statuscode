@@ -30,7 +30,7 @@ export default function EditorPage() {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing || !dragStartRef.current) return;
             const deltaX = e.clientX - dragStartRef.current.x;
-            const newWidth = Math.max(400, Math.min(1440, dragStartRef.current.width + deltaX * 2));
+            const newWidth = Math.max(700, Math.min(1500, dragStartRef.current.width + deltaX * 2));
             setContainerWidth(newWidth);
         };
 

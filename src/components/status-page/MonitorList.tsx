@@ -8,23 +8,10 @@ import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
 import { MonitorData, IncidentUpdate } from "@/lib/types";
 import { toDemoStringId } from "@/lib/mockMonitors";
+import { formatUptime, getAverageResponseTime } from "@/lib/utils";
 
 // --- Helpers ---
-function formatUptime(ratioString: string) {
-    if (!ratioString) return { day: '0', week: '0', month: '0' };
-    const parts = ratioString.split('-');
-    return {
-        day: parts[0] || '0',
-        week: parts[1] || '0',
-        month: parts[2] || '0'
-    };
-}
-
-function getAverageResponseTime(times: { value: number }[] = []) {
-    if (!times.length) return 0;
-    const sum = times.reduce((acc, curr) => acc + curr.value, 0);
-    return Math.round(sum / times.length);
-}
+// These functions are now imported from "@/lib/utils"
 
 interface MonitorListProps {
     monitors: MonitorData[];
@@ -55,14 +42,11 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
 
     const getTextClass = (base: string) => {
         if (base === 'white' || base === 'black') return `text-${base}`;
-        // For standard colors, usually -400 looks best on dark bg, -500 on light. 
-        // Assuming dark mode mostly for these themes, or relying on opacity.
-        // Let's stick to -400 for text to match the 'emerald-400' default.
         return `text-${base}-400`;
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 @container">
             <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
                 <Activity className="w-3 h-3" /> System Status
             </h3>
@@ -76,6 +60,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                             const isUp = monitor.status === 2;
                             const isMaintenance = monitor.status === 0;
                             const statusType = isUp ? 'up' : isMaintenance ? 'maintenance' : 'down';
+                            const hasData = !!uptime;
                             const isHovered = hoveredId === String(monitor.id);
 
                             // Determine active colors for this item
@@ -103,35 +88,70 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                     onMouseEnter={() => setHoveredId(String(monitor.id))}
                                     onMouseLeave={() => setHoveredId(null)}
                                 >
-                                    <motion.div layout className="p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
+                                    <motion.div layout className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
 
-                                        {/* Status & Info */}
-                                        <div className="flex items-start gap-5 min-w-[200px]">
-                                            <div className="relative mt-1.5 flex-shrink-0">
-                                                <div className={`w-3 h-3 rounded-full ${activeBgClass}`} style={{ boxShadow: `0 0 10px ${activeHex}` }} />
-                                                <div className={`absolute inset-0 w-3 h-3 rounded-full animate-ping opacity-20 ${activeBgClass}`} />
-                                            </div>
-                                            <div>
-                                                <h4 className={`text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading}`}>{monitor.friendly_name}</h4>
-                                                <div className="flex flex-col gap-2 mt-2">
-                                                    <div className={`text-xs ${t.mutedText}`}>
-                                                        {uptime?.month || '99.9'}% Uptime
+                                        {/* Status & Info - Left Side */}
+                                        <div className="flex-1 min-w-0 w-full">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-start gap-3 min-w-0">
+                                                    <div className="relative mt-1.5 flex-shrink-0">
+                                                        <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${activeBgClass}`} style={{ boxShadow: `0 0 10px ${activeHex}` }} />
+                                                        <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${activeBgClass}`} />
                                                     </div>
-                                                    {visibility?.showUptimeBars !== false && (
-                                                        <div className="h-5 w-48 sm:w-64 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                            <UptimeBars monitor={monitor} theme={t} colors={colors} />
+                                                    <div className="min-w-0">
+                                                        <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1 flex items-center gap-2`}>
+                                                            <span className="truncate">{monitor.friendly_name}</span>
+                                                            {annotations?.[monitor.id] && annotations[monitor.id].length > 0 && (
+                                                                <span className="flex h-2 w-2 relative flex-shrink-0" title="Active Status Update">
+                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                                                </span>
+                                                            )}
+                                                        </h4>
+                                                        <div className={`text-xs ${t.mutedText} flex items-center gap-3 mt-1`}>
+                                                            <span>{uptime?.month || '99.9'}% Uptime</span>
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Mobile Badge */}
+                                                <div className={`sm:hidden ${t.statusBadge(statusType, colors).replace("absolute", "")} px-2.5 py-0.5 text-[10px] rounded-full font-medium shrink-0`}>
+                                                    {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
                                                 </div>
                                             </div>
+
+                                            {/* Mobile Stats Row */}
+                                            <div className="flex sm:hidden items-center justify-between gap-4 mt-3 pl-5.5 border-t border-white/5 pt-3">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="space-y-0.5">
+                                                        <div className="text-[9px] text-white/30 uppercase tracking-wider font-semibold">Latency</div>
+                                                        <div className="font-mono text-xs text-white/80">
+                                                            {avgResponse === 0 ? <span className="text-white/30">-</span> : `${avgResponse}ms`}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <div className="text-[9px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
+                                                        <div className={`font-mono text-xs font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                                            {hasData ? `${uptime?.day}%` : '-'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Uptime Bars - Full Width on Desktop Container */}
+                                            {visibility?.showUptimeBars !== false && (
+                                                <div className="hidden @[1000px]:block h-6 w-[98%] mt-3 sm:mt-2 opacity-60 group-hover:opacity-100 transition-opacity pl-0 sm:pl-6">
+                                                    <UptimeBars monitor={monitor} theme={t} colors={colors} gap={1} />
+                                                </div>
+                                            )}
                                         </div>
 
-                                        {/* Metrics */}
-                                        <div className="flex-1 flex items-center justify-between sm:justify-end gap-8 sm:gap-12">
+                                        {/* Desktop Metrics - Right Side */}
+                                        <div className="hidden sm:flex items-center justify-end gap-6">
 
                                             {/* Sparkline */}
                                             {visibility?.showSparklines !== false && (
-                                                <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                <div className="w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
                                                     <Sparkline data={monitor.response_times || []} color={activeHex} />
                                                 </div>
                                             )}
@@ -140,22 +160,26 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                             <div className="flex items-center gap-6 text-right">
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">Latency</div>
-                                                    <div className="font-mono text-sm text-white/80">{avgResponse === 0 ? <span className="text-white/30">-</span> : `${avgResponse}ms`}</div>
+                                                    <div className="font-mono text-sm text-white/80">
+                                                        {avgResponse === 0 ? <span className="text-white/30">-</span> : `${avgResponse}ms`}
+                                                    </div>
                                                 </div>
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
-                                                    <div className={`font-mono text-sm font-bold ${parseFloat(uptime?.day || '0') === 100 ? activeTextClass : uptime ? 'text-yellow-400' : 'text-zinc-600'}`}>{uptime ? `${uptime.day}%` : '-'}</div>
+                                                    <div className={`font-mono text-sm font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                                        {hasData ? `${uptime?.day}%` : '-'}
+                                                    </div>
                                                 </div>
                                             </div>
 
-                                            {/* Badge */}
+                                            {/* Desktop Badge */}
                                             <div className={t.statusBadge(statusType, colors).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
                                                 {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
                                             </div>
                                         </div>
                                     </motion.div>
 
-                                    {/* Expandable Incident Section */}
+                                    {/* Expandable Incident Section (Combined History) */}
                                     <AnimatePresence>
                                         {(isHovered && visibility?.showIncidentHistory !== false) && (
                                             <motion.div

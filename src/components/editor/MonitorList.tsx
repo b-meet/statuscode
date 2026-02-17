@@ -44,7 +44,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 @container">
             <h3 className={`text-xs ${t.mutedText} uppercase tracking-[0.2em] font-bold mb-6 flex items-center gap-2`}>
                 <Activity className="w-3 h-3" /> System Status
             </h3>
@@ -89,41 +89,68 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                     <motion.div layout className="p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4 sm:gap-6 relative z-10">
 
                                         {/* Status & Info */}
-                                        <div className="flex items-start gap-5 min-w-[200px]">
-                                            <div className="relative mt-1.5 flex-shrink-0">
-                                                <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${activeBgClass}`} style={{ boxShadow: `0 0 10px ${activeHex}` }} />
-                                                <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${activeBgClass}`} />
-                                            </div>
-                                            <div>
-                                                <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1 flex items-center gap-2`}>
-                                                    {monitor.friendly_name}
-                                                    {annotations?.[monitor.id] && annotations[monitor.id].length > 0 && (
-                                                        <span className="flex h-2 w-2 relative" title="Active Status Update">
-                                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                                        </span>
-                                                    )}
-                                                </h4>
-                                                <div className="flex flex-col gap-2 mt-2">
-                                                    <div className={`text-xs ${t.mutedText}`} style={{ color: primaryColor }}>
-                                                        {uptime?.month || '99.9'}% Uptime
+                                        <div className="flex-1 min-w-0 w-full">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div className="flex items-start gap-3 min-w-0">
+                                                    <div className="relative mt-1.5 flex-shrink-0">
+                                                        <div className={`w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full ${activeBgClass}`} style={{ boxShadow: `0 0 10px ${activeHex}` }} />
+                                                        <div className={`absolute inset-0 w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full animate-ping opacity-20 ${activeBgClass}`} />
                                                     </div>
-                                                    {visibility?.showUptimeBars !== false && (
-                                                        <div className="h-5 w-48 sm:w-64 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                            <UptimeBars monitor={monitor} theme={t} colors={colors} />
+                                                    <div className="min-w-0">
+                                                        <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1 flex items-center gap-2`}>
+                                                            <span className="truncate">{monitor.friendly_name}</span>
+                                                            {annotations?.[monitor.id] && annotations[monitor.id].length > 0 && (
+                                                                <span className="flex h-2 w-2 relative flex-shrink-0" title="Active Status Update">
+                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                                                </span>
+                                                            )}
+                                                        </h4>
+                                                        <div className={`text-xs ${t.mutedText} flex items-center gap-3 mt-1`} style={{ color: primaryColor }}>
+                                                            <span>{uptime?.month || '99.9'}% Uptime</span>
                                                         </div>
-                                                    )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Mobile Badge */}
+                                                <div className={`sm:hidden ${t.statusBadge(statusType, colors).replace("absolute", "")} px-2.5 py-0.5 text-[10px] rounded-full font-medium shrink-0`}>
+                                                    {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
                                                 </div>
                                             </div>
+
+                                            {/* Mobile Stats Row */}
+                                            <div className="flex sm:hidden items-center justify-between gap-4 mt-3 pl-5.5 border-t border-white/5 pt-3">
+                                                <div className="flex items-center gap-4">
+                                                    <div className="space-y-0.5">
+                                                        <div className="text-[9px] text-white/30 uppercase tracking-wider font-semibold">Latency</div>
+                                                        <div className="font-mono text-xs text-white/80">
+                                                            {avgResponse === 0 ? <span className="text-white/30">-</span> : `${avgResponse}ms`}
+                                                        </div>
+                                                    </div>
+                                                    <div className="space-y-0.5">
+                                                        <div className="text-[9px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
+                                                        <div className={`font-mono text-xs font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                                            {hasData ? `${uptime?.day}%` : '-'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Uptime Bars */}
+                                            {visibility?.showUptimeBars !== false && (
+                                                <div className="hidden @[1000px]:block h-6 w-[98%] mt-3 sm:mt-2 opacity-60 group-hover:opacity-100 transition-opacity pl-0 sm:pl-6">
+                                                    <UptimeBars monitor={monitor} theme={t} colors={colors} gap={1} />
+                                                </div>
+                                            )}
                                         </div>
 
 
-                                        {/* Metrics */}
-                                        <div className="flex-1 flex items-center justify-between sm:justify-end gap-8 sm:gap-12">
+                                        {/* Desktop Metrics (Right Side) */}
+                                        <div className="hidden sm:flex items-center justify-end gap-6">
 
                                             {/* Sparkline */}
                                             {visibility?.showSparklines !== false && (
-                                                <div className="hidden sm:block w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                <div className="w-32 h-10 opacity-70 group-hover:opacity-100 transition-opacity">
                                                     <Sparkline data={monitor.response_times || []} color={activeHex} />
                                                 </div>
                                             )}
@@ -144,7 +171,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                 </div>
                                             </div>
 
-                                            {/* Badge */}
+                                            {/* Desktop Badge */}
                                             <div className={t.statusBadge(statusType, colors).replace("absolute", "") + " px-3 py-1 text-xs rounded-full font-medium shrink-0"}>
                                                 {isUp ? 'OPERATIONAL' : isMaintenance ? 'MAINTENANCE' : 'DOWN'}
                                             </div>

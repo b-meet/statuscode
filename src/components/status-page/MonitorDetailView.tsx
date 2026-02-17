@@ -106,52 +106,10 @@ export const MonitorDetailView = memo(({
 
     // and 90-day logic stays consistent within a single render cycle.
     // eslint-disable-next-line react-hooks/purity
-    const now = useMemo(() => Date.now(), []);
+    // const now = useMemo(() => Date.now(), []);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    const creationDate = useMemo(() => monitor.create_datetime ? new Date(monitor.create_datetime * 1000) : new Date(0), [monitor.create_datetime]);
-
-    // Generate 90-day bars based on ACTUAL data and creation date
-    const dayBars = useMemo(() => {
-        if (!monitor) return [];
-
-        const totalDays = 90;
-
-        // Identify days with actual recorded outages from logs
-        const outageDates = new Set<string>();
-        if (monitor.logs) {
-            (monitor.logs as Log[]).forEach((log) => {
-                // type 1 = Down, type 99 = Paused
-                if (log.type === 1) {
-                    const date = new Date(log.datetime * 1000).toLocaleDateString();
-                    outageDates.add(date);
-                }
-            });
-        }
-
-        return Array.from({ length: totalDays }).map((_, i) => {
-            const timestamp = now - (totalDays - 1 - i) * 86400000;
-            const dateObj = new Date(timestamp);
-            const dateStr = dateObj.toLocaleDateString();
-
-            // Check if this date is before the monitor was created
-            const isBeforeCreation = dateObj < creationDate && dateObj.toDateString() !== creationDate.toDateString();
-
-            if (isBeforeCreation) {
-                return { status: 'empty', date: dateStr, height: '100%' };
-            }
-
-            // CRITICAL: If we have a log saying it was down this day, FORCE it down.
-            if (outageDates.has(dateStr)) {
-                // Deterministic height for visual interest
-                const deterministicRandom = Math.abs(Math.sin(timestamp)) * 40 + 30;
-                return { status: 'down', date: dateStr, height: `${deterministicRandom}%` };
-            }
-
-            // Default to UP if monitored and no outage log
-            return { status: 'up', date: dateStr, height: '100%' };
-        });
-    }, [monitor, now, creationDate]);
+    // const creationDate = useMemo(() => monitor.create_datetime ? new Date(monitor.create_datetime * 1000) : new Date(0), [monitor.create_datetime]);
 
     if (!monitor) return null;
 
@@ -166,43 +124,50 @@ export const MonitorDetailView = memo(({
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
-            className="w-full"
+            className="w-full @container"
         >
             {/* Navigation Header */}
-            <button
-                onClick={() => setSelectedMonitorId(null)}
-                className={`mb-6 px-3 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 ${t.rounded} text-xs font-medium text-white transition-all flex items-center gap-2 group w-fit`}
-            >
-                <ArrowRight className="w-3 h-3 rotate-180 group-hover:-translate-x-1 transition-transform" />
-                Back to Dashboard
-            </button>
+            <div className="mb-4 @[600px]:mb-8 flex items-center justify-between">
+                <button
+                    onClick={() => setSelectedMonitorId(null)}
+                    className="group flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white transition-colors pl-1"
+                >
+                    <ArrowRight className="w-3.5 h-3.5 rotate-180 group-hover:-translate-x-1 transition-transform" />
+                    Back to Dashboard
+                </button>
+            </div>
 
-            {/* Service Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 mb-8">
-                <div className="flex items-center gap-4">
-                    <div className={`p-3 rounded-xl ${isUp ? `${opBgLow} ${opText}` : `${majBgLow} ${majText}`} ring-1 ring-white/5`}>
-                        {isUp ? <CheckCircle2 className="w-8 h-8" /> : <AlertTriangle className="w-8 h-8" />}
+            {/* Service Header - Premium Mobile Layout */}
+            <div className="flex flex-col @[600px]:flex-row items-center @[600px]:items-start @[600px]:justify-between gap-4 @[600px]:gap-6 mb-6 @[600px]:mb-10 text-center @[600px]:text-left">
+                <div className="flex flex-col @[600px]:flex-row items-center gap-3 @[600px]:gap-6">
+                    <div className={`p-3 @[600px]:p-4 rounded-2xl ${isUp ? `${opBgLow} ${opText}` : `${majBgLow} ${majText}`} ring-1 ring-white/10 shadow-xl shadow-black/20`}>
+                        {isUp ? <CheckCircle2 className="w-8 h-8 @[600px]:w-10 @[600px]:h-10" /> : <AlertTriangle className="w-8 h-8 @[600px]:w-10 @[600px]:h-10" />}
                     </div>
                     <div>
-                        <h2 className={`text-2xl sm:text-3xl text-white ${t.heading} flex items-center gap-3`}>
+                        <h2 className={`text-2xl @[600px]:text-4xl text-white ${t.heading} flex items-center justify-center @[600px]:justify-start gap-2 @[600px]:gap-3 tracking-tight`}>
                             {monitor.friendly_name}
-                            <ExternalLink className="w-5 h-5 opacity-40 hover:opacity-100 transition-opacity cursor-pointer" />
-                        </h2>
-                        <div className="flex items-center gap-3 mt-1">
-                            <a href={monitor.url} target="_blank" rel="noopener noreferrer" className={`text-sm ${t.mutedText} hover:text-indigo-400 transition-colors`}>
-                                {monitor.url}
+                            <a href={monitor.url} target="_blank" rel="noopener noreferrer" className="opacity-40 hover:opacity-100 transition-opacity">
+                                <ExternalLink className="w-5 h-5 @[600px]:w-6 @[600px]:h-6" />
                             </a>
-                            <span className="w-1 h-1 rounded-full bg-white/20" />
-                            <span className={`text-sm ${t.mutedText}`}>Checked every 5 mins</span>
+                        </h2>
+                        <div className="flex flex-wrap items-center justify-center @[600px]:justify-start gap-x-3 gap-y-1 mt-1 @[600px]:mt-2">
+                            <span className={`text-sm @[600px]:text-base ${t.mutedText} font-medium`}>
+                                {monitor.url.replace(/^https?:\/\//, '')}
+                            </span>
+                            <span className="hidden @[600px]:block w-1 h-1 rounded-full bg-white/20" />
+                            <span className={`text-xs @[600px]:text-sm ${t.mutedText} opacity-60 flex items-center gap-1.5`}>
+                                <span className="w-1 h-1 rounded-full bg-white/40 block @[600px]:hidden"></span>
+                                Checked every 5 mins
+                            </span>
                         </div>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
                     {/* Status Badge */}
-                    <div className={t.statusBadge(
+                    <div className={`${t.statusBadge(
                         monitor.status === 2 ? 'up' : (monitor.status === 0 ? 'maintenance' : 'down'),
                         colors
-                    )}>
+                    )} text-xs @[600px]:text-sm px-3 @[600px]:px-4 py-1 @[600px]:py-1.5 shadow-lg shadow-black/10`}>
                         {monitor.status === 2 ? 'Operational' : (monitor.status === 0 ? 'Maintenance' : 'Downtime')}
                     </div>
                 </div>
@@ -210,36 +175,36 @@ export const MonitorDetailView = memo(({
 
             {/* Timeline / Incident Updates Section */}
             {(updates && updates.length > 0) || onAddUpdate ? (
-                <div className="mb-10 space-y-6">
-                    <div className={`text-xs font-bold uppercase tracking-widest ${t.mutedText} flex items-center gap-2`}>
-                        <MessageSquare className="w-3 h-3" /> Incident Timeline
+                <div className="mb-8 @[600px]:mb-12 space-y-4 @[600px]:space-y-6">
+                    <div className={`text-[10px] @[600px]:text-xs font-bold uppercase tracking-widest ${t.mutedText} flex items-center gap-2 @[600px]:gap-3 justify-center @[600px]:justify-start opacity-70`}>
+                        <MessageSquare className="w-3 h-3 @[600px]:w-3.5 @[600px]:h-3.5" /> Incident Timeline
                     </div>
 
                     {/* List of Updates */}
-                    <div className="space-y-4">
+                    <div className="space-y-3 @[600px]:space-y-4">
                         {updates?.map((update, idx) => {
                             const variant = update.variant || 'info';
-                            let variantStyles = 'border-blue-500 bg-blue-500/10 text-blue-200';
-                            let icon = <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />;
+                            let variantStyles = 'border-blue-500 bg-blue-500/5 text-blue-200';
+                            let icon = <Info className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-blue-400 shrink-0 mt-0.5" />;
 
                             if (variant === 'warning') {
-                                variantStyles = 'border-amber-500 bg-amber-500/10 text-amber-200';
-                                icon = <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />;
+                                variantStyles = 'border-amber-500 bg-amber-500/5 text-amber-200';
+                                icon = <AlertTriangle className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-amber-400 shrink-0 mt-0.5" />;
                             } else if (variant === 'error') {
-                                variantStyles = 'border-red-500 bg-red-500/10 text-red-200';
-                                icon = <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />;
+                                variantStyles = 'border-red-500 bg-red-500/5 text-red-200';
+                                icon = <AlertTriangle className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-red-400 shrink-0 mt-0.5" />;
                             } else if (variant === 'success') {
-                                variantStyles = 'border-emerald-500 bg-emerald-500/10 text-emerald-200';
-                                icon = <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />;
+                                variantStyles = 'border-emerald-500 bg-emerald-500/5 text-emerald-200';
+                                icon = <CheckCircle2 className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-emerald-400 shrink-0 mt-0.5" />;
                             }
 
                             return (
-                                <div key={update.id || idx} className={`p-5 border-l-4 ${variantStyles} ${t.rounded} relative group`}>
-                                    <div className="flex items-start gap-4">
+                                <div key={update.id || idx} className={`p-4 @[600px]:p-5 pl-5 @[600px]:pl-6 border-l-2 ${variantStyles} ${t.rounded} relative group shadow-sm`}>
+                                    <div className="flex items-start gap-3 @[600px]:gap-4">
                                         {icon}
                                         <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <h3 className="text-sm font-bold opacity-90">
+                                            <div className="flex items-center justify-between mb-1.5 @[600px]:mb-2">
+                                                <h3 className="text-xs @[600px]:text-sm font-bold opacity-90">
                                                     {new Date(update.createdAt).toLocaleString(undefined, {
                                                         month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'
                                                     })}
@@ -247,13 +212,13 @@ export const MonitorDetailView = memo(({
                                                 {onDeleteUpdate && (
                                                     <button
                                                         onClick={() => onDeleteUpdate(update.id)}
-                                                        className="opacity-0 group-hover:opacity-100 text-xs text-red-400 hover:text-red-300 transition-opacity bg-black/20 px-2 py-1 rounded"
+                                                        className="opacity-0 group-hover:opacity-100 text-[10px] @[600px]:text-xs text-red-400 hover:text-red-300 transition-opacity bg-black/20 px-2 py-1 rounded"
                                                     >
                                                         Delete
                                                     </button>
                                                 )}
                                             </div>
-                                            <div className="text-sm opacity-80 leading-relaxed font-sans prose prose-invert max-w-none prose-sm">
+                                            <div className="text-xs @[600px]:text-sm opacity-80 leading-relaxed font-sans prose prose-invert max-w-none prose-sm">
                                                 {parseMarkdown(update.content)}
                                             </div>
                                         </div>
@@ -265,51 +230,53 @@ export const MonitorDetailView = memo(({
 
                     {/* Add New Update (Editor Mode) */}
                     {onAddUpdate && (
-                        <div className={`mt-6 p-4 border border-zinc-800 bg-zinc-900/30 ${t.rounded}`}>
-                            <div className="flex items-center justify-between mb-3">
-                                <span className="text-sm font-medium text-zinc-300">New Update</span>
-                                <div className="flex gap-2">
-                                    {(['info', 'success', 'warning', 'error'] as const).map((v) => (
-                                        <button
-                                            key={v}
-                                            onClick={() => setNewUpdateVariant(v)}
-                                            className={`w-4 h-4 rounded-full border border-white/10 transition-transform hover:scale-110 ${newUpdateVariant === v ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900' : 'opacity-50 hover:opacity-100'
-                                                } ${v === 'info' ? 'bg-blue-500' : v === 'success' ? 'bg-emerald-500' : v === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
-                                            title={v.charAt(0).toUpperCase() + v.slice(1)}
-                                        />
-                                    ))}
+                        <div className={`mt-6 @[600px]:mt-8 p-1 border border-zinc-800 bg-zinc-900/30 ${t.rounded}`}>
+                            <div className="p-3 @[600px]:p-4">
+                                <div className="flex items-center justify-between mb-3 @[600px]:mb-4">
+                                    <span className="text-xs @[600px]:text-sm font-medium text-zinc-300">New Update</span>
+                                    <div className="flex gap-2">
+                                        {(['info', 'success', 'warning', 'error'] as const).map((v) => (
+                                            <button
+                                                key={v}
+                                                onClick={() => setNewUpdateVariant(v)}
+                                                className={`w-3.5 h-3.5 @[600px]:w-4 @[600px]:h-4 rounded-full border border-white/10 transition-transform hover:scale-110 ${newUpdateVariant === v ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900' : 'opacity-50 hover:opacity-100'
+                                                    } ${v === 'info' ? 'bg-blue-500' : v === 'success' ? 'bg-emerald-500' : v === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
+                                                title={v.charAt(0).toUpperCase() + v.slice(1)}
+                                            />
+                                        ))}
+                                    </div>
                                 </div>
+
+                                <div className="flex justify-between items-center mb-2">
+                                    <div className="text-[10px] @[600px]:text-xs text-zinc-500">
+                                        Selected: <span className={`font-bold uppercase ${newUpdateVariant === 'info' ? 'text-blue-400' :
+                                            newUpdateVariant === 'success' ? 'text-emerald-400' :
+                                                newUpdateVariant === 'warning' ? 'text-amber-400' : 'text-red-400'
+                                            }`}>{newUpdateVariant}</span>
+                                    </div>
+                                    <button
+                                        onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                        className="text-[10px] @[600px]:text-xs text-indigo-400 hover:text-indigo-300"
+                                    >
+                                        {isPreviewMode ? 'Edit' : 'Preview Markdown'}
+                                    </button>
+                                </div>
+
+                                {isPreviewMode ? (
+                                    <div className="min-h-[80px] @[600px]:min-h-[100px] p-2 @[600px]:p-3 text-xs @[600px]:text-sm text-zinc-300 bg-zinc-950 rounded border border-zinc-800">
+                                        {newUpdateContent ? parseMarkdown(newUpdateContent) : <span className="text-zinc-600 italic">Nothing to preview</span>}
+                                    </div>
+                                ) : (
+                                    <textarea
+                                        value={newUpdateContent}
+                                        onChange={(e) => setNewUpdateContent(e.target.value)}
+                                        placeholder="Write a status update..."
+                                        className={`w-full p-2 @[600px]:p-3 bg-zinc-950 border border-zinc-800 ${t.rounded} text-white text-xs @[600px]:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[80px] @[600px]:min-h-[100px] resize-y`}
+                                    />
+                                )}
                             </div>
 
-                            <div className="flex justify-between items-center mb-2">
-                                <div className="text-xs text-zinc-500">
-                                    Selected: <span className={`font-bold uppercase ${newUpdateVariant === 'info' ? 'text-blue-400' :
-                                        newUpdateVariant === 'success' ? 'text-emerald-400' :
-                                            newUpdateVariant === 'warning' ? 'text-amber-400' : 'text-red-400'
-                                        }`}>{newUpdateVariant}</span>
-                                </div>
-                                <button
-                                    onClick={() => setIsPreviewMode(!isPreviewMode)}
-                                    className="text-xs text-indigo-400 hover:text-indigo-300"
-                                >
-                                    {isPreviewMode ? 'Edit' : 'Preview Markdown'}
-                                </button>
-                            </div>
-
-                            {isPreviewMode ? (
-                                <div className="min-h-[100px] p-3 text-sm text-zinc-300 bg-zinc-950 rounded border border-zinc-800">
-                                    {newUpdateContent ? parseMarkdown(newUpdateContent) : <span className="text-zinc-600 italic">Nothing to preview</span>}
-                                </div>
-                            ) : (
-                                <textarea
-                                    value={newUpdateContent}
-                                    onChange={(e) => setNewUpdateContent(e.target.value)}
-                                    placeholder="Write a status update..."
-                                    className={`w-full p-3 bg-zinc-950 border border-zinc-800 ${t.rounded} text-white text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[100px] resize-y`}
-                                />
-                            )}
-
-                            <div className="flex justify-end mt-3">
+                            <div className="flex justify-end p-2 bg-white/5 border-t border-white/5 rounded-b-[inherit]">
                                 <button
                                     disabled={!newUpdateContent.trim()}
                                     onClick={() => {
@@ -320,7 +287,7 @@ export const MonitorDetailView = memo(({
                                             setNewUpdateVariant('info');
                                         }
                                     }}
-                                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-3 py-1.5 @[600px]:px-4 @[600px]:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] @[600px]:text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                     Preview Update
                                 </button>
@@ -331,19 +298,19 @@ export const MonitorDetailView = memo(({
             ) : null}
 
             {/* Main Content Grid */}
-            <div className="space-y-8">
+            <div className="space-y-4 @[600px]:space-y-8">
 
                 {/* Top Section: Charts */}
-                <div className="space-y-6 sm:space-y-8">
+                <div className="space-y-3 @[600px]:space-y-6 sm:space-y-8">
 
                     {/* 90-Day Uptime Bars */}
                     {visibility?.showUptimeBars !== false && (
-                        <div className={`p-6 ${t.card} ${t.rounded}`}>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>90-Day Uptime</h3>
-                                <span className={`${opText} text-sm font-mono font-bold`}>{uptime?.month || '99.9'}%</span>
+                        <div className={`p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
+                            <div className="flex items-center justify-between mb-4 @[600px]:mb-6">
+                                <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>90-Day Uptime</h3>
+                                <span className={`${opText} text-xs @[600px]:text-sm font-mono font-bold`}>{uptime?.month || '99.9'}%</span>
                             </div>
-                            <div className="h-16 w-full opacity-80">
+                            <div className="h-12 @[600px]:h-16 w-full opacity-80">
                                 <UptimeBars monitor={monitor} theme={t} colors={colors} days={90} height={64} />
                             </div>
                         </div>
@@ -351,10 +318,10 @@ export const MonitorDetailView = memo(({
 
                     {/* Response Time Graph */}
                     {visibility?.showSparklines !== false && (
-                        <div className={`p-6 ${t.card} ${t.rounded}`}>
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
-                                <div className="flex items-center gap-4 text-xs font-mono">
+                        <div className={`p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
+                            <div className="flex items-center justify-between mb-4 @[600px]:mb-6">
+                                <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
+                                <div className="flex items-center gap-2 @[600px]:gap-4 text-[10px] @[600px]:text-xs font-mono">
                                     <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
                                     <span className="text-white/40">|</span>
                                     <span className="text-white">Avg: {avgResponse}ms</span>
@@ -362,7 +329,7 @@ export const MonitorDetailView = memo(({
                                     <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
                                 </div>
                             </div>
-                            <div className="h-48 w-full">
+                            <div className="h-32 @[600px]:h-48 w-full">
                                 <Sparkline
                                     data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
                                     color={opHex}
@@ -375,26 +342,26 @@ export const MonitorDetailView = memo(({
                     )}
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8">
+                <div className="grid grid-cols-1 @[800px]:grid-cols-3 gap-3 @[600px]:gap-6 sm:gap-8">
 
                     {/* Log Timeline */}
                     {visibility?.showIncidentHistory !== false && (
-                        <div className={`${visibility?.showPerformanceMetrics === false ? 'lg:col-span-3' : 'lg:col-span-2'} p-6 ${t.card} ${t.rounded}`}>
-                            <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-6`}>Incident History</h3>
-                            <div className="space-y-6 border-l border-white/10 ml-3 pl-6 sm:pl-8 py-2">
+                        <div className={`${visibility?.showPerformanceMetrics === false ? '@[800px]:col-span-3' : '@[800px]:col-span-2'} p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
+                            <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-4 @[600px]:mb-6`}>Incident History</h3>
+                            <div className="space-y-4 @[600px]:space-y-6 border-l border-white/10 ml-2 @[600px]:ml-3 pl-4 @[600px]:pl-6 sm:pl-8 py-2">
                                 {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
                                     <div key={i} className="relative group">
-                                        <div className={`absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1`} />
-                                        <div className="flex flex-col gap-1">
+                                        <div className={`absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1`} />
+                                        <div className="flex flex-col gap-0.5 @[600px]:gap-1">
                                             <div className="flex items-center justify-between">
-                                                <span className={`text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
+                                                <span className={`text-xs @[600px]:text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
                                                     {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
                                                 </span>
-                                                <span className={`text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
+                                                <span className={`text-[8px] @[600px]:text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
                                                     {new Date(log.datetime * 1000).toLocaleString()}
                                                 </span>
                                             </div>
-                                            <p className={`text-xs ${t.mutedText}`}>
+                                            <p className={`text-[10px] @[600px]:text-xs ${t.mutedText}`}>
                                                 {log.type === 1 ? (
                                                     <>
                                                         <span className="block font-medium text-white/80 mb-0.5">
@@ -405,7 +372,7 @@ export const MonitorDetailView = memo(({
                                                                 {getLogReason(log.reason?.code, log.reason?.detail).detail}
                                                             </span>
                                                         )}
-                                                        <span className="block mt-1 opacity-60 font-mono text-[10px]">
+                                                        <span className="block mt-1 opacity-60 font-mono text-[8px] @[600px]:text-[10px]">
                                                             Lasted for: {formatDuration(log.duration)}
                                                         </span>
                                                     </>
@@ -417,8 +384,8 @@ export const MonitorDetailView = memo(({
                                     </div>
                                 ))}
                                 <div className="relative group opacity-50">
-                                    <div className="absolute -left-[31px] sm:-left-[39px] w-3 h-3 rounded-full border-[3px] border-zinc-950 bg-zinc-600 top-1" />
-                                    <span className="text-xs text-zinc-500 font-medium">Monitoring Started</span>
+                                    <div className="absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 bg-zinc-600 top-1" />
+                                    <span className="text-[10px] @[600px]:text-xs text-zinc-500 font-medium">Monitoring Started</span>
                                 </div>
                             </div>
                         </div>
@@ -426,25 +393,25 @@ export const MonitorDetailView = memo(({
 
                     {/* Stats Column */}
                     {visibility?.showPerformanceMetrics !== false && (
-                        <div className={`${visibility?.showIncidentHistory === false ? 'lg:col-span-3' : 'lg:col-span-1'} space-y-6`}>
-                            <div className={`p-6 bg-indigo-500/10 border border-indigo-500/20 ${t.rounded}`}>
-                                <h3 className="text-xs text-indigo-400 uppercase tracking-widest font-bold mb-4 flex items-center gap-2">
+                        <div className={`${visibility?.showIncidentHistory === false ? '@[800px]:col-span-3' : '@[800px]:col-span-1'} space-y-4 @[600px]:space-y-6`}>
+                            <div className={`p-4 @[600px]:p-6 bg-indigo-500/10 border border-indigo-500/20 ${t.rounded}`}>
+                                <h3 className="text-[10px] @[600px]:text-xs text-indigo-400 uppercase tracking-widest font-bold mb-3 @[600px]:mb-4 flex items-center gap-2">
                                     <Clock className="w-3 h-3" /> Quick Stats
                                 </h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
-                                        <div className="text-indigo-200 font-mono text-sm">5 mins</div>
+                                        <div className="text-[8px] @[600px]:text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
+                                        <div className="text-indigo-200 font-mono text-xs @[600px]:text-sm">5 mins</div>
                                     </div>
                                     <div>
-                                        <div className="text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
-                                        <div className="text-indigo-200 font-mono text-sm">Just now</div>
+                                        <div className="text-[8px] @[600px]:text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
+                                        <div className="text-indigo-200 font-mono text-xs @[600px]:text-sm">Just now</div>
                                     </div>
                                 </div>
                             </div>
 
-                            <div className={`p-6 ${t.card} ${t.rounded} space-y-6`}>
-                                <h3 className={`text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-2`}>Availability</h3>
+                            <div className={`p-4 @[600px]:p-6 ${t.card} ${t.rounded} space-y-4 @[600px]:space-y-6`}>
+                                <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-2`}>Availability</h3>
 
                                 {[
                                     { label: '24 Hours', val: uptime?.day },
@@ -454,9 +421,9 @@ export const MonitorDetailView = memo(({
                                 ].map((stat, i) => {
                                     const is100 = stat.val && parseFloat(stat.val) === 100;
                                     return (
-                                        <div key={i} className="flex items-center justify-between pb-3 border-b border-white/5 last:border-0 last:pb-0">
-                                            <span className="text-sm text-white/60">{stat.label}</span>
-                                            <span className={`font-mono text-sm font-bold ${is100 ? opText : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
+                                        <div key={i} className="flex items-center justify-between pb-2 @[600px]:pb-3 border-b border-white/5 last:border-0 last:pb-0">
+                                            <span className="text-xs @[600px]:text-sm text-white/60">{stat.label}</span>
+                                            <span className={`font-mono text-xs @[600px]:text-sm font-bold ${is100 ? opText : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
                                                 {stat.val ? `${stat.val}%` : '-'}
                                             </span>
                                         </div>

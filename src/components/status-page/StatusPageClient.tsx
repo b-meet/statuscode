@@ -72,7 +72,7 @@ const RenderLayout = memo(({
         }
 
         return (
-            <div className="w-[95%] mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="w-full mx-auto px-2 sm:px-6 lg:px-8 py-6 sm:py-12">
                 <MonitorDetailView
                     monitor={monitor}
                     setSelectedMonitorId={setSelectedMonitorId}

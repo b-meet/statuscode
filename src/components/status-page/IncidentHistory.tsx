@@ -32,12 +32,12 @@ export const IncidentHistory = memo(({ logs, theme }: IncidentHistoryProps) => {
                 <Clock className="w-3 h-3" /> Incident History
             </h3>
 
-            <div className={`relative pl-4 sm:pl-8 border-l border-white/10 space-y-8 sm:space-y-10 py-2 ml-2 sm:ml-0`}>
+            <div className={`relative pl-6 sm:pl-8 border-l border-white/10 space-y-8 sm:space-y-10 py-2 ml-1 sm:ml-0`}>
                 {logs.length > 0 ? (
                     <>
                         {visibleLogs.map((log, i) => (
-                            <div key={i} className="relative group ml-4 sm:ml-0">
-                                <div className={`absolute -left-[35px] sm:-left-[41px] w-3 h-3 sm:w-4 sm:h-4 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1.5 sm:top-0`} />
+                            <div key={i} className="relative group ml-0">
+                                <div className={`absolute -left-[31px] sm:-left-[41px] w-3 h-3 sm:w-4 sm:h-4 rounded-full border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1.5 sm:top-0`} />
 
                                 <div className="flex flex-col gap-1.5">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">

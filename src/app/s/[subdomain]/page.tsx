@@ -166,20 +166,20 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
     // --- SECTIONS ---
 
     const headerDisplay = (
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
-            <div className="flex items-center gap-6">
+        <header className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-8 md:mb-16">
+            <div className="flex items-center gap-3 sm:gap-6">
                 {site.logo_url ? (
-                    <img src={site.logo_url} alt="Logo" className={`w-16 h-16 object-contain p-2 bg-white/5 backdrop-blur-md border border-white/10 ${t.rounded}`} />
+                    <img src={site.logo_url} alt="Logo" className={`w-12 h-12 sm:w-16 sm:h-16 object-contain p-2 bg-white/5 backdrop-blur-md border border-white/10 ${t.rounded}`} />
                 ) : (
-                    <div className={`w-16 h-16 bg-white/5 backdrop-blur-md flex items-center justify-center border border-white/10 ${t.rounded}`}>
-                        <Activity className="w-8 h-8 text-white/50" />
+                    <div className={`w-12 h-12 sm:w-16 sm:h-16 bg-white/5 backdrop-blur-md flex items-center justify-center border border-white/10 ${t.rounded}`}>
+                        <Activity className="w-5 h-5 sm:w-8 sm:h-8 text-white/50" />
                     </div>
                 )}
                 <div>
-                    <h1 className={`text-4xl text-white ${t.heading}`}>{site.brand_name}</h1>
-                    <div className={`flex items-center gap-2 mt-2 ${t.mutedText} text-sm font-medium`}>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                    <h1 className={`text-lg sm:text-4xl text-white leading-tight ${t.heading}`}>{site.brand_name}</h1>
+                    <div className={`flex items-center gap-2 mt-1 sm:mt-2 text-[10px] sm:text-sm font-medium ${t.mutedText}`}>
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
                             Monitoring {monitors.length} services
                         </div>
                     </div>
@@ -187,9 +187,16 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
             </div>
 
             <div className="flex gap-4">
-                <button className={`px-5 py-2.5 bg-white/5 hover:bg-white/10 border border-white/10 text-sm font-medium text-white transition-all backdrop-blur-md flex items-center gap-2 ${t.rounded}`}>
-                    Updates <ArrowUpRight className="w-3.5 h-3.5 opacity-50" />
-                </button>
+                {(site.theme_config?.supportEmail || site.theme_config?.supportUrl) && (
+                    <a
+                        href={site.theme_config?.supportUrl || `mailto:${site.theme_config?.supportEmail}`}
+                        target={site.theme_config?.supportUrl ? "_blank" : undefined}
+                        rel={site.theme_config?.supportUrl ? "noopener noreferrer" : undefined}
+                        className={`px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-medium text-white transition-all backdrop-blur-md flex items-center gap-2 ${t.rounded}`}
+                    >
+                        Report Issue
+                    </a>
+                )}
             </div>
         </header>
     );
