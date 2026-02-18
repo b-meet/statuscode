@@ -24,20 +24,31 @@ export default function VisibilitySettings() {
     };
 
     // Close on scroll or resize to prevent detachment
+    // Close on click outside
     useEffect(() => {
-        const handleScroll = (e: Event) => {
-            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
-                return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                isOpen &&
+                popupRef.current &&
+                !popupRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
+            ) {
+                setIsOpen(false);
             }
-            setIsOpen(false);
         };
-        window.addEventListener('scroll', handleScroll, true);
-        window.addEventListener('resize', handleScroll);
+
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
-            window.removeEventListener('scroll', handleScroll, true);
-            window.removeEventListener('resize', handleScroll);
+            document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen]);
+
+    useEffect(() => {
+        const handleResize = () => setIsOpen(false);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     const toggles = [
         {
@@ -104,10 +115,6 @@ export default function VisibilitySettings() {
             {isOpen && createPortal(
                 <>
                     {/* Backdrop */}
-                    <div
-                        className="fixed inset-0 z-[9998] bg-transparent"
-                        onClick={() => setIsOpen(false)}
-                    />
 
                     {/* Popover Menu */}
                     <div

@@ -30,7 +30,7 @@ function EditorLayoutContent({ children }: { children: React.ReactNode }) {
                     width: isSidebarOpen ? 320 : 0,
                 }}
                 transition={{ duration: 0.3, ease: "linear" }}
-                className={`flex-col border-zinc-800 bg-zinc-900 overflow-hidden relative shrink-0 flex
+                className={`flex-col border-zinc-800 bg-zinc-900 overflow-hidden relative shrink-0 hidden min-[800px]:flex
                     ${isSidebarOpen ? 'border-r' : 'border-none'}
                 `}
             >
@@ -41,7 +41,7 @@ function EditorLayoutContent({ children }: { children: React.ReactNode }) {
 
             {/* Collapse Toggle Button Container */}
             <div
-                className="flex flex-col justify-center relative h-full z-[100] shrink-0"
+                className="hidden min-[800px]:flex flex-col justify-center relative h-full z-[100] shrink-0"
             >
                 <div className="relative">
                     <button

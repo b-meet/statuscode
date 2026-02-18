@@ -35,21 +35,39 @@ export default function ColorPresetSelector() {
         setIsOpen(!isOpen);
     };
 
-    // Close on scroll or resize
+    // Close on click outside
     useEffect(() => {
-        const handleScroll = (e: Event) => {
-            if (popupRef.current && popupRef.current.contains(e.target as Node)) {
-                return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (
+                isOpen &&
+                popupRef.current &&
+                !popupRef.current.contains(event.target as Node) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target as Node)
+            ) {
+                setIsOpen(false);
             }
-            setIsOpen(false);
         };
-        window.addEventListener('scroll', handleScroll, true);
-        window.addEventListener('resize', handleScroll);
+
+        document.addEventListener('mousedown', handleClickOutside);
         return () => {
-            window.removeEventListener('scroll', handleScroll, true);
-            window.removeEventListener('resize', handleScroll);
+            document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen]);
+
+    // Close on scrolling the main window (optional, but good for keeping it attached visually if not using fixed positioning that updates)
+    // Actually, with the new logic we want to ALLOW scrolling.
+    // The previous logic closed on generic scroll. Let's keep that for now but maybe refine it?
+    // User wants to scroll sidebar. Sidebar scroll event might bubble?
+    // If I scroll the sidebar, the popup might detach if it's fixed.
+    // Let's keep the resize handler but maybe relax the scroll handler or attach it to the specific container?
+    // For now, let's just implement the Click Outside logic replacement first.
+
+    useEffect(() => {
+        const handleResize = () => setIsOpen(false);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Helper to extract a bg color from class string for preview
 
@@ -112,10 +130,6 @@ export default function ColorPresetSelector() {
 
             {isOpen && createPortal(
                 <>
-                    <div
-                        className="fixed inset-0 z-[9998] bg-transparent"
-                        onClick={() => setIsOpen(false)}
-                    />
                     <div
                         ref={popupRef}
                         className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"

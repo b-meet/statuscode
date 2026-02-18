@@ -1,11 +1,13 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { Monitor, Smartphone, Activity, ExternalLink, AlertTriangle } from "lucide-react";
+import { Monitor, Smartphone, Activity, ExternalLink, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useRef, useState, useEffect, useMemo } from "react";
+import Link from "next/link";
 import { themes } from "@/lib/themes";
 import { RenderLayout } from "@/components/editor/RenderLayout";
 import { Footer } from "@/components/editor/Footer";
+import { motion, AnimatePresence } from "framer-motion";
 import { EditorHeader } from "@/components/editor/EditorHeader";
 import { EditorHistory } from "@/components/editor/EditorHistory";
 import { EditorMaintenance } from "@/components/editor/EditorMaintenance";
@@ -140,6 +142,34 @@ export default function EditorPage() {
 
 
 
+    const [currentTip, setCurrentTip] = useState(0);
+
+    const tips = [
+        {
+            title: "Did you know?",
+            text: "You can customize your status page with your own brand colors and logo."
+        },
+        {
+            title: "Pro Tip",
+            text: "Connect your custom domain to make your status page look professional."
+        },
+        {
+            title: "Stay Updated",
+            text: "Enable email notifications to keep your users informed during incidents."
+        },
+        {
+            title: "Real-time Data",
+            text: "Connect your UptimeRobot API key for live monitoring updates."
+        }
+    ];
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentTip((prev) => (prev + 1) % tips.length);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, []);
+
     // --- LOADING STATE ---
     if (loading) {
         return (
@@ -160,15 +190,54 @@ export default function EditorPage() {
                 <div className="w-16 h-16 rounded-full bg-indigo-500/10 flex items-center justify-center mb-6">
                     <Monitor className="w-8 h-8 text-indigo-500" />
                 </div>
-                <h2 className="text-2xl font-bold text-white mb-3">Desktop Required</h2>
-                <p className="text-zinc-500 max-w-sm">
+                <h2 className="text-2xl font-bold text-white mb-2">Desktop Required</h2>
+                <p className="text-zinc-500 max-w-sm mb-8">
                     The editor is optimized for larger screens. Please switch to a desktop or laptop for the best experience.
                 </p>
-                <div className="mt-8 flex gap-2">
-                    <span className="w-2 h-2 rounded-full bg-zinc-800" />
-                    <span className="w-2 h-2 rounded-full bg-zinc-800" />
-                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+
+                {/* Tips Carousel */}
+                <div className="w-full max-w-xs bg-zinc-900/50 border border-zinc-800 rounded-xl p-6 relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-950/50 pointer-events-none" />
+
+                    <div className="relative z-10 min-h-[100px] flex flex-col justify-between">
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentTip}
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -10 }}
+                                transition={{ duration: 0.3 }}
+                                className="space-y-2"
+                            >
+                                <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider">
+                                    {tips[currentTip].title}
+                                </span>
+                                <p className="text-sm text-zinc-300 leading-relaxed">
+                                    {tips[currentTip].text}
+                                </p>
+                            </motion.div>
+                        </AnimatePresence>
+
+                        <div className="flex justify-center gap-1.5 mt-6">
+                            {tips.map((_, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => setCurrentTip(idx)}
+                                    className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${idx === currentTip ? 'bg-indigo-500 w-4' : 'bg-zinc-700 hover:bg-zinc-600'
+                                        }`}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 </div>
+
+                <Link
+                    href="/dashboard"
+                    className="mt-8 px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg font-medium transition-colors flex items-center gap-2 text-sm"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Go back to dashboard
+                </Link>
             </div>
 
             {/* Toolbar */}
