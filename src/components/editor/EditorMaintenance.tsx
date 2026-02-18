@@ -1,18 +1,20 @@
-"use client";
-
 import React, { memo } from 'react';
-import { Activity } from 'lucide-react';
+import { Activity, ArrowRight } from 'lucide-react';
 import { ThemeConfig } from '@/lib/themes';
 import { classNames } from '@/lib/utils';
 import { useEditor } from '@/context/EditorContext';
 import { Markdown } from '@/components/ui/markdown';
+import { MonitorData } from '@/lib/types';
+import { toDemoStringId } from '@/lib/mockMonitors';
 
 interface EditorMaintenanceProps {
     showDummyData: boolean;
     theme: ThemeConfig;
+    monitors?: MonitorData[];
+    setSelectedMonitorId?: (id: string | null) => void;
 }
 
-export const EditorMaintenance = memo(({ showDummyData, theme: t }: EditorMaintenanceProps) => {
+export const EditorMaintenance = memo(({ showDummyData, theme: t, monitors = [], setSelectedMonitorId }: EditorMaintenanceProps) => {
     const { config } = useEditor();
 
     const maintenanceList = config.maintenance || [];
@@ -28,6 +30,17 @@ export const EditorMaintenance = memo(({ showDummyData, theme: t }: EditorMainte
 
     const firstWindow = activeWindows[0];
     const isAmber = (firstWindow && firstWindow.monitorId !== 'all');
+
+    // Resolve monitor name
+    let contextText = '';
+    let monitor: MonitorData | undefined;
+
+    if (firstWindow) {
+        monitor = monitors.find(m => String(m.id) === firstWindow.monitorId || toDemoStringId(m.id) === firstWindow.monitorId);
+        contextText = monitor ? `for ${monitor.friendly_name}` : (firstWindow.monitorId === 'all' ? 'System-wide' : '');
+    } else if (isAmber) {
+        contextText = 'Partial Outage';
+    }
 
     // Derived values for the display
     const activeColor = isAmber ? 'text-amber-400' : 'text-indigo-400';
@@ -49,24 +62,45 @@ export const EditorMaintenance = memo(({ showDummyData, theme: t }: EditorMainte
                 <Activity className={`w-3 h-3 ${activeColor}`} /> Planned Maintenance
             </h3>
             {isMaintenanceActive ? (
-                <div className={classNames(
-                    "p-8 border-l-4",
-                    activeBorderL,
-                    t.card,
-                    t.rounded
-                )}>
+                <div
+                    onClick={() => {
+                        if (monitor && setSelectedMonitorId) {
+                            setSelectedMonitorId(String(monitor.id));
+                            // In editor, scrolling might be handled differently or we just select it
+                        }
+                    }}
+                    className={classNames(
+                        "p-8 border-l-4 relative group transition-all",
+                        monitor && setSelectedMonitorId ? "cursor-pointer hover:bg-white/5" : "",
+                        activeBorderL,
+                        t.card,
+                        t.rounded
+                    )}>
                     <div className="flex items-center justify-between mb-2">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${activeBg} ${activeColor} border ${activeBorder}`}>
-                            {statusLabel}
-                        </span>
+                        <div className="flex items-center gap-2">
+                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${activeBg} ${activeColor} border ${activeBorder}`}>
+                                {statusLabel}
+                            </span>
+                            {contextText && (
+                                <span className="text-[10px] text-white/40 font-mono border border-white/5 px-1.5 py-0.5 rounded">
+                                    {contextText}
+                                </span>
+                            )}
+                        </div>
                         <span className="text-xs text-white/50 font-mono">{displayDate}</span>
                     </div>
-                    <h4 className="font-medium text-white text-sm">
+                    <h4 className="font-medium text-white text-sm flex items-center gap-2">
                         {displayTitle}
                     </h4>
                     <div className={classNames("text-xs mt-2 leading-relaxed", t.mutedText)}>
                         <Markdown content={displayDesc} />
                     </div>
+
+                    {monitor && setSelectedMonitorId && (
+                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <ArrowRight className="w-4 h-4 text-white/30" />
+                        </div>
+                    )}
                 </div>
             ) : (
                 <div className={classNames(

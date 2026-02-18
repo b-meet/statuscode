@@ -210,8 +210,44 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
         </footer>
     );
 
-    // TODO: Fetch real maintenance windows
-    const maintenanceBannerDisplay = null;
+    // --- Active Maintenance Logic ---
+    const activeMaintenanceWindow = (site.theme_config?.maintenance || []).find((m: any) => {
+        const start = new Date(m.startTime).getTime();
+        const end = start + m.durationMinutes * 60000;
+        return end > Date.now();
+    });
+
+    const maintenanceBannerDisplay = activeMaintenanceWindow ? (
+        <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8 hover:bg-indigo-500/15 transition-colors group text-left cursor-pointer"
+            // Click handling will be done in StatusPageClient via event delegation or by passing this as data
+            data-monitor-id={activeMaintenanceWindow.monitorId}>
+            <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
+                <span className="text-sm font-medium text-indigo-200 truncate flex items-center gap-2">
+                    Scheduled Maintenance: {activeMaintenanceWindow.title}
+                    {(() => {
+                        const mId = activeMaintenanceWindow.monitorId;
+                        const monitor = monitors.find(m => String(m.id) === mId || `demo-${Math.abs(m.id)}` === mId);
+                        if (monitor) {
+                            return (
+                                <span className="hidden sm:inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/20 font-mono">
+                                    for {monitor.friendly_name}
+                                </span>
+                            );
+                        }
+                        return null;
+                    })()}
+                </span>
+            </div>
+            <span className="text-indigo-200/50 text-xs hidden sm:inline ml-1">
+                — {new Date(activeMaintenanceWindow.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })}
+            </span>
+            <ArrowRight className="w-4 h-4 text-indigo-400/50 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all ml-auto sm:ml-0" />
+        </div>
+    ) : null;
+
+    // Pass maintenance windows to client
+    const maintenanceWindows = site.theme_config?.maintenance || [];
 
     return (
         <div className={`min-h-screen text-white selection:bg-indigo-500/30 font-sans ${t.pageBg}`}>
@@ -250,6 +286,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
                 subdomain={subdomain}
                 initialMonitors={monitors}
                 visibility={site.theme_config?.visibility}
+                maintenance={maintenanceWindows}
             />
         </div>
     );

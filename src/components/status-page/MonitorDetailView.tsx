@@ -7,7 +7,7 @@ import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
 import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
-import { MonitorData, Log, IncidentUpdate, IncidentVariant } from '@/lib/types';
+import { MonitorData, Log, IncidentUpdate, IncidentVariant, MaintenanceWindow } from '@/lib/types';
 import { VisibilityConfig } from '@/context/EditorContext';
 import { Markdown } from '@/components/ui/markdown';
 
@@ -18,6 +18,7 @@ interface MonitorDetailViewProps {
     colors?: StatusColors;
     visibility?: VisibilityConfig;
     updates?: IncidentUpdate[];
+    maintenance?: MaintenanceWindow[];
     onAddUpdate?: (content: string, variant?: IncidentVariant) => void;
     onDeleteUpdate?: (id: string) => void;
 }
@@ -29,6 +30,7 @@ export const MonitorDetailView = memo(({
     colors,
     visibility,
     updates,
+    maintenance,
     onAddUpdate,
     onDeleteUpdate
 }: MonitorDetailViewProps) => {
@@ -87,8 +89,54 @@ export const MonitorDetailView = memo(({
             transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
             className="w-full @container"
         >
+            {/* Active/Upcoming Maintenance Banner - Non-dismissable */}
+            {(() => {
+                if (!maintenance) return null;
+                const activeMaint = maintenance.find(m => {
+                    const mIdString = String(m.monitorId);
+                    const currentIdString = String(monitor.id);
+                    // Match exact ID, demo ID, or if monitorId is "all" (though usually "all" doesn't show in detail view unless specified)
+                    // Also check if m.monitorId contains the current ID if it's a combined string (rare but possible)
+                    const isForThis = mIdString === currentIdString ||
+                        mIdString === `demo-${Math.abs(monitor.id)}` ||
+                        (mIdString === 'all'); // Should we show system-wide maintenance on detail view? Yes, usually.
+
+                    if (!isForThis) return false;
+                    const start = new Date(m.startTime).getTime();
+                    const end = start + m.durationMinutes * 60000;
+                    return end > Date.now();
+                });
+
+                if (activeMaint) {
+                    const now = Date.now();
+                    const start = new Date(activeMaint.startTime).getTime();
+                    const isUpcoming = start > now;
+
+                    return (
+                        <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 mb-6 flex items-start sm:items-center gap-3">
+                            <Clock className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5 sm:mt-0" />
+                            <div className="flex-1 min-w-0 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3">
+                                <span className="text-sm font-bold text-indigo-200 whitespace-nowrap">
+                                    {isUpcoming ? 'Upcoming Maintenance:' : 'Maintenance in Progress:'}
+                                </span>
+                                <span className="text-sm text-indigo-200/80 truncate">
+                                    {activeMaint.title}
+                                </span>
+                            </div>
+                            <div className="text-xs text-indigo-300/50 whitespace-nowrap bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/10 font-mono">
+                                {isUpcoming
+                                    ? `Starts ${new Date(activeMaint.startTime).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                                    : `Ends ${new Date(start + activeMaint.durationMinutes * 60000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+                                }
+                            </div>
+                        </div>
+                    );
+                }
+                return null;
+            })()}
+
             {/* Navigation Header */}
-            <div className="mb-4 @[600px]:mb-8 flex items-center justify-between">
+            <div className="mb-4 @[600px]:mb-8 flex items-center justify-between px-1">
                 <button
                     onClick={() => setSelectedMonitorId(null)}
                     className="group flex items-center gap-2 text-xs font-medium text-white/50 hover:text-white transition-colors pl-1"
@@ -133,6 +181,7 @@ export const MonitorDetailView = memo(({
                     </div>
                 </div>
             </div>
+
 
             {/* Timeline / Incident Updates Section */}
             {(updates && updates.length > 0) || onAddUpdate ? (

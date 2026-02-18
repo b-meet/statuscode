@@ -441,6 +441,8 @@ export default function EditorPage() {
                                         <EditorMaintenance
                                             showDummyData={config.showDummyData ?? false}
                                             theme={t}
+                                            monitors={selectedMonitors}
+                                            setSelectedMonitorId={setSelectedMonitorId}
                                         />
                                     }
                                 />

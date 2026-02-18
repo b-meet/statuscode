@@ -1,18 +1,20 @@
 "use client";
 
-import { Activity } from "lucide-react";
+import { Activity, ArrowRight } from "lucide-react";
 import { ThemeConfig } from "@/lib/themes";
 import { classNames } from "@/lib/utils";
 import { Markdown } from "@/components/ui/markdown";
 
-import { MaintenanceWindow } from "@/lib/types";
+import { MaintenanceWindow, MonitorData } from "@/lib/types";
 
 interface MaintenanceProps {
     theme: ThemeConfig;
     windows?: MaintenanceWindow[];
+    monitors?: MonitorData[];
+    setSelectedMonitorId?: (id: string | null) => void;
 }
 
-export function Maintenance({ theme: t, windows = [] }: MaintenanceProps) {
+export function Maintenance({ theme: t, windows = [], monitors = [], setSelectedMonitorId }: MaintenanceProps) {
     const activeWindows = windows.filter(m => {
         const start = new Date(m.startTime).getTime();
         const end = start + m.durationMinutes * 60000;
@@ -44,6 +46,10 @@ export function Maintenance({ theme: t, windows = [] }: MaintenanceProps) {
     const firstWindow = activeWindows[0];
     const isAmber = firstWindow.monitorId !== 'all';
 
+    // Resolve monitor name
+    const monitor = monitors.find(m => String(m.id) === firstWindow.monitorId || `demo-${Math.abs(m.id)}` === firstWindow.monitorId);
+    const contextText = monitor ? `for ${monitor.friendly_name}` : (firstWindow.monitorId === 'all' ? 'System-wide' : '');
+
     // Derived values for the display
     const activeColor = isAmber ? 'text-amber-400' : 'text-indigo-400';
     const activeBg = isAmber ? 'bg-amber-500/20' : 'bg-indigo-500/20';
@@ -63,24 +69,45 @@ export function Maintenance({ theme: t, windows = [] }: MaintenanceProps) {
             )}>
                 <Activity className={`w-3 h-3 ${activeColor}`} /> Planned Maintenance
             </h3>
-            <div className={classNames(
-                "p-8 border-l-4",
-                activeBorderL,
-                t.card,
-                t.rounded
-            )}>
+            <div
+                onClick={() => {
+                    if (monitor && setSelectedMonitorId) {
+                        setSelectedMonitorId(String(monitor.id));
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }}
+                className={classNames(
+                    "p-8 border-l-4 relative group transition-all",
+                    monitor && setSelectedMonitorId ? "cursor-pointer hover:bg-white/5" : "",
+                    activeBorderL,
+                    t.card,
+                    t.rounded
+                )}>
                 <div className="flex items-center justify-between mb-2">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${activeBg} ${activeColor} border ${activeBorder}`}>
-                        {statusLabel}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${activeBg} ${activeColor} border ${activeBorder}`}>
+                            {statusLabel}
+                        </span>
+                        {contextText && (
+                            <span className="text-[10px] text-white/40 font-mono border border-white/5 px-1.5 py-0.5 rounded">
+                                {contextText}
+                            </span>
+                        )}
+                    </div>
                     <span className="text-xs text-white/50 font-mono">{displayDate}</span>
                 </div>
-                <h4 className="font-medium text-white text-sm">
+                <h4 className="font-medium text-white text-sm flex items-center gap-2">
                     {displayTitle}
                 </h4>
                 <div className={classNames("text-xs mt-2 leading-relaxed", t.mutedText)}>
                     <Markdown content={displayDesc} />
                 </div>
+
+                {monitor && setSelectedMonitorId && (
+                    <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ArrowRight className="w-4 h-4 text-white/30" />
+                    </div>
+                )}
             </div>
         </div>
     );

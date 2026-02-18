@@ -1,9 +1,8 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useEditor, Theme } from "@/context/EditorContext";
 import { Check, ChevronRight, Palette } from "lucide-react";
+import { useSmartPosition } from "@/hooks/useSmartPosition";
 
 const themes: { id: Theme; name: string; description: string; color: string }[] = [
     { id: 'modern', name: 'Modern', description: 'Clean, professional, and trustworthy.', color: '#6366f1' },
@@ -16,22 +15,13 @@ export default function ThemeSelector() {
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ top: 0, left: 0 });
+
+    const { top, bottom, left, maxHeight, transformOrigin, isReady } = useSmartPosition(buttonRef, isOpen);
 
     const activeTheme = themes.find(t => t.id === config.theme) || themes[0];
 
-    const toggleOpen = () => {
-        if (!isOpen && buttonRef.current) {
-            const rect = buttonRef.current.getBoundingClientRect();
-            setPosition({
-                top: rect.top,
-                left: rect.right + 12, // 12px gap
-            });
-        }
-        setIsOpen(!isOpen);
-    };
+    const toggleOpen = () => setIsOpen(!isOpen);
 
-    // Close on scroll or resize to prevent detachment
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -51,12 +41,6 @@ export default function ThemeSelector() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen]);
-
-    useEffect(() => {
-        const handleResize = () => setIsOpen(false);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     return (
         <>
@@ -82,23 +66,24 @@ export default function ThemeSelector() {
                 </button>
             </div>
 
-            {isOpen && createPortal(
+            {isOpen && isReady && createPortal(
                 <>
-                    {/* Backdrop */}
-
                     {/* Popover Menu */}
                     <div
                         ref={popupRef}
-                        className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
+                        className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
                         style={{
-                            top: Math.min(position.top, window.innerHeight - 300), // Prevent overflow bottom
-                            left: position.left,
+                            top: top,
+                            bottom: bottom,
+                            left: left,
+                            maxHeight: maxHeight,
+                            transformOrigin: transformOrigin
                         }}
                     >
-                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50">
+                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50 shrink-0">
                             <div className="text-xs font-semibold text-white">Select Theme</div>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 overflow-y-auto px-1">
                             {themes.map((theme) => (
                                 <button
                                     key={theme.id}

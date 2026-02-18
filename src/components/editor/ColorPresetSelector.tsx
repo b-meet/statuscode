@@ -1,17 +1,17 @@
-"use client";
-
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useEditor } from "@/context/EditorContext";
 import { ChevronRight, Check, PaintBucket } from "lucide-react";
 import { colorPresets, ColorPreset } from "@/lib/themes";
+import { useSmartPosition } from "@/hooks/useSmartPosition";
 
 export default function ColorPresetSelector() {
     const { config, updateConfig } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ top: 0, left: 0 });
+
+    const { top, bottom, left, maxHeight, transformOrigin, isReady } = useSmartPosition(buttonRef, isOpen);
 
     // Get presets for current theme
     const activePresets = colorPresets[config.theme] || [];
@@ -24,16 +24,7 @@ export default function ColorPresetSelector() {
 
     // We'll trust the preset ID/Name for now, and maybe show 4 small dots representing the palette.
 
-    const toggleOpen = () => {
-        if (!isOpen && buttonRef.current) {
-            const rect = buttonRef.current.getBoundingClientRect();
-            setPosition({
-                top: rect.top,
-                left: rect.right + 12, // 12px gap
-            });
-        }
-        setIsOpen(!isOpen);
-    };
+    const toggleOpen = () => setIsOpen(!isOpen);
 
     // Close on click outside
     useEffect(() => {
@@ -54,28 +45,6 @@ export default function ColorPresetSelector() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen]);
-
-    // Close on scrolling the main window (optional, but good for keeping it attached visually if not using fixed positioning that updates)
-    // Actually, with the new logic we want to ALLOW scrolling.
-    // The previous logic closed on generic scroll. Let's keep that for now but maybe refine it?
-    // User wants to scroll sidebar. Sidebar scroll event might bubble?
-    // If I scroll the sidebar, the popup might detach if it's fixed.
-    // Let's keep the resize handler but maybe relax the scroll handler or attach it to the specific container?
-    // For now, let's just implement the Click Outside logic replacement first.
-
-    useEffect(() => {
-        const handleResize = () => setIsOpen(false);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
-
-    // Helper to extract a bg color from class string for preview
-
-    // Better preview: just use the raw colors from the class string?
-    // "bg-emerald-500/10"
-    // Let's simpler approach: Mapping preset ID to a hex color for the main dot?
-    // No, dynamic is better.
-    // Let's try to extract the base color name and map it to a hex or standard Tailwind class.
 
     const PalettePreview = ({ preset }: { preset: ColorPreset }) => {
         const colorMap: Record<string, string> = {
@@ -128,20 +97,23 @@ export default function ColorPresetSelector() {
                 </button>
             </div>
 
-            {isOpen && createPortal(
+            {isOpen && isReady && createPortal(
                 <>
                     <div
                         ref={popupRef}
-                        className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
+                        className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
                         style={{
-                            top: Math.min(position.top, window.innerHeight - 300),
-                            left: position.left,
+                            top: top,
+                            bottom: bottom,
+                            left: left,
+                            maxHeight: maxHeight,
+                            transformOrigin: transformOrigin
                         }}
                     >
-                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50">
+                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50 shrink-0">
                             <div className="text-xs font-semibold text-white">Select Colors</div>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 overflow-y-auto px-1">
                             {activePresets.map((preset) => (
                                 <button
                                     key={preset.id}

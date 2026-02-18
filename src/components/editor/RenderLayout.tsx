@@ -63,23 +63,37 @@ export const RenderLayout = memo(({
         return end > Date.now();
     });
 
+    const scrollToMaintenance = () => {
+        const el = document.getElementById('maintenance-view');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
     const MaintenanceBanner = (config.showDummyData || activeMaintenance) ? (
-        <div className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8">
-            <Calendar className="w-4 h-4 text-indigo-400" />
-            <span className="text-sm font-medium text-indigo-200">
+        <button
+            onClick={scrollToMaintenance}
+            className="w-full bg-indigo-500/10 border-b border-indigo-500/20 py-3 px-4 flex items-center justify-center gap-3 mb-8 cursor-pointer hover:bg-indigo-500/15 transition-colors group text-left"
+        >
+            <Calendar className="w-4 h-4 text-indigo-400 shrink-0" />
+            <span className="text-sm font-medium text-indigo-200 truncate">
                 {activeMaintenance
-                    ? `Scheduled Maintenance: ${activeMaintenance.title}`
+                    ? (() => {
+                        const monitor = selectedMonitors.find(m => String(m.id) === activeMaintenance.monitorId || toDemoStringId(m.id) === activeMaintenance.monitorId);
+                        const forText = monitor ? ` for ${monitor.friendly_name}` : '';
+                        return `Scheduled Maintenance: ${activeMaintenance.title}${forText}`;
+                    })()
                     : "Scheduled Maintenance: Database Migration"
                 }
-                <span className="text-white ml-2">
+                <span className="text-white ml-2 opacity-80 group-hover:opacity-100 transition-opacity hidden sm:inline">
                     {activeMaintenance
                         ? new Date(activeMaintenance.startTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric' })
                         : "Oct 24, 13:00 UTC"
                     }
                 </span>
             </span>
-            <ArrowRight className="w-4 h-4 text-indigo-400/50" />
-        </div>
+            <ArrowRight className="w-4 h-4 text-indigo-400/50 group-hover:text-indigo-400 group-hover:translate-x-0.5 transition-all ml-auto sm:ml-0" />
+        </button>
     ) : null;
 
     // --- VISIBILITY OVERRIDE FOR PREVIEW ---
@@ -129,6 +143,7 @@ export const RenderLayout = memo(({
                             }
                         });
                     }}
+                    maintenance={config.maintenance}
                 />
             </div>
         );
@@ -157,7 +172,8 @@ export const RenderLayout = memo(({
     );
 
     switch (config.layout) {
-        case 'layout1': // Standard (Split Bottom)
+        case 'layout1': // Legacy Standard (Treat as Stacked)
+        case 'layout3': // Stacked + Banner Maint
             return (
                 <>
                     {HeaderWithProps}
@@ -192,20 +208,6 @@ export const RenderLayout = memo(({
                                 </div>
                             )}
                         </div>
-                    </div>
-                </>
-            );
-        case 'layout3': // Stacked + Banner Maint
-            return (
-                <>
-                    {MaintenanceBanner}
-                    {HeaderWithProps}
-                    {Banner}
-                    {HeaderWithProps}
-                    {Banner}
-                    <div className="flex flex-col gap-10 sm:gap-20">
-                        {Monitors}
-                        {effectiveVisibility?.showIncidentHistory !== false && Maintenance}
                     </div>
                 </>
             );

@@ -4,26 +4,18 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useEditor } from "@/context/EditorContext";
 import { Eye, BarChart2, Activity, History, Gauge, ChevronRight, Check } from "lucide-react";
+import { useSmartPosition } from "@/hooks/useSmartPosition";
 
 export default function VisibilitySettings() {
     const { config, updateConfig } = useEditor();
     const [isOpen, setIsOpen] = useState(false);
     const buttonRef = useRef<HTMLButtonElement>(null);
     const popupRef = useRef<HTMLDivElement>(null);
-    const [position, setPosition] = useState({ top: 0, left: 0 });
 
-    const toggleOpen = () => {
-        if (!isOpen && buttonRef.current) {
-            const rect = buttonRef.current.getBoundingClientRect();
-            setPosition({
-                top: rect.top,
-                left: rect.right + 12, // 12px gap
-            });
-        }
-        setIsOpen(!isOpen);
-    };
+    const { top, bottom, left, maxHeight, transformOrigin, isReady } = useSmartPosition(buttonRef, isOpen);
 
-    // Close on scroll or resize to prevent detachment
+    const toggleOpen = () => setIsOpen(!isOpen);
+
     // Close on click outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -43,12 +35,6 @@ export default function VisibilitySettings() {
             document.removeEventListener('mousedown', handleClickOutside);
         };
     }, [isOpen]);
-
-    useEffect(() => {
-        const handleResize = () => setIsOpen(false);
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
-    }, []);
 
     const toggles = [
         {
@@ -112,27 +98,30 @@ export default function VisibilitySettings() {
                 </button>
             </div>
 
-            {isOpen && createPortal(
+            {isOpen && isReady && createPortal(
                 <>
                     {/* Backdrop */}
 
                     {/* Popover Menu */}
                     <div
                         ref={popupRef}
-                        className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200"
+                        className="fixed z-[9999] w-72 bg-[#09090b] border border-zinc-800 rounded-xl shadow-2xl p-2 animate-in fade-in zoom-in-95 duration-200 flex flex-col"
                         style={{
-                            top: Math.min(position.top, window.innerHeight - 350),
-                            left: position.left,
+                            top: top,
+                            bottom: bottom,
+                            left: left,
+                            maxHeight: maxHeight,
+                            transformOrigin: transformOrigin
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50">
+                        <div className="px-2 py-1.5 mb-2 border-b border-zinc-800/50 shrink-0">
                             <div className="text-xs font-semibold text-white">Visibility Controls</div>
                             <p className="text-[10px] text-zinc-500 mt-0.5">
                                 Toggle visible elements on your status page.
                             </p>
                         </div>
-                        <div className="space-y-1">
+                        <div className="space-y-1 overflow-y-auto px-1">
                             {toggles.map((item) => {
                                 const Icon = item.icon;
                                 const isVisible = config.visibility[item.id as keyof typeof config.visibility];

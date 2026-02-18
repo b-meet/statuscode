@@ -48,7 +48,7 @@ const RenderLayout = memo(({
     setSelectedMonitorId,
     visibility,
     annotations,
-    maintenance: maintenanceWindows
+    maintenance
 }: RenderLayoutProps) => {
     // History is only used in overlay currently to match Editor
     const historyLogs = useMemo(() =>
@@ -65,6 +65,8 @@ const RenderLayout = memo(({
             const idStr = m.id < 0 ? toDemoStringId(m.id) : String(m.id);
             return idStr === selectedMonitorId;
         });
+        // - [x] Move "for [Monitor]" text to a visible badge.
+        // - [ ] Add non-dismissable maintenance banner to Monitor Detail View.
         // If monitor not found (e.g. data update removed it), clear selection
         if (!monitor) {
             setSelectedMonitorId(null);
@@ -80,14 +82,48 @@ const RenderLayout = memo(({
                     colors={colors}
                     visibility={visibility}
                     updates={annotations?.[monitor.id] || []}
+                    maintenance={maintenance}
                 />
             </div>
         );
     }
 
-    const banner = <StatusBanner status={status} totalAvgResponse={totalAvgResponse} theme={t} colors={colors} visibility={visibility} />;
-    const monitorsDisplay = <MonitorList monitors={monitors} theme={t} setSelectedMonitorId={setSelectedMonitorId} colors={colors} visibility={visibility} annotations={annotations} />;
-    const maintenance = <Maintenance theme={t} windows={maintenanceWindows} />;
+    const scrollToMaintenance = () => {
+        const el = document.getElementById('maintenance-view');
+        if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    // Determine active maintenance for the banner click action
+    const activeMaintenance = useMemo(() => {
+        if (!maintenance || maintenance.length === 0) return null;
+        const active = maintenance.filter(m => {
+            const start = new Date(m.startTime).getTime();
+            const end = start + m.durationMinutes * 60000;
+            return end > Date.now();
+        }).sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0];
+        return active;
+    }, [maintenance]);
+
+    const handleBannerClick = () => {
+        if (activeMaintenance && activeMaintenance.monitorId !== 'all') {
+            const mId = activeMaintenance.monitorId;
+            const monitor = monitors.find(m => String(m.id) === mId || `demo-${Math.abs(m.id)}` === mId);
+            if (monitor) {
+                setSelectedMonitorId(String(monitor.id));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return;
+            }
+        }
+        scrollToMaintenance();
+    };
+
+    const InteractiveMaintenanceBanner = maintenanceBanner ? (
+        <div onClick={handleBannerClick} className="cursor-pointer group">
+            {maintenanceBanner}
+        </div>
+    ) : null;
 
 
     const history = (
@@ -99,15 +135,50 @@ const RenderLayout = memo(({
         </div>
     );
 
+    const banner = (
+        <StatusBanner
+            status={status}
+            totalAvgResponse={totalAvgResponse}
+            theme={t}
+            colors={colors}
+            visibility={visibility}
+        />
+    );
+
+    const monitorsDisplay = (
+        <MonitorList
+            monitors={monitors}
+            setSelectedMonitorId={setSelectedMonitorId}
+            theme={t}
+            colors={colors}
+            visibility={visibility}
+        />
+    );
+
+    const maintenanceView = (
+        <Maintenance
+            theme={t}
+            windows={maintenance}
+            monitors={monitors}
+            setSelectedMonitorId={setSelectedMonitorId}
+        />
+    );
+
+
     switch (layout) {
-        case 'layout1': // Standard (Split Bottom)
+        case 'layout1': // Standard (Treat as Stacked)
+        case 'layout3': // Stacked + Banner Maint
             return (
                 <>
                     {header}
                     {banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {monitorsDisplay}
-                        {visibility?.showIncidentHistory !== false && maintenance}
+                        {visibility?.showIncidentHistory !== false && (
+                            <div id="maintenance-view" className="scroll-mt-24">
+                                {maintenanceView}
+                            </div>
+                        )}
                     </div>
                 </>
             );
@@ -123,22 +194,12 @@ const RenderLayout = memo(({
                             </div>
                             {visibility?.showIncidentHistory !== false && (
                                 <div className="lg:col-span-1">
-                                    {maintenance}
+                                    <div id="maintenance-view" className="scroll-mt-24">
+                                        {maintenanceView}
+                                    </div>
                                 </div>
                             )}
                         </div>
-                    </div>
-                </>
-            );
-        case 'layout3': // Stacked + Banner Maint
-            return (
-                <>
-                    {maintenanceBanner}
-                    {header}
-                    {banner}
-                    <div className="flex flex-col gap-10 sm:gap-20">
-                        {monitorsDisplay}
-                        {visibility?.showIncidentHistory !== false && maintenance}
                     </div>
                 </>
             );
@@ -162,12 +223,16 @@ const RenderLayout = memo(({
             }
             return (
                 <>
-                    {maintenanceBanner}
+                    {InteractiveMaintenanceBanner}
                     {header}
                     {banner}
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {monitorsDisplay}
-                        {visibility?.showIncidentHistory !== false && maintenance}
+                        {visibility?.showIncidentHistory !== false && (
+                            <div id="maintenance-view" className="scroll-mt-24">
+                                {maintenanceView}
+                            </div>
+                        )}
                     </div>
                 </>
             );
@@ -188,6 +253,7 @@ interface StatusPageClientProps {
     subdomain: string;
     initialMonitors: MonitorData[];
     visibility?: VisibilityConfig;
+    maintenance?: MaintenanceWindow[];
 }
 
 function getAverageResponseTime(times: { value: number }[] = []) {
@@ -205,7 +271,8 @@ export default function StatusPageClient({
     footer,
     subdomain,
     initialMonitors,
-    visibility
+    visibility,
+    maintenance
 }: StatusPageClientProps) {
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
@@ -303,7 +370,7 @@ export default function StatusPageClient({
                 setSelectedMonitorId={setSelectedMonitorId}
                 visibility={visibility}
                 annotations={annotations}
-                maintenance={[]} // TODO: Fetch from API or prop
+                maintenance={maintenance || []}
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

@@ -233,6 +233,14 @@ export default function MaintenanceManager() {
                                                                 <Clock className="w-3 h-3" />
                                                                 {window.durationMinutes} minutes
                                                             </div>
+                                                            <div className="text-[10px] text-zinc-500 flex items-center gap-2 mt-0.5">
+                                                                <span className="w-3 h-3 flex items-center justify-center font-bold text-[9px] text-zinc-600">@</span>
+                                                                {(() => {
+                                                                    if (window.monitorId === 'all') return <span className="text-zinc-400">All Systems</span>;
+                                                                    const m = monitorsData.find(m => String(m.id) === window.monitorId || toDemoStringId(m.id) === window.monitorId);
+                                                                    return m ? <span className="text-zinc-400 truncate max-w-[120px]">{m.friendly_name}</span> : <span className="text-zinc-600 italic">Unknown Service</span>;
+                                                                })()}
+                                                            </div>
                                                         </div>
                                                         <div className="flex items-center gap-1">
                                                             <button
