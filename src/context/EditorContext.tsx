@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { MonitorData, IncidentUpdate, MaintenanceWindow } from '@/lib/types';
+import { MonitorData, IncidentUpdate, MaintenanceWindow, Log } from '@/lib/types';
 import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
 
 // --- Types ---
@@ -43,10 +43,11 @@ export interface SiteConfig {
     previewScenario?: PreviewScenario;
     visibility: VisibilityConfig; // New field
     annotations: Record<string, IncidentUpdate[]>; // Monitor ID -> Timeline of Updates
+    customLogs: Record<string, Log[]>; // Monitor ID -> Manual History Logs
     maintenance: MaintenanceWindow[];
 }
 
-interface EditorContextType {
+export interface EditorContextType {
     config: SiteConfig;
     updateConfig: (updates: Partial<SiteConfig>) => void;
     saveStatus: 'idle' | 'saving' | 'saved' | 'error';
@@ -83,6 +84,7 @@ const defaultConfig: SiteConfig = {
         showPerformanceMetrics: true,
     },
     annotations: {},
+    customLogs: {},
     maintenance: []
 };
 
@@ -93,9 +95,20 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [config, setConfig] = useState<SiteConfig>(defaultConfig);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
-    const [monitorsData, setMonitorsData] = useState<MonitorData[]>([]);
+    const [baseMonitors, setBaseMonitors] = useState<MonitorData[]>([]);
     const [user, setUser] = useState<any | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
+
+    // Derived monitors data with custom logs merged
+    const monitorsData = React.useMemo(() => {
+        return baseMonitors.map(m => {
+            const custom = config.customLogs?.[String(m.id)] || [];
+            const originalLogs = m.logs || [];
+            // Merge and sort
+            const combinedLogs = [...originalLogs, ...custom].sort((a, b) => b.datetime - a.datetime);
+            return { ...m, logs: combinedLogs };
+        });
+    }, [baseMonitors, config.customLogs]);
 
     const fetchMonitors = useCallback(async () => {
         // If we have API key, fetch real ones
@@ -128,7 +141,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             config.monitors.includes(toDemoStringId(m.id))
         );
 
-        setMonitorsData(prev => {
+        setBaseMonitors(prev => {
             // If we have real monitors, ignore demo monitors to avoid duplicates
             if (realMonitors.length > 0) {
                 // Remove demo monitors AND any stale IDs (e.g. deleted monitors) from selected list
@@ -161,6 +174,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     merged.push(dm);
                 }
             });
+
             return merged;
         });
     }, [config.apiKey, config.monitors]);
@@ -215,6 +229,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                             });
                             return migrated;
                         })(),
+                        customLogs: site.theme_config?.customLogs || {},
                         maintenance: site.theme_config?.maintenance || [],
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
@@ -237,7 +252,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                                 const real = d.monitors || [];
                                 // If we have real monitors, don't show demos AND clean up config
                                 if (real.length > 0) {
-                                    setMonitorsData(real);
+                                    setBaseMonitors(real);
 
                                     // Clean up selected monitors in config
                                     // We need to do this carefully as config might not be fully loaded or we are inside useEffect
@@ -250,7 +265,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                                             // We need to update the DB/State
                                             // We can call updateConfig but we are inside the 'fetched' callback
                                             // Let's defer it or call it if updateConfig is stable
-
+                                            // ...
                                             // Check if we should auto-select all
                                             const hasSelectedReal = cleaned.some((id: string) => !demoIds.includes(id));
                                             if (!hasSelectedReal) {
@@ -271,13 +286,13 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                                     }
                                 } else {
                                     const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
-                                    setMonitorsData(demos);
+                                    setBaseMonitors(demos);
                                 }
                             });
                     } else {
                         // Just load demo monitors if they are in the list
                         const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
-                        if (demos.length > 0) setMonitorsData(demos);
+                        if (demos.length > 0) setBaseMonitors(demos);
                     }
                 }
             } catch (error) {
@@ -326,6 +341,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         primaryColor: config.primaryColor,
                         visibility: config.visibility,
                         annotations: config.annotations,
+                        customLogs: config.customLogs,
                         maintenance: config.maintenance,
                         supportEmail: config.supportEmail,
                         supportUrl: config.supportUrl
@@ -451,7 +467,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         updateConfig({ monitors: Array.from(current) });
 
         // Add to monitorsData
-        setMonitorsData(prev => {
+        setBaseMonitors(prev => {
             const next = [...prev];
             demos.forEach(d => {
                 if (!next.find(m => m.id === d.id)) {

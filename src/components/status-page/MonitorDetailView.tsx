@@ -361,12 +361,27 @@ export const MonitorDetailView = memo(({
                             <div className="space-y-4 @[600px]:space-y-6 border-l border-white/10 ml-2 @[600px]:ml-3 pl-4 @[600px]:pl-6 sm:pl-8 py-2">
                                 {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
                                     <div key={i} className="relative group">
-                                        <div className={`absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'} top-1`} />
+                                        <div className={`absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' :
+                                                log.type === 99 ? 'bg-amber-500' :
+                                                    log.type === 98 ? 'bg-blue-500' :
+                                                        'bg-emerald-500'
+                                            } top-1`} />
                                         <div className="flex flex-col gap-0.5 @[600px]:gap-1">
                                             <div className="flex items-center justify-between">
-                                                <span className={`text-xs @[600px]:text-sm font-bold ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                    {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-xs @[600px]:text-sm font-bold ${log.type === 1 ? 'text-red-400' :
+                                                            log.type === 99 ? 'text-amber-400' :
+                                                                log.type === 98 ? 'text-blue-400' :
+                                                                    'text-emerald-400'
+                                                        }`}>
+                                                        {log.type === 1 ? 'Outage Detected' : (log.type === 98 || log.type === 99 ? 'Manual Update' : 'Service Recovered')}
+                                                    </span>
+                                                    {log.isManual && (
+                                                        <span className="text-[8px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/10 font-medium">
+                                                            added via statuscode
+                                                        </span>
+                                                    )}
+                                                </div>
                                                 <span className={`text-[8px] @[600px]:text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
                                                     {new Date(log.datetime * 1000).toLocaleString()}
                                                 </span>
@@ -386,6 +401,10 @@ export const MonitorDetailView = memo(({
                                                             Lasted for: {formatDuration(log.duration)}
                                                         </span>
                                                     </>
+                                                ) : log.isManual ? (
+                                                    <span className="block font-medium text-white/80 opacity-90 italic">
+                                                        "{log.reason?.detail}"
+                                                    </span>
                                                 ) : (
                                                     `at ${new Date(log.datetime * 1000).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
                                                 )}

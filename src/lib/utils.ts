@@ -69,3 +69,25 @@ export function getLogReason(code?: string, originalDetail?: string): { reason: 
         detail: originalDetail ? `Code: ${code}` : undefined
     };
 }
+
+export function stripMarkdown(text: string): string {
+    if (!text) return '';
+    return text
+        // Headers
+        .replace(/^#+\s+/gm, '')
+        // Bold/Italic
+        .replace(/(\*\*|__)(.*?)\1/g, '$2')
+        .replace(/(\*|_)(.*?)\1/g, '$2')
+        // Links [text](url) -> text
+        .replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1')
+        // Code blocks
+        .replace(/`{3}[\s\S]*?`{3}/g, '')
+        .replace(/`([^`]+)`/g, '$1')
+        // Blockquotes
+        .replace(/^>\s+/gm, '')
+        // Lists
+        .replace(/^[\*\-\+]\s+/gm, '')
+        // Horizontal rules
+        .replace(/^-{3,}$/gm, '')
+        .trim();
+}

@@ -1,15 +1,16 @@
 "use client";
 
 import React, { memo, useState, useRef, useEffect } from 'react';
+import { createPortal } from "react-dom";
 import { ThemeConfig, colorPresets, ColorPreset } from '@/lib/themes';
 import { MonitorList } from './MonitorList';
 import { MonitorDetailView } from '../status-page/MonitorDetailView';
 import { StatusBanner } from './StatusBanner';
 import { ArrowRight, Calendar } from 'lucide-react';
-import { classNames } from '@/lib/utils';
-import { MonitorData, IncidentUpdate } from '@/lib/types';
+import { classNames, stripMarkdown } from '@/lib/utils';
+import { MonitorData, IncidentUpdate, Log } from '@/lib/types';
 import { SiteConfig } from '@/context/EditorContext';
-import { toDemoStringId } from '@/lib/mockMonitors';
+import { toDemoStringId, isDemoId } from '@/lib/mockMonitors';
 
 interface RenderLayoutProps {
     config: SiteConfig;
@@ -51,6 +52,7 @@ export const RenderLayout = memo(({
         : Header;
 
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
+    const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
 
     // Resolve colors
     const themePresets = colorPresets[config.theme as keyof typeof colorPresets] || [];
@@ -102,6 +104,120 @@ export const RenderLayout = memo(({
         ? { showSparklines: true, showUptimeBars: true, showIncidentHistory: true, showPerformanceMetrics: true }
         : config.visibility;
 
+    // --- SMART DELETE MODAL LOGIC ---
+    const confirmDelete = (type: 'permanent' | 'history') => {
+        if (!updateToDelete || !config.annotations) return;
+
+        // Find the update and its associated monitor
+        let foundUpdate: IncidentUpdate | undefined;
+        let monitorId: string | undefined;
+
+        for (const [mId, updates] of Object.entries(config.annotations)) {
+            const u = updates.find(u => u.id === updateToDelete);
+            if (u) {
+                foundUpdate = u;
+                monitorId = mId;
+                break;
+            }
+        }
+
+        if (foundUpdate && monitorId) {
+            const currentUpdates = config.annotations[monitorId] || [];
+
+            // Remove from annotations
+            const newAnnotations = {
+                ...config.annotations,
+                [monitorId]: currentUpdates.filter(u => u.id !== updateToDelete)
+            };
+
+            // If moving to history, add to customLogs (ONLY FOR REAL MONITORS)
+            let newCustomLogs = config.customLogs || {};
+
+            // Check if it's a real monitor (not a demo)
+            const isRealMonitor = !isDemoId(monitorId);
+
+            if (type === 'history' && isRealMonitor) {
+                const existingLogs = config.customLogs?.[monitorId] || [];
+
+                // Determine log type based on variant
+                let typeCode = 1; // Default to 'Issue' (Red)
+                if (foundUpdate.variant === 'success') typeCode = 2; // Recovery (Green)
+                if (foundUpdate.variant === 'info') typeCode = 98; // Info (Blue/Neutral)
+                if (foundUpdate.variant === 'warning') typeCode = 99; // Warning (Yellow)
+
+                const newLog: Log = {
+                    type: typeCode,
+                    datetime: new Date(foundUpdate.createdAt).getTime() / 1000,
+                    duration: 0,
+                    reason: {
+                        code: 'Manual Update',
+                        detail: stripMarkdown(foundUpdate.content)
+                    },
+                    isManual: true
+                };
+
+                newCustomLogs = {
+                    ...newCustomLogs,
+                    [monitorId]: [...existingLogs, newLog]
+                };
+            }
+
+            updateConfig({
+                annotations: newAnnotations,
+                customLogs: newCustomLogs
+            });
+        }
+
+        setUpdateToDelete(null);
+    };
+
+    // Modal Rendering (Portalled)
+    const activeUpdateToDelete = updateToDelete && config.annotations ?
+        Object.values(config.annotations).flat().find(u => u.id === updateToDelete) : null;
+
+    const DeleteModal = updateToDelete && activeUpdateToDelete ? createPortal(
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="w-full max-w-sm bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6 m-4 animate-in zoom-in-95 duration-200">
+                <div className="mb-6">
+                    <h2 className="text-lg font-bold text-white mb-2">Delete Update?</h2>
+                    <p className="text-sm text-zinc-400 leading-relaxed">
+                        Do you want to remove this update completely, or keep it in the history?
+                    </p>
+                    <div className="mt-3 p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
+                        <p className="text-xs text-zinc-500 line-clamp-2 italic">
+                            "{activeUpdateToDelete.content}"
+                        </p>
+                    </div>
+                </div>
+
+                <div className="space-y-3">
+                    <button
+                        onClick={() => confirmDelete('history')}
+                        className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-between group"
+                    >
+                        <span>Move to Incident History</span>
+                        <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+                    </button>
+
+                    <button
+                        onClick={() => confirmDelete('permanent')}
+                        className="w-full px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-between"
+                    >
+                        <span>Delete Permanently</span>
+                    </button>
+
+                    <button
+                        onClick={() => setUpdateToDelete(null)}
+                        className="w-full px-4 py-2 text-zinc-500 hover:text-white text-xs font-medium transition-colors"
+                    >
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    ) : null;
+
     // --- DETAIL VIEW OVERRIDE ---
     if (selectedMonitorId) {
         const monitor = selectedMonitors.find(m => {
@@ -134,17 +250,10 @@ export const RenderLayout = memo(({
                             }
                         });
                     }}
-                    onDeleteUpdate={(id) => {
-                        const currentUpdates = config.annotations?.[selectedMonitorId] || [];
-                        updateConfig({
-                            annotations: {
-                                ...config.annotations,
-                                [selectedMonitorId]: currentUpdates.filter(u => u.id !== id)
-                            }
-                        });
-                    }}
                     maintenance={config.maintenance}
+                    onDeleteUpdate={(id) => setUpdateToDelete(id)}
                 />
+                {DeleteModal}
             </div>
         );
     }
@@ -182,6 +291,7 @@ export const RenderLayout = memo(({
                         {Monitors}
                         {effectiveVisibility?.showIncidentHistory !== false && Maintenance}
                     </div>
+                    {DeleteModal}
                 </>
             );
         case 'layout2': // Split Middle
@@ -209,6 +319,7 @@ export const RenderLayout = memo(({
                             )}
                         </div>
                     </div>
+                    {DeleteModal}
                 </>
             );
         case 'layout4': // Minimal + History Link + Banner Maint
@@ -237,6 +348,7 @@ export const RenderLayout = memo(({
                     <div className="flex flex-col gap-10 sm:gap-20">
                         {Monitors}
                     </div>
+                    {DeleteModal}
                 </>
             );
         default:

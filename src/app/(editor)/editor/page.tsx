@@ -1,8 +1,9 @@
 "use client";
 
 import { useEditor } from "@/context/EditorContext";
-import { Monitor, Smartphone, Activity, ExternalLink, AlertTriangle, ArrowLeft } from "lucide-react";
+import { Monitor, Smartphone, Activity, ExternalLink, AlertTriangle, ArrowLeft, Calendar } from "lucide-react";
 import { useRef, useState, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import { themes } from "@/lib/themes";
 import { RenderLayout } from "@/components/editor/RenderLayout";
@@ -453,7 +454,7 @@ export default function EditorPage() {
                 </div>
             </div>
             {/* Publish Confirmation Modal */}
-            {isPublishModalOpen && (
+            {isPublishModalOpen && createPortal(
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
                     <div className="w-full max-w-md bg-zinc-900 border border-zinc-700 rounded-xl shadow-2xl p-6 m-4 animate-in zoom-in-95 duration-200">
                         <div className="flex items-center gap-3 mb-4">
@@ -492,8 +493,31 @@ export default function EditorPage() {
                                 return null;
                             })()}
 
+                            {(() => {
+                                const maintenanceList = config.maintenance || [];
+                                const activeOrFuture = maintenanceList.filter(m => {
+                                    const end = new Date(m.startTime).getTime() + m.durationMinutes * 60000;
+                                    return end > Date.now();
+                                });
+
+                                if (activeOrFuture.length > 0) {
+                                    return (
+                                        <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                                            <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-wide mb-1">
+                                                <Calendar className="w-3 h-3" />
+                                                {activeOrFuture.length} Scheduled Maintenance
+                                            </div>
+                                            <p className="text-xs text-blue-200/80">
+                                                You have {activeOrFuture.length} active or upcoming maintenance window{activeOrFuture.length > 1 ? 's' : ''}.
+                                            </p>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+
                             <div className="text-xs text-zinc-500 bg-zinc-800/50 p-2 rounded">
-                                Public URL: <span className="font-mono text-zinc-300 text-[10px]">{window.location.origin}/s/{config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}</span>
+                                Public URL: <span className="font-mono text-zinc-300 text-[10px]">{window.location.origin}/s/{config.brandName?.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}</span>
                             </div>
                         </div>
 
@@ -515,7 +539,8 @@ export default function EditorPage() {
                             </button>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );

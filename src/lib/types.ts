@@ -3,6 +3,7 @@ export interface Log {
     datetime: number;
     duration: number;
     reason?: { code: string; detail: string };
+    isManual?: boolean;
 }
 
 export interface MonitorData {

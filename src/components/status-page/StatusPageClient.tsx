@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, memo, useEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { ArrowRight } from "lucide-react";
 import { themes, ThemeConfig, colorPresets, StatusColors } from "@/lib/themes";
 import { StatusBanner } from "./StatusBanner";
@@ -59,34 +60,6 @@ const RenderLayout = memo(({
         [monitors]);
 
 
-    // --- DETAIL VIEW OVERRIDE ---
-    if (selectedMonitorId) {
-        const monitor = monitors.find(m => {
-            const idStr = m.id < 0 ? toDemoStringId(m.id) : String(m.id);
-            return idStr === selectedMonitorId;
-        });
-        // - [x] Move "for [Monitor]" text to a visible badge.
-        // - [ ] Add non-dismissable maintenance banner to Monitor Detail View.
-        // If monitor not found (e.g. data update removed it), clear selection
-        if (!monitor) {
-            setSelectedMonitorId(null);
-            return null; // Will re-render with updated state
-        }
-
-        return (
-            <div className="w-full mx-auto px-2 sm:px-6 lg:px-8 py-6 sm:py-12">
-                <MonitorDetailView
-                    monitor={monitor}
-                    setSelectedMonitorId={setSelectedMonitorId}
-                    theme={t}
-                    colors={colors}
-                    visibility={visibility}
-                    updates={annotations?.[monitor.id] || []}
-                    maintenance={maintenance}
-                />
-            </div>
-        );
-    }
 
     const scrollToMaintenance = () => {
         const el = document.getElementById('maintenance-view');
@@ -280,6 +253,7 @@ export default function StatusPageClient({
     // Initial annotations should ideally be passed from server prop, but defaulting to empty or fetching is ok for now. 
     // Ideally page.tsx should pass it. But let's fetch it or assume empty for initial hydration if prop missing.
     const [annotations, setAnnotations] = useState<Record<string, IncidentUpdate[]>>({});
+    const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
     const t = themes[themeCode as keyof typeof themes] || themes.modern;
 
     // Resolve Colors
@@ -352,6 +326,36 @@ export default function StatusPageClient({
     const totalAvgResponse = useMemo(() => Math.round(
         monitors.reduce((acc: number, m) => acc + getAverageResponseTime(m.response_times), 0) / (monitors.length || 1)
     ), [monitors]);
+
+    // --- DETAIL VIEW OVERRIDE ---
+    if (selectedMonitorId) {
+        const monitor = monitors.find(m => {
+            const idStr = m.id < 0 ? toDemoStringId(m.id) : String(m.id);
+            return idStr === selectedMonitorId;
+        });
+        // If monitor not found (e.g. data update removed it), clear selection
+        if (!monitor) {
+            setSelectedMonitorId(null);
+            return null; // Will re-render with updated state
+        }
+
+        return (
+            <div className={`${t.container} flex flex-col min-h-[90vh]`}>
+                <div className="w-full mx-auto px-2 sm:px-6 lg:px-8 py-6 sm:py-12">
+                    <MonitorDetailView
+                        monitor={monitor}
+                        setSelectedMonitorId={setSelectedMonitorId}
+                        theme={t}
+                        colors={colors}
+                        visibility={visibility}
+                        updates={annotations?.[monitor.id] || []}
+                        maintenance={maintenance}
+                    />
+                </div>
+                {!showHistoryOverlay && !selectedMonitorId && footer}
+            </div>
+        );
+    }
 
     return (
         <div className={`${t.container} flex flex-col min-h-[90vh]`}>
