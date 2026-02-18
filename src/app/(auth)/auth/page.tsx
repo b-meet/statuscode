@@ -64,6 +64,15 @@ function AuthPageContent() {
 
     const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
+    // Mobile Detection for disabling transitions
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
+
     const searchParams = useSearchParams();
 
     useEffect(() => {
@@ -462,12 +471,12 @@ function AuthPageContent() {
                             <motion.div
                                 key="step-email"
                                 custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
+                                variants={!isMobile ? slideVariants : undefined}
+                                initial={!isMobile ? "enter" : undefined}
+                                animate={!isMobile ? "center" : undefined}
+                                exit={!isMobile ? "exit" : undefined}
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-10"
+                                className="absolute left-0 w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-10"
                             >
                                 <div className="mb-8">
                                     <div className="flex items-center gap-3">
@@ -534,12 +543,12 @@ function AuthPageContent() {
                             <motion.div
                                 key="step-otp"
                                 custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
+                                variants={!isMobile ? slideVariants : undefined}
+                                initial={!isMobile ? "enter" : undefined}
+                                animate={!isMobile ? "center" : undefined}
+                                exit={!isMobile ? "exit" : undefined}
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
+                                className="absolute left-0 w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-6 md:p-8 shadow-2xl overflow-hidden z-20"
                             >
                                 <button
                                     onClick={goBack}
@@ -555,18 +564,20 @@ function AuthPageContent() {
 
                                 <div className="space-y-8">
                                     {/* Segmented OTP Input */}
-                                    <div className="flex justify-between gap-2">
+                                    <div className="flex justify-between gap-1 md:gap-2">
                                         {otp.map((digit, idx) => (
                                             <input
                                                 key={idx}
                                                 ref={(el) => { otpInputRefs.current[idx] = el; }} // No return value needed
-                                                type="text"
+                                                type="number"
+                                                pattern="[0-9]*"
+                                                inputMode="numeric"
                                                 maxLength={1}
                                                 value={digit}
                                                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                                                 onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                                                 onPaste={idx === 0 ? handlePaste : undefined}
-                                                className="w-12 h-14 rounded-xl bg-black/40 border border-zinc-800 text-white text-center text-2xl font-mono focus:outline-none focus:border-glaze-500/50 focus:ring-4 focus:ring-glaze-500/10 transition-all"
+                                                className="w-10 h-12 md:w-12 md:h-14 rounded-xl bg-black/40 border border-zinc-800 text-white text-center text-xl md:text-2xl font-mono focus:outline-none focus:border-glaze-500/50 focus:ring-4 focus:ring-glaze-500/10 transition-all"
                                                 autoFocus={idx === 0}
                                             />
                                         ))}
@@ -600,12 +611,12 @@ function AuthPageContent() {
                             <motion.div
                                 key="step-setup"
                                 custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
+                                variants={!isMobile ? slideVariants : undefined}
+                                initial={!isMobile ? "enter" : undefined}
+                                animate={!isMobile ? "center" : undefined}
+                                exit={!isMobile ? "exit" : undefined}
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
+                                className="absolute left-0 w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
                             >
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
@@ -793,10 +804,10 @@ function AuthPageContent() {
                             <motion.div
                                 key="step-setup-theme"
                                 custom={direction}
-                                variants={slideVariants}
-                                initial="enter"
-                                animate="center"
-                                exit="exit"
+                                variants={!isMobile ? slideVariants : undefined}
+                                initial={!isMobile ? "enter" : undefined}
+                                animate={!isMobile ? "center" : undefined}
+                                exit={!isMobile ? "exit" : undefined}
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                                 className={`absolute w-full border rounded-3xl p-8 shadow-2xl overflow-hidden z-20 flex flex-col transition-colors duration-500 
                                     ${selectedTheme === 'modern' ? 'bg-zinc-950/90 border-zinc-800' :
