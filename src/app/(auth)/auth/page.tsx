@@ -210,10 +210,16 @@ function AuthPageContent() {
             setMessage(error.message);
             setLoading(false);
         } else {
-            // Success -> Go to Setup
-            setDirection(1);
-            setStep("setup");
-            setLoading(false);
+            // Success
+            if (isMobile) {
+                // Mobile: Skip setup, go to dashboard (Editor not supported)
+                window.location.href = "/dashboard";
+            } else {
+                // Desktop: Go to Setup
+                setDirection(1);
+                setStep("setup");
+                setLoading(false);
+            }
         }
     };
 
@@ -309,7 +315,9 @@ function AuthPageContent() {
             }
 
             // Redirect
-            window.open("/editor", "_blank");
+            if (!isMobile) {
+                window.open("/editor", "_blank");
+            }
             window.location.href = "/dashboard";
         } catch (error: any) {
             console.error("Setup failed:", error);
