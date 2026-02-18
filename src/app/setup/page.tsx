@@ -3,12 +3,12 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-    Loader2, ArrowLeft, ShieldCheck, CheckCircle2,
+    Loader2, ArrowLeft, CheckCircle2,
     Key, Activity, Rocket, HelpCircle, ExternalLink,
     ChevronDown, Monitor, FileText, UploadCloud,
     Trash2, Sparkles, Palette
@@ -530,8 +530,6 @@ function SetupPageContent() {
 
 export default function SetupPageWrapper() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
-            <SetupPageContent />
-        </Suspense>
+        <SetupPageContent />
     );
 }

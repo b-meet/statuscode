@@ -149,6 +149,17 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
         monitors = [...monitors, ...realMonitors];
     }
 
+    // Merge Custom Logs
+    const customLogs = site.theme_config?.customLogs || {};
+    monitors = monitors.map(m => {
+        const mId = String(m.id);
+        const custom = customLogs[mId] || [];
+        if (custom.length === 0) return m;
+
+        const combined = [...(m.logs || []), ...custom].sort((a, b) => b.datetime - a.datetime);
+        return { ...m, logs: combined };
+    });
+
     const downMonitors = monitors.filter((m) => m.status === 8 || m.status === 9);
     const isAllUp = downMonitors.length === 0;
     const themeName = (site.theme_config?.theme || 'modern') as Theme;

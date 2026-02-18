@@ -3,7 +3,7 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
@@ -969,9 +969,7 @@ function AuthPageContent() {
 
 export default function AuthPageWrapper() {
     return (
-        <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center"><Loader2 className="animate-spin text-white" /></div>}>
-            <AuthPageContent />
-        </Suspense>
+        <AuthPageContent />
     );
 }
 

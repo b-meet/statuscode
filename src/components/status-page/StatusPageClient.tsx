@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, memo, useEffect, useMemo } from "react";
-import { createPortal } from "react-dom";
+
 import { ArrowRight } from "lucide-react";
 import { themes, ThemeConfig, colorPresets, StatusColors } from "@/lib/themes";
 import { StatusBanner } from "./StatusBanner";

@@ -60,19 +60,11 @@ export const MonitorDetailView = memo(({
     };
 
     // Helper for bars (higher opacity)
-    // const getBarClass = ... (removed unused)
 
     const opBgLow = getLowAlphaClass(opBase);
     const majBgLow = getLowAlphaClass(majBase);
     const opText = getTextClass(opBase);
     const majText = getTextClass(majBase);
-
-    // and 90-day logic stays consistent within a single render cycle.
-    // eslint-disable-next-line react-hooks/purity
-    // const now = useMemo(() => Date.now(), []);
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // const creationDate = useMemo(() => monitor.create_datetime ? new Date(monitor.create_datetime * 1000) : new Date(0), [monitor.create_datetime]);
 
     if (!monitor) return null;
 
@@ -362,17 +354,17 @@ export const MonitorDetailView = memo(({
                                 {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
                                     <div key={i} className="relative group">
                                         <div className={`absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' :
-                                                log.type === 99 ? 'bg-amber-500' :
-                                                    log.type === 98 ? 'bg-blue-500' :
-                                                        'bg-emerald-500'
+                                            log.type === 99 ? 'bg-amber-500' :
+                                                log.type === 98 ? 'bg-blue-500' :
+                                                    'bg-emerald-500'
                                             } top-1`} />
                                         <div className="flex flex-col gap-0.5 @[600px]:gap-1">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
                                                     <span className={`text-xs @[600px]:text-sm font-bold ${log.type === 1 ? 'text-red-400' :
-                                                            log.type === 99 ? 'text-amber-400' :
-                                                                log.type === 98 ? 'text-blue-400' :
-                                                                    'text-emerald-400'
+                                                        log.type === 99 ? 'text-amber-400' :
+                                                            log.type === 98 ? 'text-blue-400' :
+                                                                'text-emerald-400'
                                                         }`}>
                                                         {log.type === 1 ? 'Outage Detected' : (log.type === 98 || log.type === 99 ? 'Manual Update' : 'Service Recovered')}
                                                     </span>

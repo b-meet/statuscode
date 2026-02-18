@@ -80,6 +80,18 @@ export async function GET(
             }
         }
 
+        // 3. Merge Custom Logs (Manual History) safely
+        const customLogs = config.theme_config?.customLogs || {};
+        allMonitors = allMonitors.map(m => {
+            const mId = String(m.id);
+            const custom = customLogs[mId] || [];
+            if (custom.length === 0) return m;
+
+            // Merge and sort desc
+            const combined = [...(m.logs || []), ...custom].sort((a: any, b: any) => b.datetime - a.datetime);
+            return { ...m, logs: combined };
+        });
+
         return NextResponse.json({
             monitors: allMonitors,
             annotations: config.annotations || {}
