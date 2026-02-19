@@ -298,6 +298,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
                 initialMonitors={monitors}
                 visibility={site.theme_config?.visibility}
                 maintenance={maintenanceWindows}
+                annotations={site.theme_config?.annotations}
                 brandName={site.brand_name}
             />
         </div>

@@ -239,7 +239,7 @@ export const themes: Record<Theme, ThemeConfig> = {
 
         font: "font-sans tracking-tight",
         heading: "font-medium tracking-tighter",
-        mutedText: "text-zinc-500",
+        mutedText: "text-zinc-400",
 
         rounded: "rounded-none",
         border: "border-zinc-800",

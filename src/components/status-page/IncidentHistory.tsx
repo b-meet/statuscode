@@ -1,7 +1,7 @@
 "use client";
 
 import { memo, useState } from "react";
-import { CheckCircle2, ChevronDown, ChevronUp, Clock, AlertTriangle, Info } from "lucide-react";
+import { CheckCircle2, ChevronDown, ChevronUp, Clock, AlertTriangle, Info, Trash2 } from "lucide-react";
 import { ThemeConfig } from "@/lib/themes";
 import { getLogReason, formatDuration } from "@/lib/utils";
 import { Markdown } from "@/components/ui/markdown";
@@ -19,6 +19,8 @@ export interface HistoryItem {
     isManual?: boolean; // For logs that are manual
     content?: string;
     variant?: 'info' | 'warning' | 'error' | 'success';
+    originalId?: string;
+    isUnpublished?: boolean;
 }
 
 interface IncidentHistoryProps {
@@ -26,6 +28,7 @@ interface IncidentHistoryProps {
     theme: ThemeConfig;
     monitorName: string;
     brandName?: string;
+    onDeleteUpdate?: (id: string) => void;
 }
 
 function formatDate(timestamp: number) {
@@ -34,7 +37,7 @@ function formatDate(timestamp: number) {
     });
 }
 
-export const IncidentHistory = memo(({ items, theme, monitorName, brandName }: IncidentHistoryProps) => {
+export const IncidentHistory = memo(({ items, theme, monitorName, brandName, onDeleteUpdate }: IncidentHistoryProps) => {
     const [displayCount, setDisplayCount] = useState(10);
 
     // Sort just in case, though parent should provide sorted
@@ -102,13 +105,43 @@ export const IncidentHistory = memo(({ items, theme, monitorName, brandName }: I
                                                     {title}
                                                 </span>
                                                 {(item.type === 'update' || item.isManual) && (
-                                                    <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/10 font-medium">
-                                                        added via statuscode
-                                                    </span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/10 font-medium">
+                                                            added via statuscode
+                                                        </span>
+                                                        {onDeleteUpdate && item.id && (() => {
+                                                            // Logic for delete window:
+                                                            // 1. If unpublished, always allow delete.
+                                                            // 2. If published, allow delete only if within 30 minutes of creation.
+                                                            const isCheckWindow = item.isUnpublished ? true : (Date.now() - item.timestamp * 1000) < 30 * 60 * 1000;
+
+                                                            if (isCheckWindow) {
+                                                                return (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            // Use originalId if available, otherwise fallback to item.id if it matches the update format
+                                                                            const idToDelete = item.originalId || item.id;
+                                                                            onDeleteUpdate(idToDelete);
+                                                                        }}
+                                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded text-zinc-500 hover:text-red-400"
+                                                                        title="Delete Update (available for 30m after publish)"
+                                                                    >
+                                                                        <Trash2 className="w-3 h-3" />
+                                                                    </button>
+                                                                );
+                                                            }
+                                                            return null;
+                                                        })()}
+                                                    </div>
                                                 )}
                                             </div>
                                             <span className={`text-[10px] ${theme.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded self-start sm:self-auto whitespace-nowrap`}>
-                                                {formatDate(item.timestamp)}
+                                                {item.isUnpublished ? (
+                                                    <span className="text-amber-400/80">Publish to set date</span>
+                                                ) : (
+                                                    formatDate(item.timestamp)
+                                                )}
                                             </span>
                                         </div>
                                         {/* Monitor Name is redundant if we are in detail view, but useful if mixed history in future */}

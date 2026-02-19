@@ -218,7 +218,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                                 // Pass raw content for Markdown rendering
                                                                 description: u.content,
                                                                 variant: u.variant || 'info',
-                                                                isMarkdown: true
+                                                                isMarkdown: true,
                                                             })),
                                                             ...logs.map(l => {
                                                                 const isDown = l.type === 1;
@@ -249,10 +249,12 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                                 <div className="space-y-3">
                                                                     {combinedHistory.map((item, i) => (
                                                                         <div key={i} className="flex gap-3 text-sm">
-                                                                            <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${item.variant === 'error' ? 'bg-red-500' :
-                                                                                item.variant === 'warning' ? 'bg-amber-500' :
-                                                                                    item.variant === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
-                                                                                }`} />
+                                                                            <div className="flex h-5 items-center shrink-0">
+                                                                                <div className={`w-1.5 h-1.5 rounded-full ${item.variant === 'error' ? 'bg-red-500' :
+                                                                                    item.variant === 'warning' ? 'bg-amber-500' :
+                                                                                        item.variant === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
+                                                                                    }`} />
+                                                                            </div>
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-baseline justify-between gap-2">
                                                                                     <span className={`font-medium truncate ${item.variant === 'error' ? 'text-red-400' :

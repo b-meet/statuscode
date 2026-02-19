@@ -2,13 +2,14 @@
 
 import { memo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity } from 'lucide-react';
+import { Activity, Trash2 } from 'lucide-react';
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from '../status-page/UptimeBars';
 import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
 import { MonitorData, Log, IncidentUpdate } from '@/lib/types';
 import { toDemoStringId } from '@/lib/mockMonitors';
+import { SiteConfig } from '@/context/EditorContext';
 
 // Define explicit types used in the component
 interface MonitorListProps {
@@ -19,9 +20,12 @@ interface MonitorListProps {
     colors?: StatusColors;
     visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showPerformanceMetrics: boolean; showUptimeBars: boolean };
     brandName?: string;
+    annotations?: Record<string, IncidentUpdate[]>;
+    onDeleteUpdate?: (id: string) => void;
+    publishedConfig?: SiteConfig | null;
 }
 
-export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t, colors, visibility, annotations, brandName }: MonitorListProps & { annotations?: Record<string, IncidentUpdate[]> }) => {
+export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t, colors, visibility, annotations, brandName, onDeleteUpdate, publishedConfig }: MonitorListProps) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Dynamic Colors Helpers
@@ -207,16 +211,22 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                     {(() => {
                                                         const updates = annotations?.[monitor.id] || [];
                                                         const logs = monitor.logs || [];
+                                                        const publishedUpdates = publishedConfig?.annotations?.[monitor.id] || [];
 
                                                         const combinedHistory = [
-                                                            ...updates.map(u => ({
-                                                                type: 'update',
-                                                                date: new Date(u.createdAt),
-                                                                title: brandName ? `Update from ${brandName}` : 'Status Update',
-                                                                description: u.content,
-                                                                variant: u.variant || 'info',
-                                                                isMarkdown: true
-                                                            })),
+                                                            ...updates.map(u => {
+                                                                const isUnpublished = publishedConfig ? !publishedUpdates.some(pub => pub.id === u.id) : false;
+                                                                return {
+                                                                    type: 'update',
+                                                                    date: new Date(u.createdAt),
+                                                                    title: brandName ? `Update from ${brandName}` : 'Status Update',
+                                                                    description: u.content,
+                                                                    variant: u.variant || 'info',
+                                                                    isMarkdown: true,
+                                                                    originalId: u.id,
+                                                                    isUnpublished
+                                                                };
+                                                            }),
                                                             ...logs.map(l => {
                                                                 const isDown = l.type === 1;
                                                                 const reasonData = getLogReason(l.reason?.code, l.reason?.detail);
@@ -235,7 +245,8 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                                     title: isDown ? 'Outage Detected' : 'Service Recovered',
                                                                     description: desc,
                                                                     variant: isDown ? 'error' : 'success',
-                                                                    isMarkdown: false
+                                                                    isMarkdown: false,
+                                                                    isUnpublished: false
                                                                 };
                                                             })
                                                         ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 3);
@@ -245,21 +256,54 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                                 <div className="space-y-3">
                                                                     {combinedHistory.map((item, i) => (
                                                                         <div key={i} className="flex gap-3 text-sm">
-                                                                            <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${item.variant === 'error' ? 'bg-red-500' :
-                                                                                item.variant === 'warning' ? 'bg-amber-500' :
-                                                                                    item.variant === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
-                                                                                }`} />
+                                                                            <div className="flex h-5 items-center shrink-0">
+                                                                                <div className={`w-1.5 h-1.5 rounded-full ${item.variant === 'error' ? 'bg-red-500' :
+                                                                                    item.variant === 'warning' ? 'bg-amber-500' :
+                                                                                        item.variant === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
+                                                                                    }`} />
+                                                                            </div>
                                                                             <div className="flex-1 min-w-0">
                                                                                 <div className="flex items-baseline justify-between gap-2">
-                                                                                    <span className={`font-medium truncate ${item.variant === 'error' ? 'text-red-400' :
-                                                                                        item.variant === 'warning' ? 'text-amber-400' :
-                                                                                            item.variant === 'success' ? 'text-emerald-400' : 'text-blue-400'
-                                                                                        }`}>
-                                                                                        {item.title}
-                                                                                    </span>
-                                                                                    <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
-                                                                                        {item.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                                                    </span>
+                                                                                    <div className="flex items-center gap-2 min-w-0">
+                                                                                        <span className={`font-medium truncate ${item.variant === 'error' ? 'text-red-400' :
+                                                                                            item.variant === 'warning' ? 'text-amber-400' :
+                                                                                                item.variant === 'success' ? 'text-emerald-400' : 'text-blue-400'
+                                                                                            }`}>
+                                                                                            {item.title}
+                                                                                        </span>
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        {item.type === 'update' && onDeleteUpdate && (() => {
+                                                                                            // Logic for delete window:
+                                                                                            // 1. If unpublished, always allow delete.
+                                                                                            // 2. If published, allow delete only if within 30 minutes of creation.
+                                                                                            const isCheckWindow = item.isUnpublished ? true : (Date.now() - item.date.getTime()) < 30 * 60 * 1000;
+
+                                                                                            if (isCheckWindow) {
+                                                                                                return (
+                                                                                                    <button
+                                                                                                        onClick={(e) => {
+                                                                                                            e.stopPropagation();
+                                                                                                            // @ts-ignore
+                                                                                                            if (item.originalId) onDeleteUpdate(item.originalId);
+                                                                                                        }}
+                                                                                                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded text-zinc-500 hover:text-red-400 flex-shrink-0"
+                                                                                                        title="Delete Update (available for 30m after publish)"
+                                                                                                    >
+                                                                                                        <Trash2 className="w-3 h-3" />
+                                                                                                    </button>
+                                                                                                );
+                                                                                            }
+                                                                                            return null;
+                                                                                        })()}
+                                                                                        <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap ml-auto">
+                                                                                            {item.isUnpublished ? (
+                                                                                                <span className="text-amber-400/80">Publish to set date</span>
+                                                                                            ) : (
+                                                                                                item.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+                                                                                            )}
+                                                                                        </span>
+                                                                                    </div>
                                                                                 </div>
                                                                                 <p className="text-xs text-zinc-500 truncate mt-0.5">
                                                                                     {item.isMarkdown ? (

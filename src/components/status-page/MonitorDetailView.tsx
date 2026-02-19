@@ -8,7 +8,7 @@ import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
 import { formatUptime, getAverageResponseTime } from '@/lib/utils';
 import { MonitorData, IncidentUpdate, IncidentVariant, MaintenanceWindow } from '@/lib/types';
-import { VisibilityConfig } from '@/context/EditorContext';
+import { VisibilityConfig, SiteConfig } from '@/context/EditorContext';
 import { Markdown } from '@/components/ui/markdown';
 import { IncidentHistory, HistoryItem } from './IncidentHistory';
 
@@ -23,6 +23,7 @@ interface MonitorDetailViewProps {
     onAddUpdate?: (content: string, variant?: IncidentVariant) => void;
     onDeleteUpdate?: (id: string) => void;
     brandName?: string;
+    publishedConfig?: SiteConfig | null;
 }
 
 export const MonitorDetailView = memo(({
@@ -35,7 +36,8 @@ export const MonitorDetailView = memo(({
     maintenance,
     onAddUpdate,
     onDeleteUpdate,
-    brandName
+    brandName,
+    publishedConfig
 }: MonitorDetailViewProps) => {
     // Local state for new update input
     const [newUpdateContent, setNewUpdateContent] = React.useState('');
@@ -91,13 +93,17 @@ export const MonitorDetailView = memo(({
 
         // 2. Add Manual Updates
         if (updates) {
+            const publishedUpdates = publishedConfig?.annotations?.[monitor.id] || [];
             updates.forEach((update) => {
+                const isUnpublished = publishedConfig ? !publishedUpdates.some(u => u.id === update.id) : false;
                 items.push({
                     id: update.id,
                     type: 'update',
                     timestamp: new Date(update.createdAt).getTime() / 1000,
                     content: update.content,
-                    variant: update.variant
+                    variant: update.variant,
+                    originalId: update.id,
+                    isUnpublished
                 });
             });
         }
@@ -115,7 +121,7 @@ export const MonitorDetailView = memo(({
 
         // Sort by timestamp descending
         return items.sort((a, b) => b.timestamp - a.timestamp);
-    }, [monitor?.logs, updates, monitor.create_datetime, monitor.id]);
+    }, [monitor?.logs, updates, monitor.create_datetime, monitor.id, publishedConfig]);
 
 
 
@@ -279,7 +285,11 @@ export const MonitorDetailView = memo(({
                             )}
                         </div>
 
-                        <div className="flex justify-end p-2 bg-white/5 border-t border-white/5 rounded-b-[inherit]">
+                        <div className="flex items-center justify-between p-2 bg-white/5 border-t border-white/5 rounded-b-[inherit]">
+                            <div className="text-[10px] text-zinc-500 flex items-center gap-1.5 px-2">
+                                <Info className="w-3 h-3" />
+                                <span className="hidden @[400px]:inline">Updates deletable for 30m after publish.</span>
+                            </div>
                             <button
                                 disabled={!newUpdateContent.trim()}
                                 onClick={() => {
@@ -319,30 +329,32 @@ export const MonitorDetailView = memo(({
                     )}
 
                     {/* Response Time Graph */}
-                    {visibility?.showSparklines !== false && (
-                        <div className={`p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
-                            <div className="flex items-center justify-between mb-4 @[600px]:mb-6">
-                                <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
-                                <div className="flex items-center gap-2 @[600px]:gap-4 text-[10px] @[600px]:text-xs font-mono">
-                                    <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
-                                    <span className="text-white/40">|</span>
-                                    <span className="text-white">Avg: {avgResponse}ms</span>
-                                    <span className="text-white/40">|</span>
-                                    <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
+                    {
+                        visibility?.showSparklines !== false && (
+                            <div className={`p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
+                                <div className="flex items-center justify-between mb-4 @[600px]:mb-6">
+                                    <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>Response Time (24h)</h3>
+                                    <div className="flex items-center gap-2 @[600px]:gap-4 text-[10px] @[600px]:text-xs font-mono">
+                                        <span className={opText}>Min: {monitor.response_times && monitor.response_times.length > 0 ? Math.min(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
+                                        <span className="text-white/40">|</span>
+                                        <span className="text-white">Avg: {avgResponse}ms</span>
+                                        <span className="text-white/40">|</span>
+                                        <span className="text-amber-400">Max: {monitor.response_times && monitor.response_times.length > 0 ? Math.max(...monitor.response_times.map((r: { value: number }) => r.value)) : '-'}ms</span>
+                                    </div>
+                                </div>
+                                <div className="h-32 @[600px]:h-48 w-full">
+                                    <Sparkline
+                                        data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
+                                        color={opHex}
+                                        width={1200}
+                                        height={200}
+                                        interactive={true}
+                                    />
                                 </div>
                             </div>
-                            <div className="h-32 @[600px]:h-48 w-full">
-                                <Sparkline
-                                    data={[...(monitor.response_times || []), ...(monitor.response_times || [])].slice(0, 50)}
-                                    color={opHex}
-                                    width={1200}
-                                    height={200}
-                                    interactive={true}
-                                />
-                            </div>
-                        </div>
-                    )}
-                </div>
+                        )
+                    }
+                </div >
 
                 <div className="grid grid-cols-1 @[800px]:grid-cols-3 gap-3 @[600px]:gap-6 sm:gap-8">
 
@@ -354,6 +366,7 @@ export const MonitorDetailView = memo(({
                                 theme={t}
                                 monitorName={monitor.friendly_name}
                                 brandName={brandName}
+                                onDeleteUpdate={onDeleteUpdate}
                             />
                         </div>
                     )}
@@ -400,8 +413,8 @@ export const MonitorDetailView = memo(({
                         </div>
                     )}
                 </div>
-            </div>
-        </motion.div>
+            </div >
+        </motion.div >
     );
 });
 

@@ -29,6 +29,7 @@ interface RenderLayoutProps {
     monitorError?: string | null;
     onRetry?: () => void;
     isLoading?: boolean;
+    publishedConfig?: SiteConfig | null;
 }
 
 export const RenderLayout = memo(({
@@ -47,7 +48,8 @@ export const RenderLayout = memo(({
     updates,
     monitorError,
     onRetry,
-    isLoading
+    isLoading,
+    publishedConfig
 }: RenderLayoutProps) => {
 
     const HeaderWithProps = React.isValidElement(Header)
@@ -119,7 +121,7 @@ export const RenderLayout = memo(({
 
 
     // --- SMART DELETE MODAL LOGIC ---
-    const confirmDelete = (type: 'permanent' | 'history') => {
+    const confirmDelete = () => {
         if (!updateToDelete || !config.annotations) return;
 
         // Find the update and its associated monitor
@@ -144,41 +146,8 @@ export const RenderLayout = memo(({
                 [monitorId]: currentUpdates.filter(u => u.id !== updateToDelete)
             };
 
-            // If moving to history, add to customLogs (ONLY FOR REAL MONITORS)
-            let newCustomLogs = config.customLogs || {};
-
-            // Check if it's a real monitor (not a demo)
-            const isRealMonitor = !isDemoId(monitorId);
-
-            if (type === 'history' && isRealMonitor) {
-                const existingLogs = config.customLogs?.[monitorId] || [];
-
-                // Determine log type based on variant
-                let typeCode = 1; // Default to 'Issue' (Red)
-                if (foundUpdate.variant === 'success') typeCode = 2; // Recovery (Green)
-                if (foundUpdate.variant === 'info') typeCode = 98; // Info (Blue/Neutral)
-                if (foundUpdate.variant === 'warning') typeCode = 99; // Warning (Yellow)
-
-                const newLog: Log = {
-                    type: typeCode,
-                    datetime: new Date(foundUpdate.createdAt).getTime() / 1000,
-                    duration: 0,
-                    reason: {
-                        code: 'Manual Update',
-                        detail: stripMarkdown(foundUpdate.content)
-                    },
-                    isManual: true
-                };
-
-                newCustomLogs = {
-                    ...newCustomLogs,
-                    [monitorId]: [...existingLogs, newLog]
-                };
-            }
-
             updateConfig({
-                annotations: newAnnotations,
-                customLogs: newCustomLogs
+                annotations: newAnnotations
             });
         }
 
@@ -195,7 +164,7 @@ export const RenderLayout = memo(({
                 <div className="mb-6">
                     <h2 className="text-lg font-bold text-white mb-2">Delete Update?</h2>
                     <p className="text-sm text-zinc-400 leading-relaxed">
-                        Do you want to remove this update completely, or keep it in the history?
+                        Are you sure you want to delete this update? This action cannot be undone.
                     </p>
                     <div className="mt-3 p-3 bg-zinc-950 border border-zinc-800 rounded-lg">
                         <p className="text-xs text-zinc-500 line-clamp-2 italic">
@@ -206,18 +175,10 @@ export const RenderLayout = memo(({
 
                 <div className="space-y-3">
                     <button
-                        onClick={() => confirmDelete('history')}
-                        className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-between group"
+                        onClick={confirmDelete}
+                        className="w-full px-4 py-3 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-lg transition-colors flex items-center justify-center"
                     >
-                        <span>Move to Incident History</span>
-                        <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
-                    </button>
-
-                    <button
-                        onClick={() => confirmDelete('permanent')}
-                        className="w-full px-4 py-3 bg-zinc-800 hover:bg-zinc-700 text-red-400 hover:text-red-300 text-sm font-medium rounded-lg transition-colors flex items-center justify-between"
-                    >
-                        <span>Delete Permanently</span>
+                        Delete Update
                     </button>
 
                     <button
@@ -267,6 +228,7 @@ export const RenderLayout = memo(({
                     maintenance={config.maintenance}
                     onDeleteUpdate={(id) => setUpdateToDelete(id)}
                     brandName={config.brandName || "Status Page"}
+                    publishedConfig={publishedConfig}
                 />
                 {DeleteModal}
             </div>
@@ -285,11 +247,14 @@ export const RenderLayout = memo(({
             <MonitorList
                 monitors={selectedMonitors}
                 setSelectedMonitorId={setSelectedMonitorId}
+                primaryColor={config.primaryColor}
                 theme={t}
                 colors={colors}
                 visibility={effectiveVisibility}
                 brandName={config.brandName || "Status Page"}
                 annotations={config.annotations}
+                onDeleteUpdate={(id) => setUpdateToDelete(id)}
+                publishedConfig={publishedConfig}
             />
         );
     }

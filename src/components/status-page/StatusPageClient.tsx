@@ -244,6 +244,7 @@ interface StatusPageClientProps {
     visibility?: VisibilityConfig;
     maintenance?: MaintenanceWindow[];
     brandName?: string;
+    annotations?: Record<string, IncidentUpdate[]>;
 }
 
 function getAverageResponseTime(times: { value: number }[] = []) {
@@ -263,14 +264,15 @@ export default function StatusPageClient({
     initialMonitors,
     visibility,
     maintenance,
-    brandName
+    brandName,
+    annotations
 }: StatusPageClientProps) {
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
     const [monitors, setMonitors] = useState<MonitorData[]>(initialMonitors);
     // Initial annotations should ideally be passed from server prop, but defaulting to empty or fetching is ok for now. 
     // Ideally page.tsx should pass it. But let's fetch it or assume empty for initial hydration if prop missing.
-    const [annotations, setAnnotations] = useState<Record<string, IncidentUpdate[]>>({});
+    const [fetchedAnnotations, setFetchedAnnotations] = useState<Record<string, IncidentUpdate[]>>({});
     const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
     const t = themes[themeCode as keyof typeof themes] || themes.modern;
 
@@ -308,7 +310,7 @@ export default function StatusPageClient({
                                     }];
                                 }
                             });
-                            setAnnotations(migrated);
+                            setFetchedAnnotations(migrated);
                         }
                     }
                 }
@@ -366,7 +368,7 @@ export default function StatusPageClient({
                         theme={t}
                         colors={colors}
                         visibility={visibility}
-                        updates={annotations?.[monitor.id] || []}
+                        updates={(annotations && Object.keys(annotations).length > 0 ? annotations : fetchedAnnotations)?.[monitor.id] || []}
                         maintenance={maintenance}
                         brandName={brandName}
                     />
@@ -392,9 +394,9 @@ export default function StatusPageClient({
                 selectedMonitorId={selectedMonitorId}
                 setSelectedMonitorId={setSelectedMonitorId}
                 visibility={visibility}
-                annotations={annotations}
                 maintenance={maintenance || []}
                 brandName={brandName}
+                annotations={Object.keys(annotations || {}).length > 0 ? annotations : fetchedAnnotations}
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

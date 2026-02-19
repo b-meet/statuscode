@@ -63,6 +63,7 @@ export interface EditorContextType {
     addDemoMonitors: () => void;
     user: any | null; // Supabase user
     monitorError: string | null;
+    publishedConfig: SiteConfig | null;
 }
 
 // --- Default State ---
@@ -99,6 +100,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [baseMonitors, setBaseMonitors] = useState<MonitorData[]>([]);
     const [user, setUser] = useState<any | null>(null);
     const [monitorError, setMonitorError] = useState<string | null>(null);
+    const [publishedConfig, setPublishedConfig] = useState<SiteConfig | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
 
     // Derived monitors data with custom logs merged
@@ -253,6 +255,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         monitors: site.monitors || [],
                         apiKey: site.uptimerobot_api_key || '',
                     });
+
+                    // Set published config
+                    if (site.published_config) {
+                        setPublishedConfig(site.published_config);
+                    }
 
                     // Sync local real-time state with config
                     if (site.theme_config?.previewScenario === 'none') {
@@ -459,7 +466,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             body: JSON.stringify({ siteId: config.id }),
         }).then(async (res) => {
             if (!res.ok) throw new Error("Failed to publish");
-            return res.json();
+            const data = await res.json();
+            // Update local published config with the returned new config
+            if (data.publishedConfig) {
+                setPublishedConfig(data.publishedConfig);
+            }
+            // Also refresh site config to get updated timestamps in editor
+            fetchMonitors();
+            return data;
         });
 
         toast.promise(promise, {
@@ -522,7 +536,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             isPublishing,
             addDemoMonitors,
             user,
-            monitorError
+            monitorError,
+            publishedConfig
         }}>
             {children}
         </EditorContext.Provider>
