@@ -63,7 +63,7 @@ export async function GET(
                     response_times: '1',
                     response_times_limit: '20',
                     logs: '1',
-                    logs_limit: '5'
+                    logs_limit: '50'
                 });
 
                 const res = await fetch("https://api.uptimerobot.com/v2/getMonitors", {

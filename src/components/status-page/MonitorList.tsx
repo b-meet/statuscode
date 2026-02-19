@@ -21,9 +21,10 @@ interface MonitorListProps {
     colors?: StatusColors;
     visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showUptimeBars: boolean };
     annotations?: Record<string, IncidentUpdate[]>;
+    brandName?: string;
 }
 
-export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, visibility, annotations }: MonitorListProps) {
+export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, visibility, annotations, brandName }: MonitorListProps) {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Dynamic Colors Helpers
@@ -213,7 +214,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                             ...updates.map(u => ({
                                                                 type: 'update',
                                                                 date: new Date(u.createdAt),
-                                                                title: 'Status Update',
+                                                                title: brandName ? `Update from ${brandName}` : 'Status Update',
                                                                 // Pass raw content for Markdown rendering
                                                                 description: u.content,
                                                                 variant: u.variant || 'info',

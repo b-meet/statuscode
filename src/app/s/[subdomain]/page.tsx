@@ -66,7 +66,7 @@ async function getMonitorStatuses(apiKey: string, monitorIds: string[]) {
             response_times: '1',
             response_times_limit: '20', // Last 20 data points for sparkline
             logs: '1',
-            logs_limit: '5' // Last 5 incidents
+            logs_limit: '50' // Last 50 incidents
         });
 
         const res = await fetch(`https://api.uptimerobot.com/v2/getMonitors`, {
@@ -298,6 +298,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
                 initialMonitors={monitors}
                 visibility={site.theme_config?.visibility}
                 maintenance={maintenanceWindows}
+                brandName={site.brand_name}
             />
         </div>
     );

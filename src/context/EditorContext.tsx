@@ -77,7 +77,7 @@ const defaultConfig: SiteConfig = {
     monitors: [],
     apiKey: '',
     showDummyData: false,
-    previewScenario: 'slow_response',
+    previewScenario: 'none',
     visibility: {
         showSparklines: true,
         showUptimeBars: true,
@@ -419,7 +419,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }, [config, loading, supabase]);
 
     // --- Real-time Data Logic ---
-    const [isRealDataEnabled, setIsRealDataEnabled] = useState(false);
+    const [isRealDataEnabled, setIsRealDataEnabled] = useState(true);
 
     // Poll for real data if enabled
     useEffect(() => {

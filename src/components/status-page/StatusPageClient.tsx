@@ -32,6 +32,7 @@ interface RenderLayoutProps {
     visibility?: VisibilityConfig;
     annotations?: Record<string, IncidentUpdate[]>;
     maintenance?: MaintenanceWindow[];
+    brandName?: string;
 }
 
 const RenderLayout = memo(({
@@ -49,15 +50,26 @@ const RenderLayout = memo(({
     setSelectedMonitorId,
     visibility,
     annotations,
-    maintenance
+    maintenance,
+    brandName
 }: RenderLayoutProps) => {
     // History is only used in overlay currently to match Editor
-    const historyLogs = useMemo(() =>
-        monitors.some(m => m.logs && m.logs.length > 0)
-            ? monitors.flatMap(m => m.logs?.map(l => ({ ...l, monitorName: m.friendly_name })) || [])
-                .sort((a, b) => b.datetime - a.datetime)
-            : [],
-        [monitors]);
+    const historyLogs = useMemo(() => {
+        if (!monitors.some(m => m.logs && m.logs.length > 0)) return [];
+
+        return monitors.flatMap(m => m.logs?.map((l: any) => ({
+            id: `log-${l.datetime}-${l.type}-${m.id}`,
+            type: 'log' as const,
+            timestamp: l.datetime,
+            logType: l.type,
+            logReason: l.reason,
+            logDuration: l.duration,
+            isManual: l.isManual,
+            content: l.content,
+            monitorName: m.friendly_name
+        })) || [])
+            .sort((a, b) => b.timestamp - a.timestamp);
+    }, [monitors]);
 
 
 
@@ -102,8 +114,10 @@ const RenderLayout = memo(({
     const history = (
         <div className="relative">
             <IncidentHistory
-                logs={historyLogs}
+                items={historyLogs}
                 theme={t}
+                monitorName="All Monitors"
+                brandName={brandName}
             />
         </div>
     );
@@ -125,6 +139,8 @@ const RenderLayout = memo(({
             theme={t}
             colors={colors}
             visibility={visibility}
+            annotations={annotations}
+            brandName={brandName}
         />
     );
 
@@ -227,6 +243,7 @@ interface StatusPageClientProps {
     initialMonitors: MonitorData[];
     visibility?: VisibilityConfig;
     maintenance?: MaintenanceWindow[];
+    brandName?: string;
 }
 
 function getAverageResponseTime(times: { value: number }[] = []) {
@@ -245,7 +262,8 @@ export default function StatusPageClient({
     subdomain,
     initialMonitors,
     visibility,
-    maintenance
+    maintenance,
+    brandName
 }: StatusPageClientProps) {
     const [showHistoryOverlay, setShowHistoryOverlay] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
@@ -350,6 +368,7 @@ export default function StatusPageClient({
                         visibility={visibility}
                         updates={annotations?.[monitor.id] || []}
                         maintenance={maintenance}
+                        brandName={brandName}
                     />
                 </div>
                 {!showHistoryOverlay && !selectedMonitorId && footer}
@@ -375,6 +394,7 @@ export default function StatusPageClient({
                 visibility={visibility}
                 annotations={annotations}
                 maintenance={maintenance || []}
+                brandName={brandName}
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

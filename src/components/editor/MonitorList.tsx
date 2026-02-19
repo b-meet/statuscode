@@ -18,9 +18,10 @@ interface MonitorListProps {
     theme: ThemeConfig;
     colors?: StatusColors;
     visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showPerformanceMetrics: boolean; showUptimeBars: boolean };
+    brandName?: string;
 }
 
-export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t, colors, visibility, annotations }: MonitorListProps & { annotations?: Record<string, IncidentUpdate[]> }) => {
+export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor, theme: t, colors, visibility, annotations, brandName }: MonitorListProps & { annotations?: Record<string, IncidentUpdate[]> }) => {
     const [hoveredId, setHoveredId] = useState<string | null>(null);
 
     // Dynamic Colors Helpers
@@ -203,37 +204,80 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                         </button>
                                                     </div>
 
-                                                    {(monitor.logs && monitor.logs.length > 0) ? (
-                                                        <div className="space-y-3">
-                                                            {monitor.logs.slice(0, 3).map((log: Log, i: number) => (
-                                                                <div key={i} className="flex gap-3 text-sm">
-                                                                    <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${log.type === 1 ? 'bg-red-500' : 'bg-emerald-500'}`} />
-                                                                    <div className="flex-1 min-w-0">
-                                                                        <div className="flex items-baseline justify-between gap-2">
-                                                                            <span className={`font-medium truncate ${log.type === 1 ? 'text-red-400' : 'text-emerald-400'}`}>
-                                                                                {log.type === 1 ? 'Outage Detected' : 'Service Recovered'}
-                                                                            </span>
-                                                                            <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
-                                                                                {new Date(log.datetime * 1000).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                                                            </span>
+                                                    {(() => {
+                                                        const updates = annotations?.[monitor.id] || [];
+                                                        const logs = monitor.logs || [];
+
+                                                        const combinedHistory = [
+                                                            ...updates.map(u => ({
+                                                                type: 'update',
+                                                                date: new Date(u.createdAt),
+                                                                title: brandName ? `Update from ${brandName}` : 'Status Update',
+                                                                description: u.content,
+                                                                variant: u.variant || 'info',
+                                                                isMarkdown: true
+                                                            })),
+                                                            ...logs.map(l => {
+                                                                const isDown = l.type === 1;
+                                                                const reasonData = getLogReason(l.reason?.code, l.reason?.detail);
+
+                                                                let desc = '';
+                                                                if (isDown) {
+                                                                    desc = reasonData.reason;
+                                                                    if (l.duration > 0) desc += ` • ${formatDuration(l.duration)}`;
+                                                                } else {
+                                                                    desc = new Date(l.datetime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                                                                }
+
+                                                                return {
+                                                                    type: 'log',
+                                                                    date: new Date(l.datetime * 1000),
+                                                                    title: isDown ? 'Outage Detected' : 'Service Recovered',
+                                                                    description: desc,
+                                                                    variant: isDown ? 'error' : 'success',
+                                                                    isMarkdown: false
+                                                                };
+                                                            })
+                                                        ].sort((a, b) => b.date.getTime() - a.date.getTime()).slice(0, 3);
+
+                                                        if (combinedHistory.length > 0) {
+                                                            return (
+                                                                <div className="space-y-3">
+                                                                    {combinedHistory.map((item, i) => (
+                                                                        <div key={i} className="flex gap-3 text-sm">
+                                                                            <div className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${item.variant === 'error' ? 'bg-red-500' :
+                                                                                item.variant === 'warning' ? 'bg-amber-500' :
+                                                                                    item.variant === 'success' ? 'bg-emerald-500' : 'bg-blue-500'
+                                                                                }`} />
+                                                                            <div className="flex-1 min-w-0">
+                                                                                <div className="flex items-baseline justify-between gap-2">
+                                                                                    <span className={`font-medium truncate ${item.variant === 'error' ? 'text-red-400' :
+                                                                                        item.variant === 'warning' ? 'text-amber-400' :
+                                                                                            item.variant === 'success' ? 'text-emerald-400' : 'text-blue-400'
+                                                                                        }`}>
+                                                                                        {item.title}
+                                                                                    </span>
+                                                                                    <span className="text-[10px] text-zinc-500 font-mono whitespace-nowrap">
+                                                                                        {item.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                                                                    </span>
+                                                                                </div>
+                                                                                <p className="text-xs text-zinc-500 truncate mt-0.5">
+                                                                                    {item.isMarkdown ? (
+                                                                                        // Simple strip for summary view if needed, or just show raw
+                                                                                        item.description
+                                                                                    ) : (
+                                                                                        item.description
+                                                                                    )}
+                                                                                </p>
+                                                                            </div>
                                                                         </div>
-                                                                        <p className="text-xs text-zinc-500 truncate mt-0.5">
-                                                                            {log.type === 1 ? (
-                                                                                <>
-                                                                                    {getLogReason(log.reason?.code, log.reason?.detail).reason}
-                                                                                    {log.duration > 0 && <span className="opacity-60 ml-1">• {formatDuration(log.duration)}</span>}
-                                                                                </>
-                                                                            ) : (
-                                                                                new Date(log.datetime * 1000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-                                                                            )}
-                                                                        </p>
-                                                                    </div>
+                                                                    ))}
                                                                 </div>
-                                                            ))}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="text-xs text-zinc-500 py-2">No recent incidents.</div>
-                                                    )}
+                                                            );
+                                                        } else {
+                                                            return <div className="text-xs text-zinc-500 py-2">No recent incidents.</div>;
+                                                        }
+                                                    })()}
                                                 </div>
                                             </motion.div>
                                         )}

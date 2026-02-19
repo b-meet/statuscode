@@ -6,10 +6,11 @@ import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock, MessageSq
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
-import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
-import { MonitorData, Log, IncidentUpdate, IncidentVariant, MaintenanceWindow } from '@/lib/types';
+import { formatUptime, getAverageResponseTime } from '@/lib/utils';
+import { MonitorData, IncidentUpdate, IncidentVariant, MaintenanceWindow } from '@/lib/types';
 import { VisibilityConfig } from '@/context/EditorContext';
 import { Markdown } from '@/components/ui/markdown';
+import { IncidentHistory, HistoryItem } from './IncidentHistory';
 
 interface MonitorDetailViewProps {
     monitor: MonitorData;
@@ -21,6 +22,7 @@ interface MonitorDetailViewProps {
     maintenance?: MaintenanceWindow[];
     onAddUpdate?: (content: string, variant?: IncidentVariant) => void;
     onDeleteUpdate?: (id: string) => void;
+    brandName?: string;
 }
 
 export const MonitorDetailView = memo(({
@@ -32,7 +34,8 @@ export const MonitorDetailView = memo(({
     updates,
     maintenance,
     onAddUpdate,
-    onDeleteUpdate
+    onDeleteUpdate,
+    brandName
 }: MonitorDetailViewProps) => {
     // Local state for new update input
     const [newUpdateContent, setNewUpdateContent] = React.useState('');
@@ -65,6 +68,56 @@ export const MonitorDetailView = memo(({
     const majBgLow = getLowAlphaClass(majBase);
     const opText = getTextClass(opBase);
     const majText = getTextClass(majBase);
+
+    // Combine Logs and Updates
+    const historyItems: HistoryItem[] = useMemo(() => {
+        const items: HistoryItem[] = [];
+
+        // 1. Add System Logs
+        if (monitor?.logs) {
+            monitor.logs.forEach((log) => {
+                items.push({
+                    id: `log-${log.datetime}-${log.type}`,
+                    type: 'log',
+                    timestamp: log.datetime,
+                    logType: log.type,
+                    logReason: log.reason,
+                    logDuration: log.duration,
+                    isManual: log.isManual,
+                    content: (log as any).content
+                });
+            });
+        }
+
+        // 2. Add Manual Updates
+        if (updates) {
+            updates.forEach((update) => {
+                items.push({
+                    id: update.id,
+                    type: 'update',
+                    timestamp: new Date(update.createdAt).getTime() / 1000,
+                    content: update.content,
+                    variant: update.variant
+                });
+            });
+        }
+
+        // 3. Add Monitoring Started Event (if available)
+        if (monitor.create_datetime) {
+            items.push({
+                id: `monitor-created-${monitor.id}`,
+                type: 'log',
+                timestamp: monitor.create_datetime,
+                logType: 98, // Using 98 for "Monitor Started"
+                logReason: { code: 'STARTED', detail: 'Monitoring for this resource began.' }
+            });
+        }
+
+        // Sort by timestamp descending
+        return items.sort((a, b) => b.timestamp - a.timestamp);
+    }, [monitor?.logs, updates, monitor.create_datetime, monitor.id]);
+
+
 
     if (!monitor) return null;
 
@@ -175,129 +228,76 @@ export const MonitorDetailView = memo(({
             </div>
 
 
-            {/* Timeline / Incident Updates Section */}
-            {(updates && updates.length > 0) || onAddUpdate ? (
-                <div className="mb-8 @[600px]:mb-12 space-y-4 @[600px]:space-y-6">
-                    <div className={`text-[10px] @[600px]:text-xs font-bold uppercase tracking-widest ${t.mutedText} flex items-center gap-2 @[600px]:gap-3 justify-center @[600px]:justify-start opacity-70`}>
-                        <MessageSquare className="w-3 h-3 @[600px]:w-3.5 @[600px]:h-3.5" /> Incident Timeline
-                    </div>
-
-                    {/* List of Updates */}
-                    <div className="space-y-3 @[600px]:space-y-4">
-                        {updates?.map((update, idx) => {
-                            const variant = update.variant || 'info';
-                            let variantStyles = 'border-blue-500 bg-blue-500/5 text-blue-200';
-                            let icon = <Info className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-blue-400 shrink-0 mt-0.5" />;
-
-                            if (variant === 'warning') {
-                                variantStyles = 'border-amber-500 bg-amber-500/5 text-amber-200';
-                                icon = <AlertTriangle className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-amber-400 shrink-0 mt-0.5" />;
-                            } else if (variant === 'error') {
-                                variantStyles = 'border-red-500 bg-red-500/5 text-red-200';
-                                icon = <AlertTriangle className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-red-400 shrink-0 mt-0.5" />;
-                            } else if (variant === 'success') {
-                                variantStyles = 'border-emerald-500 bg-emerald-500/5 text-emerald-200';
-                                icon = <CheckCircle2 className="w-4 h-4 @[600px]:w-5 @[600px]:h-5 text-emerald-400 shrink-0 mt-0.5" />;
-                            }
-
-                            return (
-                                <div key={update.id || idx} className={`p-4 @[600px]:p-5 pl-5 @[600px]:pl-6 border-l-2 ${variantStyles} ${t.rounded} relative group shadow-sm`}>
-                                    <div className="flex items-start gap-3 @[600px]:gap-4">
-                                        {icon}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center justify-between mb-1.5 @[600px]:mb-2">
-                                                <h3 className="text-xs @[600px]:text-sm font-bold opacity-90">
-                                                    {new Date(update.createdAt).toLocaleString(undefined, {
-                                                        month: 'short', day: 'numeric', hour: 'numeric', minute: 'numeric'
-                                                    })}
-                                                </h3>
-                                                {onDeleteUpdate && (
-                                                    <button
-                                                        onClick={() => onDeleteUpdate(update.id)}
-                                                        className="opacity-0 group-hover:opacity-100 text-[10px] @[600px]:text-xs text-red-400 hover:text-red-300 transition-opacity bg-black/20 px-2 py-1 rounded"
-                                                    >
-                                                        Delete
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="text-xs @[600px]:text-sm opacity-80 leading-relaxed font-sans prose prose-invert max-w-none prose-sm">
-                                                <Markdown content={update.content} />
-                                            </div>
-                                        </div>
-                                    </div>
+            {/* Add New Update (Editor Mode) - Keep this separate at top if needed, or integrate? 
+                Usually editors want the input field separate. Keeping it here.
+            */}
+            {onAddUpdate && (
+                <div className="mb-8 @[600px]:mb-12">
+                    <div className={`p-1 border border-zinc-800 bg-zinc-900/30 ${t.rounded}`}>
+                        <div className="p-3 @[600px]:p-4">
+                            <div className="flex items-center justify-between mb-3 @[600px]:mb-4">
+                                <span className="text-xs @[600px]:text-sm font-medium text-zinc-300">New Update</span>
+                                <div className="flex gap-2">
+                                    {(['info', 'success', 'warning', 'error'] as const).map((v) => (
+                                        <button
+                                            key={v}
+                                            onClick={() => setNewUpdateVariant(v)}
+                                            className={`w-3.5 h-3.5 @[600px]:w-4 @[600px]:h-4 rounded-full border border-white/10 transition-transform hover:scale-110 ${newUpdateVariant === v ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900' : 'opacity-50 hover:opacity-100'
+                                                } ${v === 'info' ? 'bg-blue-500' : v === 'success' ? 'bg-emerald-500' : v === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
+                                            title={v.charAt(0).toUpperCase() + v.slice(1)}
+                                        />
+                                    ))}
                                 </div>
-                            );
-                        })}
-                    </div>
-
-                    {/* Add New Update (Editor Mode) */}
-                    {onAddUpdate && (
-                        <div className={`mt-6 @[600px]:mt-8 p-1 border border-zinc-800 bg-zinc-900/30 ${t.rounded}`}>
-                            <div className="p-3 @[600px]:p-4">
-                                <div className="flex items-center justify-between mb-3 @[600px]:mb-4">
-                                    <span className="text-xs @[600px]:text-sm font-medium text-zinc-300">New Update</span>
-                                    <div className="flex gap-2">
-                                        {(['info', 'success', 'warning', 'error'] as const).map((v) => (
-                                            <button
-                                                key={v}
-                                                onClick={() => setNewUpdateVariant(v)}
-                                                className={`w-3.5 h-3.5 @[600px]:w-4 @[600px]:h-4 rounded-full border border-white/10 transition-transform hover:scale-110 ${newUpdateVariant === v ? 'ring-2 ring-white ring-offset-1 ring-offset-zinc-900' : 'opacity-50 hover:opacity-100'
-                                                    } ${v === 'info' ? 'bg-blue-500' : v === 'success' ? 'bg-emerald-500' : v === 'warning' ? 'bg-amber-500' : 'bg-red-500'}`}
-                                                title={v.charAt(0).toUpperCase() + v.slice(1)}
-                                            />
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div className="flex justify-between items-center mb-2">
-                                    <div className="text-[10px] @[600px]:text-xs text-zinc-500">
-                                        Selected: <span className={`font-bold uppercase ${newUpdateVariant === 'info' ? 'text-blue-400' :
-                                            newUpdateVariant === 'success' ? 'text-emerald-400' :
-                                                newUpdateVariant === 'warning' ? 'text-amber-400' : 'text-red-400'
-                                            }`}>{newUpdateVariant}</span>
-                                    </div>
-                                    <button
-                                        onClick={() => setIsPreviewMode(!isPreviewMode)}
-                                        className="text-[10px] @[600px]:text-xs text-indigo-400 hover:text-indigo-300"
-                                    >
-                                        {isPreviewMode ? 'Edit' : 'Preview Markdown'}
-                                    </button>
-                                </div>
-
-                                {isPreviewMode ? (
-                                    <div className="min-h-[80px] @[600px]:min-h-[100px] p-2 @[600px]:p-3 text-xs @[600px]:text-sm text-zinc-300 bg-zinc-950 rounded border border-zinc-800">
-                                        {newUpdateContent ? <Markdown content={newUpdateContent} /> : <span className="text-zinc-600 italic">Nothing to preview</span>}
-                                    </div>
-                                ) : (
-                                    <textarea
-                                        value={newUpdateContent}
-                                        onChange={(e) => setNewUpdateContent(e.target.value)}
-                                        placeholder="Write a status update..."
-                                        className={`w-full p-2 @[600px]:p-3 bg-zinc-950 border border-zinc-800 ${t.rounded} text-white text-xs @[600px]:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[80px] @[600px]:min-h-[100px] resize-y`}
-                                    />
-                                )}
                             </div>
 
-                            <div className="flex justify-end p-2 bg-white/5 border-t border-white/5 rounded-b-[inherit]">
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="text-[10px] @[600px]:text-xs text-zinc-500">
+                                    Selected: <span className={`font-bold uppercase ${newUpdateVariant === 'info' ? 'text-blue-400' :
+                                        newUpdateVariant === 'success' ? 'text-emerald-400' :
+                                            newUpdateVariant === 'warning' ? 'text-amber-400' : 'text-red-400'
+                                        }`}>{newUpdateVariant}</span>
+                                </div>
                                 <button
-                                    disabled={!newUpdateContent.trim()}
-                                    onClick={() => {
-                                        if (newUpdateContent.trim()) {
-                                            onAddUpdate(newUpdateContent, newUpdateVariant);
-                                            setNewUpdateContent('');
-                                            setIsPreviewMode(false);
-                                            setNewUpdateVariant('info');
-                                        }
-                                    }}
-                                    className="px-3 py-1.5 @[600px]:px-4 @[600px]:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] @[600px]:text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                                    onClick={() => setIsPreviewMode(!isPreviewMode)}
+                                    className="text-[10px] @[600px]:text-xs text-indigo-400 hover:text-indigo-300"
                                 >
-                                    Preview Update
+                                    {isPreviewMode ? 'Edit' : 'Preview Markdown'}
                                 </button>
                             </div>
+
+                            {isPreviewMode ? (
+                                <div className="min-h-[80px] @[600px]:min-h-[100px] p-2 @[600px]:p-3 text-xs @[600px]:text-sm text-zinc-300 bg-zinc-950 rounded border border-zinc-800">
+                                    {newUpdateContent ? <Markdown content={newUpdateContent} /> : <span className="text-zinc-600 italic">Nothing to preview</span>}
+                                </div>
+                            ) : (
+                                <textarea
+                                    value={newUpdateContent}
+                                    onChange={(e) => setNewUpdateContent(e.target.value)}
+                                    placeholder="Write a status update..."
+                                    className={`w-full p-2 @[600px]:p-3 bg-zinc-950 border border-zinc-800 ${t.rounded} text-white text-xs @[600px]:text-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 min-h-[80px] @[600px]:min-h-[100px] resize-y`}
+                                />
+                            )}
                         </div>
-                    )}
+
+                        <div className="flex justify-end p-2 bg-white/5 border-t border-white/5 rounded-b-[inherit]">
+                            <button
+                                disabled={!newUpdateContent.trim()}
+                                onClick={() => {
+                                    if (newUpdateContent.trim()) {
+                                        onAddUpdate(newUpdateContent, newUpdateVariant);
+                                        setNewUpdateContent('');
+                                        setIsPreviewMode(false);
+                                        setNewUpdateVariant('info');
+                                    }
+                                }}
+                                className="px-3 py-1.5 @[600px]:px-4 @[600px]:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] @[600px]:text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                Publish Update
+                            </button>
+                        </div>
+                    </div>
                 </div>
-            ) : null}
+            )}
 
             {/* Main Content Grid */}
             <div className="space-y-4 @[600px]:space-y-8">
@@ -346,69 +346,15 @@ export const MonitorDetailView = memo(({
 
                 <div className="grid grid-cols-1 @[800px]:grid-cols-3 gap-3 @[600px]:gap-6 sm:gap-8">
 
-                    {/* Log Timeline */}
+                    {/* Unified Incident History */}
                     {visibility?.showIncidentHistory !== false && (
                         <div className={`${visibility?.showPerformanceMetrics === false ? '@[800px]:col-span-3' : '@[800px]:col-span-2'} p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
-                            <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold mb-4 @[600px]:mb-6`}>Incident History</h3>
-                            <div className="space-y-4 @[600px]:space-y-6 border-l border-white/10 ml-2 @[600px]:ml-3 pl-4 @[600px]:pl-6 sm:pl-8 py-2">
-                                {(monitor.logs || []).slice(0, 5).map((log: Log, i: number) => (
-                                    <div key={i} className="relative group">
-                                        <div className={`absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 ${log.type === 1 ? 'bg-red-500' :
-                                            log.type === 99 ? 'bg-amber-500' :
-                                                log.type === 98 ? 'bg-blue-500' :
-                                                    'bg-emerald-500'
-                                            } top-1`} />
-                                        <div className="flex flex-col gap-0.5 @[600px]:gap-1">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-2">
-                                                    <span className={`text-xs @[600px]:text-sm font-bold ${log.type === 1 ? 'text-red-400' :
-                                                        log.type === 99 ? 'text-amber-400' :
-                                                            log.type === 98 ? 'text-blue-400' :
-                                                                'text-emerald-400'
-                                                        }`}>
-                                                        {log.type === 1 ? 'Outage Detected' : (log.type === 98 || log.type === 99 ? 'Manual Update' : 'Service Recovered')}
-                                                    </span>
-                                                    {log.isManual && (
-                                                        <span className="text-[8px] bg-indigo-500/20 text-indigo-300 px-1.5 py-0.5 rounded border border-indigo-500/10 font-medium">
-                                                            added via statuscode
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <span className={`text-[8px] @[600px]:text-[10px] ${t.mutedText} font-mono border border-white/5 px-1.5 py-0.5 rounded`}>
-                                                    {new Date(log.datetime * 1000).toLocaleString()}
-                                                </span>
-                                            </div>
-                                            <p className={`text-[10px] @[600px]:text-xs ${t.mutedText}`}>
-                                                {log.type === 1 ? (
-                                                    <>
-                                                        <span className="block font-medium text-white/80 mb-0.5">
-                                                            {getLogReason(log.reason?.code, log.reason?.detail).reason}
-                                                        </span>
-                                                        {getLogReason(log.reason?.code, log.reason?.detail).detail && (
-                                                            <span className="block opacity-75">
-                                                                {getLogReason(log.reason?.code, log.reason?.detail).detail}
-                                                            </span>
-                                                        )}
-                                                        <span className="block mt-1 opacity-60 font-mono text-[8px] @[600px]:text-[10px]">
-                                                            Lasted for: {formatDuration(log.duration)}
-                                                        </span>
-                                                    </>
-                                                ) : log.isManual ? (
-                                                    <span className="block font-medium text-white/80 opacity-90 italic">
-                                                        "{log.reason?.detail}"
-                                                    </span>
-                                                ) : (
-                                                    `at ${new Date(log.datetime * 1000).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`
-                                                )}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
-                                <div className="relative group opacity-50">
-                                    <div className="absolute -left-[23px] @[600px]:-left-[31px] sm:-left-[39px] w-2.5 h-2.5 @[600px]:w-3 @[600px]:h-3 rounded-full border-[2px] @[600px]:border-[3px] border-zinc-950 bg-zinc-600 top-1" />
-                                    <span className="text-[10px] @[600px]:text-xs text-zinc-500 font-medium">Monitoring Started</span>
-                                </div>
-                            </div>
+                            <IncidentHistory
+                                items={historyItems}
+                                theme={t}
+                                monitorName={monitor.friendly_name}
+                                brandName={brandName}
+                            />
                         </div>
                     )}
 
