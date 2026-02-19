@@ -31,7 +31,7 @@ export function Hero() {
                 >
                     <span className="flex h-2 w-2 rounded-full bg-glaze-500 animate-pulse"></span>
                     <span className="text-sm font-medium text-zinc-600 dark:text-zinc-200">
-                        Coming Soon v1.0
+                        Version βeta
                     </span>
                 </motion.div>
 

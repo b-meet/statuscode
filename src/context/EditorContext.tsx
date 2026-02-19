@@ -62,6 +62,7 @@ export interface EditorContextType {
     isPublishing: boolean;
     addDemoMonitors: () => void;
     user: any | null; // Supabase user
+    monitorError: string | null;
 }
 
 // --- Default State ---
@@ -97,6 +98,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [loading, setLoading] = useState(true);
     const [baseMonitors, setBaseMonitors] = useState<MonitorData[]>([]);
     const [user, setUser] = useState<any | null>(null);
+    const [monitorError, setMonitorError] = useState<string | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
 
     // Derived monitors data with custom logs merged
@@ -111,6 +113,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }, [baseMonitors, config.customLogs]);
 
     const fetchMonitors = useCallback(async () => {
+        setMonitorError(null);
         // If we have API key, fetch real ones
         let realMonitors: MonitorData[] = [];
         if (config.apiKey) {
@@ -127,12 +130,28 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         logs_limit: '5'
                     }),
                 });
-                const data = await res.json();
-                if (res.ok) {
-                    realMonitors = data.monitors || [];
+
+                if (!res.ok) {
+                    let errorMessage = `API Request Failed: ${res.status} ${res.statusText}`;
+                    try {
+                        const errorData = await res.json();
+                        errorMessage = errorData.error || errorData.message || errorMessage;
+                    } catch (e) {
+                        // Response was not JSON (e.g., 500 HTML page)
+                    }
+                    throw new Error(errorMessage);
                 }
-            } catch (error) {
+
+                const data = await res.json();
+
+                if (data.monitors) {
+                    realMonitors = data.monitors;
+                } else if (data.stat === 'fail') {
+                    throw new Error(data.message || "Failed to fetch monitors from UptimeRobot");
+                }
+            } catch (error: any) {
                 console.error("Failed to fetch monitors:", error);
+                setMonitorError(error.message || "Failed to fetch monitors");
             }
         }
 
@@ -247,7 +266,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                             headers: { "Content-Type": "application/json" },
                             body: JSON.stringify({ apiKey: site.uptimerobot_api_key }),
                         })
-                            .then(r => r.json())
+                            .then(async (r) => {
+                                const d = await r.json();
+                                if (!r.ok) throw new Error(d.error || `API Request Failed: ${r.status}`);
+                                return d;
+                            })
                             .then(d => {
                                 const real = d.monitors || [];
                                 // If we have real monitors, don't show demos AND clean up config
@@ -288,6 +311,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                                     const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
                                     setBaseMonitors(demos);
                                 }
+                            }).catch(error => {
+                                console.error("Failed to fetch monitors:", error);
+                                setMonitorError(error.message || "Failed to fetch monitors");
                             });
                     } else {
                         // Just load demo monitors if they are in the list
@@ -495,7 +521,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             publishSite,
             isPublishing,
             addDemoMonitors,
-            user
+            user,
+            monitorError
         }}>
             {children}
         </EditorContext.Provider>

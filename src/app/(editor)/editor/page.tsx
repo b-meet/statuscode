@@ -18,7 +18,7 @@ import { toDemoStringId } from "@/lib/mockMonitors";
 
 
 export default function EditorPage() {
-    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing, loading } = useEditor();
+    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing, loading, monitorError, fetchMonitors } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
     const [isMaximized, setIsMaximized] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
@@ -422,6 +422,9 @@ export default function EditorPage() {
                                     selectedMonitorId={selectedMonitorId}
                                     setSelectedMonitorId={setSelectedMonitorId}
                                     theme={t}
+                                    monitorError={monitorError}
+                                    onRetry={fetchMonitors}
+                                    isLoading={loading}
                                     Header={
                                         <EditorHeader
                                             logoUrl={config.logoUrl}

@@ -14,7 +14,7 @@ interface Monitor {
 }
 
 export default function MonitorManager() {
-    const { config, updateConfig, monitorsData, fetchMonitors, loading: globalLoading, addDemoMonitors } = useEditor();
+    const { config, updateConfig, monitorsData, fetchMonitors, loading: globalLoading, addDemoMonitors, monitorError } = useEditor();
     const [fetching, setFetching] = useState(false);
     const [error, setError] = useState("");
     const [isOpen, setIsOpen] = useState(false);
@@ -98,13 +98,19 @@ export default function MonitorManager() {
                     className={`w-full flex items-center justify-between group p-2 -ml-2 rounded-lg transition-colors ${isOpen ? 'bg-zinc-800' : 'hover:bg-zinc-800/50'}`}
                 >
                     <div className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 group-hover:text-zinc-300'}`}>
-                            <ActivityIcon className="w-4 h-4" />
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${monitorError ? 'bg-red-500/10 text-red-500' : isOpen ? 'bg-zinc-700 text-white' : 'bg-zinc-800 text-zinc-400 group-hover:text-zinc-300'}`}>
+                            {monitorError ? (
+                                <ActivityIcon className="w-4 h-4" />
+                            ) : (
+                                <ActivityIcon className="w-4 h-4" />
+                            )}
                         </div>
                         <div className="text-left">
-                            <h3 className="text-xs font-semibold text-zinc-300">Monitors</h3>
-                            <div className="text-[10px] text-zinc-500 flex items-center gap-1.5">
-                                {selectedCount} / {totalCount} Active
+                            <h3 className={`text-xs font-semibold ${monitorError ? 'text-red-400' : 'text-zinc-300'}`}>
+                                {monitorError ? 'Error' : 'Monitors'}
+                            </h3>
+                            <div className={`text-[10px] flex items-center gap-1.5 ${monitorError ? 'text-red-500/70' : 'text-zinc-500'}`}>
+                                {monitorError ? 'Failed to fetch' : `${selectedCount} / ${totalCount} Active`}
                             </div>
                         </div>
                     </div>
@@ -152,7 +158,11 @@ export default function MonitorManager() {
                                 </button>
                             </div>
                             {globalLoading && <p className="text-[9px] text-zinc-500 animate-pulse">Loading settings...</p>}
-                            {error && <p className="text-[9px] text-red-500">{error}</p>}
+                            {(error || monitorError) && (
+                                <p className="text-[9px] text-red-500 leading-tight">
+                                    {error || monitorError}
+                                </p>
+                            )}
                         </div>
 
                         <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight mb-2">Select Services</div>

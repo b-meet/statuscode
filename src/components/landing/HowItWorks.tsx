@@ -92,6 +92,13 @@ export function HowItWorks() {
                         transition={{ delay: 0.2 }}
                         className="md:col-span-1 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
                     >
+                        {/* Coming Soon Badge */}
+                        <div className="absolute top-8 right-8 z-20">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 opacity-80 backdrop-blur-sm">
+                                Coming Soon
+                            </span>
+                        </div>
+
                         <div className="relative z-10">
                             <div className="w-10 h-10 rounded-xl bg-glaze-500/10 flex items-center justify-center text-glaze-500 mb-4">
                                 <Sliders className="size-5" />

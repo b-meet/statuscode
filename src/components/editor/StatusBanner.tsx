@@ -12,14 +12,16 @@ interface StatusBannerProps {
     theme: ThemeConfig;
     colors?: StatusColors;
     visibility?: { showPerformanceMetrics: boolean };
+    monitorError?: string | null;
 }
 
-export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors, visibility }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors, visibility, monitorError }: StatusBannerProps) => {
+    const isError = !!monitorError;
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
     const isMaintenance = status === 'maintenance';
     const isMaintenancePartial = status === 'maintenance_partial';
-    const isOperational = status === 'operational';
+    const isOperational = status === 'operational' && !isError;
 
     const getBaseColor = (type: 'operational' | 'partial' | 'major' | 'maintenance') => {
         if (!colors) return null;
@@ -34,6 +36,7 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
     const maintColor = getBaseColor('maintenance') || 'blue';
 
     const statusBannerStyle = () => {
+        if (isError) return "bg-red-500/5 ring-1 ring-red-500/20";
         if (colors) {
             if (isMajor) return `bg-${majColor}-500/5 ring-1 ring-${majColor}-500/20`;
             if (isPartial) return `bg-${partColor}-500/5 ring-1 ring-${partColor}-500/20`;
@@ -49,6 +52,7 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
     };
 
     const statusIconColor = () => {
+        if (isError) return "bg-red-500/10 text-red-500 ring-1 ring-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.3)]";
         if (colors) {
             if (isMajor) return `bg-${majColor}-500/10 text-${majColor}-500 ring-1 ring-${majColor}-500/50 shadow-[0_0_30px_rgba(var(--color-${majColor}-500),0.3)] shadow-${majColor}-500/20`;
             if (isMajor) return `bg-${majColor}-500/10 text-${majColor}-500 ring-1 ring-${majColor}-500/50`;
@@ -66,6 +70,7 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
 
     // Helper for title text
     const getTitle = () => {
+        if (isError) return "Status Unknown";
         if (isOperational) return "All Systems Operational";
         if (isMajor) return "Major System Outage";
         if (isPartial) return "Partial System Outage";
@@ -76,6 +81,7 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
 
     // Helper for description text
     const getDescription = () => {
+        if (isError) return "We are unable to load the current system status. Please try again later.";
         if (isOperational) return "All services are functioning normally.";
         if (isMajor) return "Large-scale service disruption. Check below.";
         if (isPartial) return "Some monitors are experiencing issues.";
@@ -86,6 +92,7 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
 
     // Helper for gradient color
     const getGradientColor = () => {
+        if (isError) return "from-red-500";
         if (colors) {
             if (isMajor) return `from-${majColor}-500`;
             if (isPartial || isMaintenancePartial) return `from-${partColor}-500`;

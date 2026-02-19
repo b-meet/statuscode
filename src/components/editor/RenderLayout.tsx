@@ -26,6 +26,9 @@ interface RenderLayoutProps {
     History: React.ReactNode;
     Maintenance: React.ReactNode;
     updates?: IncidentUpdate[]; // Optional for override
+    monitorError?: string | null;
+    onRetry?: () => void;
+    isLoading?: boolean;
 }
 
 export const RenderLayout = memo(({
@@ -41,7 +44,10 @@ export const RenderLayout = memo(({
     Header,
     History,
     Maintenance,
-    updates
+    updates,
+    monitorError,
+    onRetry,
+    isLoading
 }: RenderLayoutProps) => {
 
     const HeaderWithProps = React.isValidElement(Header)
@@ -103,6 +109,14 @@ export const RenderLayout = memo(({
     const effectiveVisibility = isScenarioActive
         ? { showSparklines: true, showUptimeBars: true, showIncidentHistory: true, showPerformanceMetrics: true }
         : config.visibility;
+
+    // --- SMART DELETE MODAL LOGIC (Hidden for brevity) ---
+    // (Wait, I should NOT replace this part if I can avoid it. But MonitorList logic is further down)
+
+    // Let's target the START of the file to add props. And then a separate Replace for Monitors logic.
+    // This is safer.
+    // I will split this into two replacements.
+
 
     // --- SMART DELETE MODAL LOGIC ---
     const confirmDelete = (type: 'permanent' | 'history') => {
@@ -258,16 +272,54 @@ export const RenderLayout = memo(({
         );
     }
 
-    const Monitors = (
-        <MonitorList
-            monitors={selectedMonitors}
-            setSelectedMonitorId={setSelectedMonitorId}
-            primaryColor={config.primaryColor}
-            theme={t}
-            colors={colors}
-            visibility={effectiveVisibility}
-        />
-    );
+    // --- MONITORS RENDER LOGIC ---
+    let MonitorsContent;
+
+    if (monitorError) {
+        MonitorsContent = (
+            <div className="flex flex-col items-center justify-center py-12 px-4 text-center rounded-xl bg-red-500/5 border border-red-500/10">
+                <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center mb-4">
+                    <div className="w-6 h-6 text-red-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                        </svg>
+                    </div>
+                </div>
+                <h3 className="text-lg font-bold text-red-100 mb-2">Unable to Load Monitors</h3>
+                <p className="text-sm text-red-200/60 max-w-sm mb-6">
+                    {monitorError === "Failed to fetch" ? "Check your internet connection or try again later." : monitorError}
+                </p>
+                {onRetry && (
+                    <button
+                        onClick={onRetry}
+                        className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-300 text-sm font-medium rounded-lg transition-colors border border-red-500/20 hover:border-red-500/30"
+                    >
+                        Try Again
+                    </button>
+                )}
+            </div>
+        );
+    } else if (isLoading) {
+        MonitorsContent = (
+            <div className="flex flex-col items-center justify-center py-20 px-4 text-center">
+                <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-sm text-zinc-500 animate-pulse">Updating status...</p>
+            </div>
+        );
+    } else {
+        MonitorsContent = (
+            <MonitorList
+                monitors={selectedMonitors}
+                setSelectedMonitorId={setSelectedMonitorId}
+                primaryColor={config.primaryColor}
+                theme={t}
+                colors={colors}
+                visibility={effectiveVisibility}
+            />
+        );
+    }
+
+    const Monitors = MonitorsContent;
 
     const Banner = (
         <StatusBanner
@@ -277,6 +329,7 @@ export const RenderLayout = memo(({
             theme={t}
             colors={colors}
             visibility={effectiveVisibility}
+            monitorError={monitorError}
         />
     );
 
