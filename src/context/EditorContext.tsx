@@ -24,6 +24,7 @@ export interface VisibilityConfig {
     showUptimeBars: boolean;
     showIncidentHistory: boolean;
     showPerformanceMetrics: boolean;
+    uptimeDecimals?: 2 | 3;
 }
 
 export interface SiteConfig {
@@ -84,6 +85,7 @@ const defaultConfig: SiteConfig = {
         showUptimeBars: true,
         showIncidentHistory: true,
         showPerformanceMetrics: true,
+        uptimeDecimals: 3
     },
     annotations: {},
     customLogs: {},
@@ -266,67 +268,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         setIsRealDataEnabled(true);
                     }
 
-                    // If we have an API key, fetch monitors immediately
-                    if (site.uptimerobot_api_key) {
-                        fetch("/api/uptimerobot/monitors", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({ apiKey: site.uptimerobot_api_key }),
-                        })
-                            .then(async (r) => {
-                                const d = await r.json();
-                                if (!r.ok) throw new Error(d.error || `API Request Failed: ${r.status}`);
-                                return d;
-                            })
-                            .then(d => {
-                                const real = d.monitors || [];
-                                // If we have real monitors, don't show demos AND clean up config
-                                if (real.length > 0) {
-                                    setBaseMonitors(real);
-
-                                    // Clean up selected monitors in config
-                                    // We need to do this carefully as config might not be fully loaded or we are inside useEffect
-                                    // But we have 'site' variable here which is the raw data
-                                    if (site.monitors && site.monitors.length > 0) {
-                                        const demoIds = getDemoMonitors().map(m => toDemoStringId(m.id));
-                                        const cleaned = site.monitors.filter((id: string) => !demoIds.includes(id));
-
-                                        if (cleaned.length !== site.monitors.length) {
-                                            // We need to update the DB/State
-                                            // We can call updateConfig but we are inside the 'fetched' callback
-                                            // Let's defer it or call it if updateConfig is stable
-                                            // ...
-                                            // Check if we should auto-select all
-                                            const hasSelectedReal = cleaned.some((id: string) => !demoIds.includes(id));
-                                            if (!hasSelectedReal) {
-                                                const allRealIds = real.map((m: any) => String(m.id));
-                                                updateConfig({ monitors: allRealIds });
-                                            } else {
-                                                updateConfig({ monitors: cleaned });
-                                            }
-                                        } else {
-                                            // Even if no demos were removed, if we have active real monitors but NONE selected
-                                            // We should auto select them
-                                            const hasSelectedReal = cleaned.some((id: string) => !demoIds.includes(id));
-                                            if (!hasSelectedReal) {
-                                                const allRealIds = real.map((m: any) => String(m.id));
-                                                updateConfig({ monitors: allRealIds });
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
-                                    setBaseMonitors(demos);
-                                }
-                            }).catch(error => {
-                                console.error("Failed to fetch monitors:", error);
-                                setMonitorError(error.message || "Failed to fetch monitors");
-                            });
-                    } else {
-                        // Just load demo monitors if they are in the list
-                        const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
-                        if (demos.length > 0) setBaseMonitors(demos);
-                    }
+                    // If we have an API key, we intentionally omit the manual duplicate fetch here 
+                    // because the polling `useEffect` observing `config.apiKey` will automatically sequence `fetchMonitors()`.
+                    // Just load demo monitors if they are in the list
+                    const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
+                    if (demos.length > 0) setBaseMonitors(demos);
                 }
             } catch (error) {
                 console.error("Failed to fetch site config:", error);
@@ -428,17 +374,28 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     // --- Real-time Data Logic ---
     const [isRealDataEnabled, setIsRealDataEnabled] = useState(true);
 
-    // Poll for real data if enabled
+    const pollInterval = React.useMemo(() => {
+        return monitorsData && monitorsData.length > 0
+            ? Math.max(30000, Math.min(...monitorsData.map(m => m.interval ? m.interval * 1000 : 30000)))
+            : 30000;
+    }, [monitorsData]);
+
+    // Fetch immediately on toggle or API config change
+    useEffect(() => {
+        if (!isRealDataEnabled || !config.apiKey) return;
+        fetchMonitors();
+    }, [isRealDataEnabled, config.apiKey, fetchMonitors]);
+
+    // Setup recurring interval loop independently
     useEffect(() => {
         if (!isRealDataEnabled || !config.apiKey) return;
 
-        fetchMonitors(); // Fetch immediately on toggle
         const interval = setInterval(() => {
             fetchMonitors();
-        }, 30000);
+        }, pollInterval);
 
         return () => clearInterval(interval);
-    }, [isRealDataEnabled, config.apiKey, fetchMonitors]);
+    }, [isRealDataEnabled, config.apiKey, fetchMonitors, pollInterval]);
 
     const toggleRealData = () => {
         setIsRealDataEnabled(prev => {

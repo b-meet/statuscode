@@ -30,6 +30,8 @@ interface RenderLayoutProps {
     onRetry?: () => void;
     isLoading?: boolean;
     publishedConfig?: SiteConfig | null;
+    pollInterval?: number;
+    lastRefreshTime?: number | null;
 }
 
 export const RenderLayout = memo(({
@@ -49,13 +51,17 @@ export const RenderLayout = memo(({
     monitorError,
     onRetry,
     isLoading,
-    publishedConfig
+    publishedConfig,
+    pollInterval,
+    lastRefreshTime
 }: RenderLayoutProps) => {
 
     const HeaderWithProps = React.isValidElement(Header)
         ? React.cloneElement(Header as React.ReactElement<any>, {
             supportEmail: config.supportEmail,
-            supportUrl: config.supportUrl
+            supportUrl: config.supportUrl,
+            pollInterval: pollInterval || (Header.props as any).pollInterval,
+            lastRefreshTime: lastRefreshTime || (Header.props as any).lastRefreshTime
         })
         : Header;
 
@@ -229,6 +235,8 @@ export const RenderLayout = memo(({
                     onDeleteUpdate={(id) => setUpdateToDelete(id)}
                     brandName={config.brandName || "Status Page"}
                     publishedConfig={publishedConfig}
+                    pollInterval={pollInterval}
+                    lastRefreshTime={lastRefreshTime || undefined}
                 />
                 {DeleteModal}
             </div>

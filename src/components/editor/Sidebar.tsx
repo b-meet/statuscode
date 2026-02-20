@@ -12,20 +12,18 @@ import ColorPresetSelector from "./ColorPresetSelector";
 import VisibilitySettings from "./VisibilitySettings";
 import MaintenanceManager from "./MaintenanceManager";
 
+import Image from "next/image";
+
 export default function Sidebar() {
     const { user } = useEditor();
     return (
         <aside className="flex flex-col shrink-0 h-full overflow-hidden">
             {/* Header */}
-            <div className="h-14 px-6 border-b border-zinc-800 flex items-center justify-between shrink-0">
-                <div className="font-bold text-lg bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Statuscode</div>
-                <Link
-                    href="/dashboard"
-                    className="p-2 rounded-lg text-zinc-500 hover:text-white hover:bg-zinc-800 transition-all group"
-                    title="Back to Dashboard"
-                >
-                    <LayoutDashboard className="w-4 h-4" />
-                </Link>
+            <div className="h-14 px-6 border-b border-zinc-800 flex items-center shrink-0">
+                <div className="flex items-center gap-2">
+                    <Image src="/logo.svg" alt="Statuscode" width={24} height={24} className="w-6 h-6" />
+                    <div className="font-bold text-lg bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">Statuscode</div>
+                </div>
             </div>
 
             {/* Content Scroller */}
@@ -70,15 +68,24 @@ export default function Sidebar() {
             </div>
 
             {/* Footer / Account */}
-            <div className="p-4 border-t border-zinc-800 bg-zinc-950/30">
-                <div className="flex items-center gap-3">
-                    <UserAvatar user={user} />
-                    <div className="text-xs">
-                        <div className="text-white font-medium">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</div>
-                        <div className="text-zinc-500">Free Plan</div>
+            <Link
+                href="/dashboard"
+                className="p-4 border-t border-zinc-800 bg-zinc-950/30 hover:bg-zinc-800/80 transition-colors group block"
+                title="Back to Dashboard"
+            >
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <UserAvatar user={user} />
+                        <div className="text-xs">
+                            <div className="text-white font-medium group-hover:text-amber-400 transition-colors">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</div>
+                            <div className="text-zinc-500">Free Plan</div>
+                        </div>
+                    </div>
+                    <div className="p-2 rounded-lg text-zinc-500 group-hover:text-amber-400 group-hover:bg-amber-400/10 transition-all">
+                        <LayoutDashboard className="w-4 h-4" />
                     </div>
                 </div>
-            </div>
+            </Link>
         </aside>
     );
 }

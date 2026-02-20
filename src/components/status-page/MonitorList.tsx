@@ -6,9 +6,10 @@ import { Activity } from "lucide-react";
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
-import { MonitorData, IncidentUpdate } from "@/lib/types";
+import { MonitorData, IncidentUpdate, MaintenanceWindow } from "@/lib/types";
 import { toDemoStringId } from "@/lib/mockMonitors";
-import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from "@/lib/utils";
+import { useEditor } from '@/context/EditorContext';
+import { formatUptime, getAverageResponseTime, getLogReason, formatDuration, formatUptimePercentage } from "@/lib/utils";
 import { Markdown } from "@/components/ui/markdown";
 
 // --- Helpers ---
@@ -19,7 +20,7 @@ interface MonitorListProps {
     theme: ThemeConfig;
     setSelectedMonitorId: (id: string | null) => void;
     colors?: StatusColors;
-    visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showUptimeBars: boolean };
+    visibility?: { showSparklines?: boolean; showIncidentHistory?: boolean; showUptimeBars?: boolean; uptimeDecimals?: 2 | 3 };
     annotations?: Record<string, IncidentUpdate[]>;
     brandName?: string;
 }
@@ -103,15 +104,21 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                     <div className="min-w-0">
                                                         <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1 flex items-center gap-2`}>
                                                             <span className="truncate">{monitor.friendly_name}</span>
-                                                            {annotations?.[monitor.id] && annotations[monitor.id].length > 0 && (
-                                                                <span className="flex h-2 w-2 relative flex-shrink-0" title="Active Status Update">
-                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                                                </span>
-                                                            )}
+                                                            {(() => {
+                                                                const hasActiveUpdates = annotations?.[monitor.id]?.some(u =>
+                                                                    (Date.now() - new Date(u.createdAt).getTime()) < 30 * 60 * 1000
+                                                                ) || false;
+
+                                                                return hasActiveUpdates && (
+                                                                    <span className="flex h-2 w-2 relative flex-shrink-0" title="Active Status Update">
+                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </h4>
                                                         <div className={`text-xs ${t.mutedText} flex items-center gap-3 mt-1`}>
-                                                            <span>{uptime?.month || '99.9'}% Uptime</span>
+                                                            <span>{formatUptimePercentage(uptime?.month || '100', visibility?.uptimeDecimals)}% Uptime</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -134,7 +141,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                     <div className="space-y-0.5">
                                                         <div className="text-[9px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
                                                         <div className={`font-mono text-xs font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                                            {hasData ? `${uptime?.day}%` : '-'}
+                                                            {hasData ? `${formatUptimePercentage(uptime?.day || '100', visibility?.uptimeDecimals)}%` : '-'}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -169,7 +176,7 @@ export function MonitorList({ monitors, theme: t, setSelectedMonitorId, colors, 
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
                                                     <div className={`font-mono text-sm font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                                        {hasData ? `${uptime?.day}%` : '-'}
+                                                        {hasData ? `${formatUptimePercentage(uptime?.day || '100', visibility?.uptimeDecimals)}%` : '-'}
                                                     </div>
                                                 </div>
                                             </div>

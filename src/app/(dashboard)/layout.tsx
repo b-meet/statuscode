@@ -5,6 +5,8 @@ import { User, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 
+import Image from "next/image";
+
 export default function DashboardLayout({
     children,
 }: {
@@ -22,8 +24,11 @@ export default function DashboardLayout({
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
             <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 lg:px-12 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-50">
-                <Link href="/dashboard" className="font-bold text-xl tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
-                    Statuscode
+                <Link href="/dashboard" className="flex items-center gap-2">
+                    <Image src="/logo.svg" alt="Statuscode" width={32} height={32} className="w-8 h-8" />
+                    <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
+                        Statuscode
+                    </span>
                 </Link>
 
                 <div className="flex items-center gap-6">

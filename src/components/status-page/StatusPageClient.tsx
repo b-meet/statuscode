@@ -33,6 +33,8 @@ interface RenderLayoutProps {
     annotations?: Record<string, IncidentUpdate[]>;
     maintenance?: MaintenanceWindow[];
     brandName?: string;
+    pollInterval: number;
+    lastRefreshTime: number;
 }
 
 const RenderLayout = memo(({
@@ -51,7 +53,9 @@ const RenderLayout = memo(({
     visibility,
     annotations,
     maintenance,
-    brandName
+    brandName,
+    pollInterval,
+    lastRefreshTime
 }: RenderLayoutProps) => {
     // History is only used in overlay currently to match Editor
     const historyLogs = useMemo(() => {
@@ -129,6 +133,8 @@ const RenderLayout = memo(({
             theme={t}
             colors={colors}
             visibility={visibility}
+            pollInterval={pollInterval}
+            lastRefreshTime={lastRefreshTime}
         />
     );
 
@@ -274,12 +280,19 @@ export default function StatusPageClient({
     // Ideally page.tsx should pass it. But let's fetch it or assume empty for initial hydration if prop missing.
     const [fetchedAnnotations, setFetchedAnnotations] = useState<Record<string, IncidentUpdate[]>>({});
     const [updateToDelete, setUpdateToDelete] = useState<string | null>(null);
+    const [lastRefreshTime, setLastRefreshTime] = useState<number>(Date.now());
     const t = themes[themeCode as keyof typeof themes] || themes.modern;
 
     // Resolve Colors
     const themePresets = colorPresets[themeCode as keyof typeof colorPresets] || colorPresets.modern;
     const activePreset = themePresets.find((p) => p.id === colorPreset) || themePresets[0];
     const colors = activePreset?.colors;
+
+    const pollInterval = useMemo(() => {
+        return monitors && monitors.length > 0
+            ? Math.max(30000, Math.min(...monitors.map(m => m.interval ? m.interval * 1000 : 30000)))
+            : 30000;
+    }, [monitors]);
 
     // Polling Effect
     useEffect(() => {
@@ -313,6 +326,7 @@ export default function StatusPageClient({
                             setFetchedAnnotations(migrated);
                         }
                     }
+                    setLastRefreshTime(Date.now());
                 }
             } catch (err) {
                 console.error("Status Poll Error:", err);
@@ -322,12 +336,12 @@ export default function StatusPageClient({
         // Initial poll after mount (short delay to allow hydration)
         const initialTimer = setTimeout(poll, 1000);
 
-        const interval = setInterval(poll, 30000); // Poll every 30s
+        const interval = setInterval(poll, pollInterval);
         return () => {
             clearTimeout(initialTimer);
             clearInterval(interval);
         };
-    }, [subdomain]);
+    }, [subdomain, pollInterval]);
 
     // Derived State
     const downMonitors = useMemo(() => monitors.filter((m) => m.status === 8 || m.status === 9), [monitors]);
@@ -371,6 +385,8 @@ export default function StatusPageClient({
                         updates={(annotations && Object.keys(annotations).length > 0 ? annotations : fetchedAnnotations)?.[monitor.id] || []}
                         maintenance={maintenance}
                         brandName={brandName}
+                        pollInterval={pollInterval}
+                        lastRefreshTime={lastRefreshTime}
                     />
                 </div>
                 {!showHistoryOverlay && !selectedMonitorId && footer}
@@ -397,6 +413,8 @@ export default function StatusPageClient({
                 maintenance={maintenance || []}
                 brandName={brandName}
                 annotations={Object.keys(annotations || {}).length > 0 ? annotations : fetchedAnnotations}
+                pollInterval={pollInterval}
+                lastRefreshTime={lastRefreshTime}
             />
             {!showHistoryOverlay && !selectedMonitorId && footer}
         </div>

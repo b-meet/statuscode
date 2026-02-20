@@ -6,11 +6,12 @@ import { CheckCircle2, AlertTriangle, ArrowRight, ExternalLink, Clock, MessageSq
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from './UptimeBars';
-import { formatUptime, getAverageResponseTime } from '@/lib/utils';
+import { formatUptime, getAverageResponseTime, formatUptimePercentage } from '@/lib/utils';
 import { MonitorData, IncidentUpdate, IncidentVariant, MaintenanceWindow } from '@/lib/types';
 import { VisibilityConfig, SiteConfig } from '@/context/EditorContext';
 import { Markdown } from '@/components/ui/markdown';
 import { IncidentHistory, HistoryItem } from './IncidentHistory';
+import { RefreshTimer } from './RefreshTimer';
 
 interface MonitorDetailViewProps {
     monitor: MonitorData;
@@ -24,6 +25,8 @@ interface MonitorDetailViewProps {
     onDeleteUpdate?: (id: string) => void;
     brandName?: string;
     publishedConfig?: SiteConfig | null;
+    pollInterval?: number;
+    lastRefreshTime?: number;
 }
 
 export const MonitorDetailView = memo(({
@@ -37,7 +40,9 @@ export const MonitorDetailView = memo(({
     onAddUpdate,
     onDeleteUpdate,
     brandName,
-    publishedConfig
+    publishedConfig,
+    pollInterval,
+    lastRefreshTime
 }: MonitorDetailViewProps) => {
     // Local state for new update input
     const [newUpdateContent, setNewUpdateContent] = React.useState('');
@@ -217,7 +222,7 @@ export const MonitorDetailView = memo(({
                             <span className="hidden @[600px]:block w-1 h-1 rounded-full bg-white/20" />
                             <span className={`text-xs @[600px]:text-sm ${t.mutedText} opacity-60 flex items-center gap-1.5`}>
                                 <span className="w-1 h-1 rounded-full bg-white/40 block @[600px]:hidden"></span>
-                                Checked every 5 mins
+                                {pollInterval ? `Checked every ${Math.round(pollInterval / 60000)} mins` : 'Checked frequently'}
                             </span>
                         </div>
                     </div>
@@ -302,7 +307,7 @@ export const MonitorDetailView = memo(({
                                 }}
                                 className="px-3 py-1.5 @[600px]:px-4 @[600px]:py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] @[600px]:text-xs font-bold rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                Publish Update
+                                Preview Update
                             </button>
                         </div>
                     </div>
@@ -320,7 +325,7 @@ export const MonitorDetailView = memo(({
                         <div className={`p-4 @[600px]:p-6 ${t.card} ${t.rounded}`}>
                             <div className="flex items-center justify-between mb-4 @[600px]:mb-6">
                                 <h3 className={`text-[10px] @[600px]:text-xs ${t.mutedText} uppercase tracking-widest font-bold`}>90-Day Uptime</h3>
-                                <span className={`${opText} text-xs @[600px]:text-sm font-mono font-bold`}>{uptime?.month || '99.9'}%</span>
+                                <span className={`${opText} text-xs @[600px]:text-sm font-mono font-bold`}>{formatUptimePercentage(uptime?.month || '100', visibility?.uptimeDecimals)}%</span>
                             </div>
                             <div className="h-12 @[600px]:h-16 w-full opacity-80">
                                 <UptimeBars monitor={monitor} theme={t} colors={colors} days={90} height={64} />
@@ -381,11 +386,15 @@ export const MonitorDetailView = memo(({
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
                                         <div className="text-[8px] @[600px]:text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Check Rate</div>
-                                        <div className="text-indigo-200 font-mono text-xs @[600px]:text-sm">5 mins</div>
+                                        <div className="text-indigo-200 font-mono text-xs @[600px]:text-sm">{pollInterval ? `${Math.round(pollInterval / 60000)} mins` : 'Unknown'}</div>
                                     </div>
                                     <div>
-                                        <div className="text-[8px] @[600px]:text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Last Check</div>
-                                        <div className="text-indigo-200 font-mono text-xs @[600px]:text-sm">Just now</div>
+                                        <div className="text-[8px] @[600px]:text-[10px] text-indigo-300/50 uppercase font-bold mb-1">Next Fast Check</div>
+                                        {pollInterval && lastRefreshTime ? (
+                                            <RefreshTimer intervalMs={pollInterval} lastRefresh={lastRefreshTime} className="text-indigo-200 font-mono text-xs @[600px]:text-sm" />
+                                        ) : (
+                                            <div className="text-indigo-200 font-mono text-xs @[600px]:text-sm">-</div>
+                                        )}
                                     </div>
                                 </div>
                             </div>
@@ -404,7 +413,7 @@ export const MonitorDetailView = memo(({
                                         <div key={i} className="flex items-center justify-between pb-2 @[600px]:pb-3 border-b border-white/5 last:border-0 last:pb-0">
                                             <span className="text-xs @[600px]:text-sm text-white/60">{stat.label}</span>
                                             <span className={`font-mono text-xs @[600px]:text-sm font-bold ${is100 ? opText : stat.val ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                                {stat.val ? `${stat.val}%` : '-'}
+                                                {stat.val ? `${formatUptimePercentage(stat.val, visibility?.uptimeDecimals)}%` : '-'}
                                             </span>
                                         </div>
                                     );

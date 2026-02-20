@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { Activity } from 'lucide-react';
 import { ThemeConfig } from '@/lib/themes';
 import { classNames } from '@/lib/utils';
+import { RefreshTimer } from '../status-page/RefreshTimer';
 
 interface EditorHeaderProps {
     logoUrl?: string;
@@ -13,6 +14,8 @@ interface EditorHeaderProps {
     theme: ThemeConfig;
     supportEmail?: string;
     supportUrl?: string;
+    pollInterval?: number;
+    lastRefreshTime?: number | null;
 }
 
 export const EditorHeader = memo(({
@@ -22,7 +25,9 @@ export const EditorHeader = memo(({
     serviceCount,
     theme: t,
     supportEmail,
-    supportUrl
+    supportUrl,
+    pollInterval,
+    lastRefreshTime
 }: EditorHeaderProps) => {
     return (
         <div className={classNames(
@@ -47,11 +52,17 @@ export const EditorHeader = memo(({
                     <h1 className={classNames("text-lg sm:text-4xl text-white leading-tight truncate px-1", t.heading)}>
                         {brandName || "Brand Name"}
                     </h1>
-                    <div className={classNames("flex items-center gap-2 mt-1 sm:mt-2 text-[10px] sm:text-sm font-medium px-1", t.mutedText)}>
+                    <div className={classNames("flex items-center gap-4 mt-1 sm:mt-2 text-[10px] sm:text-sm font-medium px-1", t.mutedText)}>
                         <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-emerald-500 animate-pulse" />
                             Monitoring {serviceCount} services
                         </div>
+                        {pollInterval && lastRefreshTime && (
+                            <>
+                                <div className="w-1 h-1 rounded-full bg-white/20 hidden sm:block" />
+                                <RefreshTimer intervalMs={pollInterval} lastRefresh={lastRefreshTime} className="font-mono text-[9px] sm:text-xs text-indigo-400" />
+                            </>
+                        )}
                     </div>
                 </div>
             </div>

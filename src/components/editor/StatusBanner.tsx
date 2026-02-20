@@ -4,6 +4,7 @@ import React, { memo } from 'react';
 import { CheckCircle2, AlertTriangle, Construction } from 'lucide-react';
 import { ThemeConfig, StatusColors } from '@/lib/themes';
 import { classNames } from '@/lib/utils';
+import { RefreshTimer } from '../status-page/RefreshTimer';
 
 interface StatusBannerProps {
     status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial';
@@ -11,11 +12,13 @@ interface StatusBannerProps {
     totalAvgResponse: number;
     theme: ThemeConfig;
     colors?: StatusColors;
-    visibility?: { showPerformanceMetrics: boolean };
+    visibility?: { showPerformanceMetrics?: boolean; uptimeDecimals?: 2 | 3;[key: string]: any };
     monitorError?: string | null;
+    pollInterval?: number;
+    lastRefreshTime?: number | null;
 }
 
-export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors, visibility, monitorError }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, theme: t, colors, visibility, monitorError, pollInterval, lastRefreshTime }: StatusBannerProps) => {
     const isError = !!monitorError;
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
@@ -127,6 +130,15 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
                     <p className={`${t.mutedText} text-sm sm:text-lg leading-relaxed max-w-xl mx-auto md:mx-0`}>
                         {getDescription()}
                     </p>
+                    {pollInterval && lastRefreshTime && (
+                        <div className="mt-4 md:absolute md:-bottom-8 md:mt-0 flex justify-center md:justify-start">
+                            <RefreshTimer
+                                intervalMs={pollInterval}
+                                lastRefresh={lastRefreshTime}
+                                className={`${t.mutedText}`}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Global Metrics Pill */}
@@ -146,7 +158,9 @@ export const StatusBanner = memo(({ status, isMobileLayout, totalAvgResponse, th
                         {isMobileLayout && <div className="h-px w-full bg-white/10" />}
                         <div>
                             <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
-                            <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
+                            <div className="text-xl sm:text-2xl font-mono text-emerald-400">
+                                {visibility?.uptimeDecimals === 2 ? '99.90%' : '99.900%'}
+                            </div>
                         </div>
                     </div>
                 )}

@@ -24,6 +24,21 @@ export default function EditorPage() {
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
     const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
 
+    // Live preview refresh local states
+    const [lastRefreshTime, setLastRefreshTime] = useState<number | null>(null);
+
+    // Calculate dynamic poll interval for live preview
+    const pollInterval = useMemo(() => {
+        return monitorsData && monitorsData.length > 0
+            ? Math.max(30000, Math.min(...monitorsData.map(m => m.interval ? m.interval * 1000 : 30000)))
+            : 30000;
+    }, [monitorsData]);
+
+    // Update refresh timestamp when fetches complete
+    useEffect(() => {
+        if (!loading && isRealDataEnabled) setLastRefreshTime(Date.now());
+    }, [loading, isRealDataEnabled, monitorsData]);
+
     // Resizing logic
     const [containerWidth, setContainerWidth] = useState(1200);
     const [isResizing, setIsResizing] = useState(false);
@@ -425,6 +440,8 @@ export default function EditorPage() {
                                     monitorError={monitorError}
                                     onRetry={fetchMonitors}
                                     isLoading={loading}
+                                    pollInterval={isRealDataEnabled && config.apiKey ? pollInterval : undefined}
+                                    lastRefreshTime={isRealDataEnabled && config.apiKey ? lastRefreshTime : undefined}
                                     Header={
                                         <EditorHeader
                                             logoUrl={config.logoUrl}
@@ -432,6 +449,8 @@ export default function EditorPage() {
                                             isMobileLayout={isMobileLayout}
                                             serviceCount={selectedMonitors.length}
                                             theme={t}
+                                            pollInterval={isRealDataEnabled && config.apiKey ? pollInterval : undefined}
+                                            lastRefreshTime={isRealDataEnabled && config.apiKey ? lastRefreshTime : undefined}
                                         />
                                     }
                                     History={
@@ -477,9 +496,22 @@ export default function EditorPage() {
                             </div>
 
                             {(() => {
-                                const activeUpdates = Object.values(config.annotations || {}).flat();
-                                const totalUpdates = activeUpdates.length;
-                                const monitorsWithUpdates = Object.keys(config.annotations || {}).filter(key => (config.annotations?.[key]?.length ?? 0) > 0).length;
+                                const annotations = config.annotations || {};
+                                let totalUpdates = 0;
+                                let monitorsWithUpdates = 0;
+
+                                Object.entries(annotations).forEach(([monitorId, updates]) => {
+                                    const publishedUpdates = publishedConfig?.annotations?.[monitorId] || [];
+                                    const editableUpdates = updates.filter(u => {
+                                        const isUnpublished = publishedConfig ? !publishedUpdates.some(pub => pub.id === u.id) : true;
+                                        return isUnpublished || (Date.now() - new Date(u.createdAt).getTime()) < 30 * 60 * 1000;
+                                    });
+
+                                    if (editableUpdates.length > 0) {
+                                        totalUpdates += editableUpdates.length;
+                                        monitorsWithUpdates++;
+                                    }
+                                });
 
                                 if (totalUpdates > 0) {
                                     return (

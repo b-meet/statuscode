@@ -9,6 +9,7 @@ export function getDemoMonitors(): MonitorData[] {
             friendly_name: "API Gateway (Demo)",
             url: "https://api.example.com",
             status: 2,
+            interval: 300,
             custom_uptime_ratio: "100.00-100.00-100.00",
             create_datetime: now - 7884000, // 3 months ago
             response_times: Array.from({ length: 20 }).map((_, i) => ({
@@ -22,6 +23,7 @@ export function getDemoMonitors(): MonitorData[] {
             friendly_name: "Web Dashboard (Demo)",
             url: "https://app.example.com",
             status: 2,
+            interval: 300,
             custom_uptime_ratio: "99.99-100.00-100.00",
             create_datetime: now - 7884000,
             response_times: Array.from({ length: 20 }).map((_, i) => ({
@@ -35,6 +37,7 @@ export function getDemoMonitors(): MonitorData[] {
             friendly_name: "Database Cluster (Demo)",
             url: "postgresql://db.example.com",
             status: 2,
+            interval: 300,
             custom_uptime_ratio: "100.00-100.00-100.00",
             create_datetime: now - 7884000,
             response_times: Array.from({ length: 20 }).map((_, i) => ({

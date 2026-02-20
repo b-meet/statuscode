@@ -6,7 +6,7 @@ import { Activity, Trash2 } from 'lucide-react';
 import { ThemeConfig, StatusColors, getBaseColor, getThemeColorHex } from '@/lib/themes';
 import { Sparkline } from './Sparkline';
 import { UptimeBars } from '../status-page/UptimeBars';
-import { formatUptime, getAverageResponseTime, getLogReason, formatDuration } from '@/lib/utils';
+import { formatUptime, getAverageResponseTime, getLogReason, formatDuration, formatUptimePercentage } from '@/lib/utils';
 import { MonitorData, Log, IncidentUpdate } from '@/lib/types';
 import { toDemoStringId } from '@/lib/mockMonitors';
 import { SiteConfig } from '@/context/EditorContext';
@@ -18,7 +18,7 @@ interface MonitorListProps {
     primaryColor: string;
     theme: ThemeConfig;
     colors?: StatusColors;
-    visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showPerformanceMetrics: boolean; showUptimeBars: boolean };
+    visibility?: { showSparklines: boolean; showIncidentHistory: boolean; showPerformanceMetrics: boolean; showUptimeBars: boolean; uptimeDecimals?: 2 | 3 };
     brandName?: string;
     annotations?: Record<string, IncidentUpdate[]>;
     onDeleteUpdate?: (id: string) => void;
@@ -104,15 +104,23 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                     <div className="min-w-0">
                                                         <h4 className={`text-base sm:text-lg text-white group-hover:text-indigo-300 transition-colors ${t.heading} line-clamp-1 flex items-center gap-2`}>
                                                             <span className="truncate">{monitor.friendly_name}</span>
-                                                            {annotations?.[monitor.id] && annotations[monitor.id].length > 0 && (
-                                                                <span className="flex h-2 w-2 relative flex-shrink-0" title="Active Status Update">
-                                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                                                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-                                                                </span>
-                                                            )}
+                                                            {(() => {
+                                                                const publishedUpdates = publishedConfig?.annotations?.[monitor.id] || [];
+                                                                const hasEditableUpdates = annotations?.[monitor.id]?.some(u => {
+                                                                    const isUnpublished = publishedConfig ? !publishedUpdates.some(pub => pub.id === u.id) : true;
+                                                                    return isUnpublished || (Date.now() - new Date(u.createdAt).getTime()) < 30 * 60 * 1000;
+                                                                }) || false;
+
+                                                                return hasEditableUpdates && (
+                                                                    <span className="flex h-2 w-2 relative flex-shrink-0" title="Active Status Update">
+                                                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                                                    </span>
+                                                                );
+                                                            })()}
                                                         </h4>
-                                                        <div className={`text-xs ${t.mutedText} flex items-center gap-3 mt-1`} style={{ color: primaryColor }}>
-                                                            <span>{uptime?.month || '99.9'}% Uptime</span>
+                                                        <div className={`text-xs ${t.mutedText} flex items-center gap-3 mt-1`}>
+                                                            <span>{formatUptimePercentage(uptime?.month || '100', visibility?.uptimeDecimals)}% Uptime</span>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -135,7 +143,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                     <div className="space-y-0.5">
                                                         <div className="text-[9px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
                                                         <div className={`font-mono text-xs font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                                            {hasData ? `${uptime?.day}%` : '-'}
+                                                            {hasData ? `${formatUptimePercentage(uptime?.day || '100', visibility?.uptimeDecimals)}%` : '-'}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -171,7 +179,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                 <div className="space-y-0.5">
                                                     <div className="text-[10px] text-white/30 uppercase tracking-wider font-semibold">24h</div>
                                                     <div className={`font-mono text-sm font-bold ${hasData && uptime && parseFloat(uptime.day) === 100 ? activeTextClass : hasData ? 'text-yellow-400' : 'text-zinc-600'}`}>
-                                                        {hasData ? `${uptime?.day}%` : '-'}
+                                                        {hasData ? `${formatUptimePercentage(uptime?.day || '100', visibility?.uptimeDecimals)}%` : '-'}
                                                     </div>
                                                 </div>
                                             </div>
@@ -215,7 +223,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
 
                                                         const combinedHistory = [
                                                             ...updates.map(u => {
-                                                                const isUnpublished = publishedConfig ? !publishedUpdates.some(pub => pub.id === u.id) : false;
+                                                                const isUnpublished = publishedConfig ? !publishedUpdates.some(pub => pub.id === u.id) : true;
                                                                 return {
                                                                     type: 'update',
                                                                     date: new Date(u.createdAt),
@@ -284,8 +292,7 @@ export const MonitorList = memo(({ monitors, setSelectedMonitorId, primaryColor,
                                                                                                     <button
                                                                                                         onClick={(e) => {
                                                                                                             e.stopPropagation();
-                                                                                                            // @ts-ignore
-                                                                                                            if (item.originalId) onDeleteUpdate(item.originalId);
+                                                                                                            if ('originalId' in item && item.originalId) onDeleteUpdate(item.originalId as string);
                                                                                                         }}
                                                                                                         className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded text-zinc-500 hover:text-red-400 flex-shrink-0"
                                                                                                         title="Delete Update (available for 30m after publish)"

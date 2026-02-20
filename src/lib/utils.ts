@@ -17,6 +17,14 @@ export function formatUptime(ratioString: string) {
     };
 }
 
+export function formatUptimePercentage(val: string | number | undefined | null, decimals: number = 3): string {
+    if (val === undefined || val === null) return '-';
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num)) return '-';
+    // Remove trailing zeros generically if not 100? Requirement states trailing zeros are optional depending on selection.
+    return num.toFixed(decimals);
+}
+
 export function getAverageResponseTime(times: { value: number }[] = []) {
     if (!times.length) return 0;
     const sum = times.reduce((acc, curr) => acc + curr.value, 0);

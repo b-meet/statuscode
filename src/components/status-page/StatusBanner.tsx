@@ -4,13 +4,16 @@ import React, { memo } from 'react';
 import { CheckCircle2, AlertTriangle, Construction } from 'lucide-react';
 import { ThemeConfig, StatusColors } from '@/lib/themes';
 import { classNames } from '@/lib/utils';
+import { RefreshTimer } from './RefreshTimer';
 
 interface StatusBannerProps {
     status: 'operational' | 'partial' | 'major' | 'maintenance' | 'maintenance_partial';
     totalAvgResponse: number;
     theme: ThemeConfig;
     colors?: StatusColors;
-    visibility?: { showPerformanceMetrics: boolean };
+    visibility?: { showPerformanceMetrics: boolean; uptimeDecimals?: 2 | 3 };
+    pollInterval?: number;
+    lastRefreshTime?: number;
 }
 
 // Safelist for dynamic classes (Tailwind JIT needs to see these)
@@ -34,7 +37,7 @@ interface StatusBannerProps {
 // bg-zinc-500/5 ring-zinc-500/20 bg-zinc-500/10 text-zinc-500 ring-zinc-500/50 from-zinc-500
 // bg-stone-500/5 ring-stone-500/20 bg-stone-500/10 text-stone-500 ring-stone-500/50 from-stone-500
 
-export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors, visibility }: StatusBannerProps) => {
+export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors, visibility, pollInterval, lastRefreshTime }: StatusBannerProps) => {
     const isMajor = status === 'major';
     const isPartial = status === 'partial';
     const isMaintenance = status === 'maintenance';
@@ -135,13 +138,23 @@ export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors, 
                             <AlertTriangle className="w-10 h-10" />}
                 </div>
 
-                <div className="text-center md:text-left flex-1">
+                <div className="text-center md:text-left flex-1 relative">
                     <h2 className={`text-lg sm:text-3xl text-white mb-2 ${t.heading} drop-shadow-sm`}>
                         {getTitle()}
                     </h2>
                     <p className={`${t.mutedText} text-sm sm:text-lg leading-relaxed max-w-xl mx-auto md:mx-0`}>
                         {getDescription()}
                     </p>
+
+                    {pollInterval && lastRefreshTime && (
+                        <div className="mt-4 md:absolute md:-bottom-8 md:mt-0 flex justify-center md:justify-start">
+                            <RefreshTimer
+                                intervalMs={pollInterval}
+                                lastRefresh={lastRefreshTime}
+                                className={`${t.mutedText}`}
+                            />
+                        </div>
+                    )}
                 </div>
 
                 {/* Global Metrics Pill */}
@@ -163,7 +176,9 @@ export const StatusBanner = memo(({ status, totalAvgResponse, theme: t, colors, 
 
                         <div>
                             <div className="text-[10px] text-white/40 uppercase tracking-widest font-bold mb-1">Uptime</div>
-                            <div className="text-xl sm:text-2xl font-mono text-emerald-400">99.9%</div>
+                            <div className="text-xl sm:text-2xl font-mono text-emerald-400">
+                                {visibility?.uptimeDecimals === 2 ? '99.90%' : '99.900%'}
+                            </div>
                         </div>
                     </div>
                 )}

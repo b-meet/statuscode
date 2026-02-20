@@ -158,6 +158,36 @@ export default function VisibilitySettings() {
                             })}
                         </div>
 
+                        <div className="mt-4 px-2 pt-2 border-t border-zinc-800/50">
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="text-xs font-medium text-white">Uptime Decimals</div>
+                                <div className="flex bg-zinc-900 rounded-lg p-0.5 border border-zinc-800">
+                                    {[2, 3].map((val) => (
+                                        <button
+                                            key={val}
+                                            onClick={() => {
+                                                updateConfig({
+                                                    visibility: {
+                                                        ...config.visibility,
+                                                        uptimeDecimals: val as 2 | 3
+                                                    }
+                                                });
+                                            }}
+                                            className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${config.visibility.uptimeDecimals === val || (!config.visibility.uptimeDecimals && val === 3)
+                                                ? 'bg-zinc-800 text-white shadow-sm'
+                                                : 'text-zinc-500 hover:text-zinc-300'
+                                                }`}
+                                        >
+                                            {val}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="text-[10px] text-zinc-500 leading-tight">
+                                Format: 99.{config.visibility.uptimeDecimals === 2 ? '90' : '900'}%
+                            </div>
+                        </div>
+
                         <div className="mt-2 p-2 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
                             <div className="flex gap-2">
                                 <Eye className="w-3 h-3 text-indigo-400 shrink-0 mt-0.5" />
