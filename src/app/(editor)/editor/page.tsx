@@ -18,7 +18,7 @@ import { toDemoStringId } from "@/lib/mockMonitors";
 
 
 export default function EditorPage() {
-    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing, loading, monitorError, fetchMonitors, publishedConfig } = useEditor();
+    const { config, updateConfig, saveStatus, monitorsData, isRealDataEnabled, toggleRealData, publishSite, isPublishing, loading, monitorError, fetchMonitors, publishedConfig, subdomainError } = useEditor();
     const [viewport, setViewport] = useState<'desktop' | 'mobile'>('desktop');
     const [isMaximized, setIsMaximized] = useState(false);
     const [selectedMonitorId, setSelectedMonitorId] = useState<string | null>(null);
@@ -317,8 +317,9 @@ export default function EditorPage() {
 
                     {(() => {
                         const hasRealMonitors = config.monitors.some(id => !id.startsWith('demo-'));
-                        const isDisabled = isPublishing || !hasRealMonitors;
-                        const tooltip = !hasRealMonitors ? "You need at least 1 active (non-demo) monitor to publish your page" : undefined;
+                        const isDisabled = isPublishing || !hasRealMonitors || !!subdomainError;
+                        let tooltip = !hasRealMonitors ? "You need at least 1 active (non-demo) monitor to publish your page" : undefined;
+                        if (subdomainError) tooltip = subdomainError;
 
                         return (
                             <button
@@ -569,7 +570,8 @@ export default function EditorPage() {
                                     setIsPublishModalOpen(false);
                                     publishSite();
                                 }}
-                                className="px-4 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center gap-2"
+                                disabled={!!subdomainError}
+                                className="px-4 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-zinc-200 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Confirm & Publish
                             </button>

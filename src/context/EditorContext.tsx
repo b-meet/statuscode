@@ -65,6 +65,8 @@ export interface EditorContextType {
     user: any | null; // Supabase user
     monitorError: string | null;
     publishedConfig: SiteConfig | null;
+    subdomainError: string | null;
+    setSubdomainError: (error: string | null) => void;
 }
 
 // --- Default State ---
@@ -102,6 +104,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const [baseMonitors, setBaseMonitors] = useState<MonitorData[]>([]);
     const [user, setUser] = useState<any | null>(null);
     const [monitorError, setMonitorError] = useState<string | null>(null);
+    const [subdomainError, setSubdomainError] = useState<string | null>(null);
     const [publishedConfig, setPublishedConfig] = useState<SiteConfig | null>(null);
     const supabase = React.useMemo(() => createClient(), []);
 
@@ -493,7 +496,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             addDemoMonitors,
             user,
             monitorError,
-            publishedConfig
+            publishedConfig,
+            subdomainError,
+            setSubdomainError
         }}>
             {children}
         </EditorContext.Provider>

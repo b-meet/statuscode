@@ -3,14 +3,15 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { Plus, ExternalLink, Activity, ArrowRight, Loader2, Cog, RefreshCw } from "lucide-react";
-import { motion } from "framer-motion";
+import { Plus, ExternalLink, Activity, ArrowRight, Loader2, Cog, RefreshCw, Trash2, AlertCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { MaintenanceWindow } from "@/lib/types";
 import { formatUptimePercentage } from "@/lib/utils";
 import { toast } from "sonner";
+import { createPortal } from "react-dom";
 
 interface Site {
     id: string;
@@ -40,6 +41,15 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [uptimeMap, setUptimeMap] = useState<Record<string, string | null>>({});
+    const [isDeletingSiteId, setIsDeletingSiteId] = useState<string | null>(null);
+    const [isDeletingSiteName, setIsDeletingSiteName] = useState<string>('');
+    const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
+    const [hasConsented, setHasConsented] = useState(false);
+    const [mounted, setMounted] = useState(false);
+
+    useEffect(() => {
+        setMounted(true);
+    }, []);
 
     useEffect(() => {
         async function loadDashboard() {
@@ -108,6 +118,49 @@ export default function DashboardPage() {
             return next;
         });
         toast.success("Refreshing uptime...");
+    };
+
+    const handleDeleteSite = async (id: string | null) => {
+        if (!id) return;
+        const siteName = isDeletingSiteName;
+        setIsDeletingSiteId(null);
+        setDeleteConfirmationInput('');
+        setHasConsented(false);
+
+        const promise = (async () => {
+            // 1. Log consent
+            try {
+                await supabase
+                    .from('deletion_logs')
+                    .insert({
+                        site_id: id,
+                        user_id: user.id,
+                        site_name: siteName,
+                        consent_text: "I understand the consequences and statuscode is not liable for any issues",
+                        action: 'delete'
+                    });
+            } catch (e) {
+                console.warn("Failed to log deletion consent, but proceeding with deletion:", e);
+            }
+
+            // 2. Delete site
+            const { error } = await supabase
+                .from('sites')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+
+            // Update local state
+            setSites(prev => prev.filter(s => s.id !== id));
+            return "Project deleted successfully";
+        })();
+
+        toast.promise(promise, {
+            loading: 'Deleting project...',
+            success: (msg: string) => msg,
+            error: 'Failed to delete project'
+        });
     };
 
     if (loading) {
@@ -318,6 +371,18 @@ export default function DashboardPage() {
                                         >
                                             <Cog className="w-4 h-4" />
                                         </button>
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsDeletingSiteId(site.id);
+                                                setIsDeletingSiteName(site.brand_name || "Untitled Project");
+                                            }}
+                                            className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/50 transition-all"
+                                            title="Delete Project"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </button>
                                     </div>
                                 </div>
                             </motion.div>
@@ -353,6 +418,92 @@ export default function DashboardPage() {
                     </Link>
                 </div>
             )}
+
+            {/* Delete Confirmation Modal */}
+            <AnimatePresence>
+                {isDeletingSiteId && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-[#09090b] border border-red-500/30 rounded-2xl shadow-2xl shadow-red-500/10 max-w-md w-full overflow-hidden"
+                        >
+                            <div className="p-6">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center text-red-500">
+                                        <AlertCircle className="w-6 h-6" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-bold text-white">Delete Project?</h3>
+                                        <p className="text-sm text-red-400">This action is permanent and irreversible.</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4 mb-6">
+                                    <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                                        <p className="text-sm text-red-200/90 leading-relaxed">
+                                            <strong>Warning:</strong> All monitors, incident history, and custom settings for <span className="text-white font-bold">"{isDeletingSiteName}"</span> will be permanently deleted.
+                                        </p>
+                                        <p className="text-sm text-red-200/90 leading-relaxed mt-2">
+                                            If published, the live status page will be immediately taken down, and visitors will see a <strong>404 page not found</strong> error.
+                                        </p>
+                                    </div>
+
+                                    <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-4 space-y-3">
+                                        <div className="space-y-1.5">
+                                            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-wider">
+                                                Please type <span className="font-mono text-white">delete:{isDeletingSiteName}</span> to confirm
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={deleteConfirmationInput}
+                                                onChange={(e) => setDeleteConfirmationInput(e.target.value)}
+                                                placeholder={`delete:${isDeletingSiteName}`}
+                                                className="w-full h-10 px-3 bg-black border border-zinc-800 rounded-lg text-sm text-white placeholder:text-zinc-700 focus:outline-none focus:border-red-500/50 transition-colors font-mono"
+                                            />
+                                        </div>
+
+                                        <label className="flex items-start gap-3 cursor-pointer group">
+                                            <div className="relative flex items-center mt-0.5">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={hasConsented}
+                                                    onChange={(e) => setHasConsented(e.target.checked)}
+                                                    className="peer h-4 w-4 rounded border-zinc-800 bg-black text-red-600 focus:ring-red-600 focus:ring-offset-zinc-950"
+                                                />
+                                            </div>
+                                            <span className="text-xs text-zinc-500 group-hover:text-zinc-400 transition-colors">
+                                                I understand the consequences and statuscode is not liable for any issues
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => {
+                                            setIsDeletingSiteId(null);
+                                            setDeleteConfirmationInput('');
+                                            setHasConsented(false);
+                                        }}
+                                        className="flex-1 h-11 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all font-medium text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        disabled={deleteConfirmationInput !== `delete:${isDeletingSiteName}` || !hasConsented}
+                                        onClick={() => handleDeleteSite(isDeletingSiteId)}
+                                        className="flex-1 h-11 rounded-xl bg-red-600 text-white hover:bg-red-500 transition-all font-bold text-sm shadow-[0_0_20px_rgba(220,38,38,0.2)] disabled:opacity-50 disabled:cursor-not-allowed disabled:grayscale disabled:shadow-none"
+                                    >
+                                        Delete Project
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

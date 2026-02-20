@@ -7,15 +7,51 @@ import { createClient } from "@/utils/supabase/client";
 import { toast } from "sonner";
 
 export default function BrandSettings() {
-    const { config, updateConfig } = useEditor();
+    const { config, updateConfig, subdomainError, setSubdomainError } = useEditor();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isUploading, setIsUploading] = useState(false);
+    const [isVerifyingSubdomain, setIsVerifyingSubdomain] = useState(false);
     const [host, setHost] = useState('');
     const supabase = createClient();
 
     useEffect(() => {
         setHost(window.location.host);
     }, []);
+
+    // Debounced Subdomain Validation
+    useEffect(() => {
+        if (!config.subdomain) {
+            setSubdomainError(null);
+            return;
+        }
+
+        const timeoutId = setTimeout(async () => {
+            setIsVerifyingSubdomain(true);
+            setSubdomainError(null);
+
+            try {
+                // Check if subdomain exists in 'sites' table
+                const { data, error } = await supabase
+                    .from('sites')
+                    .select('id')
+                    .eq('subdomain', config.subdomain)
+                    .neq('id', config.id || '') // Exclude current site
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (data) {
+                    setSubdomainError("This subdomain is already taken");
+                }
+            } catch (err) {
+                console.error("Subdomain check failed:", err);
+            } finally {
+                setIsVerifyingSubdomain(false);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [config.subdomain, config.id, supabase]);
 
     const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -88,7 +124,10 @@ export default function BrandSettings() {
             <div className="space-y-1.5">
                 <label className="text-xs text-zinc-500">Subdomain</label>
                 <div className="flex gap-2">
-                    <div className="flex-1 bg-black border border-zinc-800 rounded-lg flex items-center px-3 gap-1 overflow-hidden">
+                    <div className={`
+                        flex-1 bg-black border rounded-lg flex items-center px-3 gap-1 overflow-hidden transition-colors
+                        ${subdomainError ? 'border-red-500/50' : 'border-zinc-800'}
+                    `}>
                         <span className="text-zinc-600 text-sm whitespace-nowrap">{host || 'statuscode.in'}/s/</span>
                         <input
                             type="text"
@@ -97,21 +136,28 @@ export default function BrandSettings() {
                             placeholder={config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}
                             className="flex-1 h-9 bg-transparent border-none text-white text-sm placeholder:text-zinc-800 focus:outline-none focus:ring-0 p-0 min-w-0"
                         />
+                        {isVerifyingSubdomain && (
+                            <Loader2 className="w-3 h-3 text-zinc-500 animate-spin shrink-0" />
+                        )}
                     </div>
                     <button
                         onClick={() => {
                             const slug = config.subdomain || config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
                             window.open(`${window.location.origin}/s/${slug}`, '_blank');
                         }}
-                        className="px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors"
+                        className="px-3 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors shrink-0"
                         title="Preview Public Page"
                     >
                         <ExternalLink className="w-4 h-4" />
                     </button>
                 </div>
-                <p className="text-[10px] text-zinc-600">
-                    The URL where your status page will be publicly accessible.
-                </p>
+                {subdomainError ? (
+                    <p className="text-[10px] text-red-500 font-medium">{subdomainError}</p>
+                ) : (
+                    <p className="text-[10px] text-zinc-600 text-balanced">
+                        The URL where your status page will be publicly accessible.
+                    </p>
+                )}
             </div>
 
             {/* Support Configuration */}
