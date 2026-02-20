@@ -14,7 +14,7 @@ import {
     Trash2, Sparkles, Palette
 } from "lucide-react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // --- Animation Variants ---
 const slideVariants = {
@@ -41,6 +41,8 @@ const slideVariants = {
 function SetupPageContent() {
     const supabase = createClient();
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const mode = searchParams.get('mode');
     const [step, setStep] = useState<"setup" | "setup-theme" | "success">("setup");
     const [direction, setDirection] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -136,7 +138,7 @@ function SetupPageContent() {
             };
 
             try {
-                if (existingSite) {
+                if (existingSite && mode !== 'create') {
                     const { error } = await supabase
                         .from('sites')
                         .update({ ...sitePayload, subdomain })
@@ -528,8 +530,16 @@ function SetupPageContent() {
     );
 }
 
+import { Suspense } from "react";
+
 export default function SetupPageWrapper() {
     return (
-        <SetupPageContent />
+        <Suspense fallback={
+            <div className="min-h-screen bg-black flex items-center justify-center">
+                <Loader2 className="animate-spin text-white w-8 h-8" />
+            </div>
+        }>
+            <SetupPageContent />
+        </Suspense>
     );
 }

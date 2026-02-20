@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { User, LogOut } from "lucide-react";
 import { createClient } from "@/utils/supabase/client";
@@ -14,6 +15,22 @@ export default function DashboardLayout({
 }) {
     const supabase = createClient();
     const router = useRouter();
+    const [user, setUser] = useState<any>(null);
+
+    useEffect(() => {
+        supabase.auth.getUser().then((res: any) => {
+            if (res.data?.user) setUser(res.data.user);
+        });
+    }, [supabase]);
+
+    const initials = user
+        ? (user.user_metadata?.full_name || user.email || '?')
+            .split(' ')
+            .map((n: string) => n[0])
+            .slice(0, 2)
+            .join('')
+            .toUpperCase()
+        : '';
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -41,8 +58,8 @@ export default function DashboardLayout({
                     <div className="h-6 w-[1px] bg-zinc-800 hidden md:block" />
 
                     <div className="flex items-center gap-4">
-                        <button className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-purple-500/20">
-                            <User className="w-4 h-4" />
+                        <button className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-semibold shrink-0 hover:bg-indigo-500 transition-colors">
+                            {user ? initials : <User className="w-4 h-4" />}
                         </button>
                         <button onClick={handleSignOut} className="text-zinc-500 hover:text-white transition-colors">
                             <LogOut className="w-4 h-4" />

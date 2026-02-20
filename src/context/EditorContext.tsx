@@ -298,7 +298,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         const timeout = setTimeout(async () => {
             setSaveStatus('saving');
             try {
-                const { data: { user } } = await supabase.auth.getUser();
                 if (!user) {
                     // Silent fail or just stay idle if not logged in yet, 
                     // but usually we want to know. 
@@ -369,7 +368,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         }, 2000); // 2 second debounce
 
         return () => clearTimeout(timeout);
-    }, [config, loading, supabase]);
+    }, [config, loading, supabase, user]);
 
     // --- Real-time Data Logic ---
     const [isRealDataEnabled, setIsRealDataEnabled] = useState(true);
