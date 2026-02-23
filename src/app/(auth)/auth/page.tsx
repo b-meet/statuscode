@@ -347,7 +347,7 @@ function AuthPageContent() {
     const isEmailValid = email.includes('@') && email.includes('.');
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans selection:bg-glaze-500/30 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-black text-white font-sans selection:bg-statuscode-500/30 flex items-center justify-center p-4 relative overflow-hidden">
 
             {/* SKIP CONFIRMATION MODAL */}
             <AnimatePresence>
@@ -394,7 +394,7 @@ function AuthPageContent() {
             <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_50%,transparent,rgba(0,0,0,0.4))] z-0" />
 
             {/* Backlight Glow */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-glaze-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-statuscode-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
             {/* Close Button - Hide on Setup Step */}
@@ -428,7 +428,7 @@ function AuthPageContent() {
 
                                     {/* Smart Auth Badge */}
                                     <div className="bg-zinc-900/80 backdrop-blur-md border border-zinc-800 rounded-full px-5 py-3 flex items-center gap-3 shadow-xl">
-                                        <div className="w-8 h-8 rounded-full bg-glaze-500/20 flex items-center justify-center text-glaze-400">
+                                        <div className="w-8 h-8 rounded-full bg-statuscode-500/20 flex items-center justify-center text-statuscode-400">
                                             <ShieldCheck className="w-4 h-4" />
                                         </div>
                                         <div className="text-left">
@@ -585,7 +585,7 @@ function AuthPageContent() {
                                                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                                                 onKeyDown={(e) => handleOtpKeyDown(idx, e)}
                                                 onPaste={idx === 0 ? handlePaste : undefined}
-                                                className="w-10 h-12 md:w-12 md:h-14 rounded-xl bg-black/40 border border-zinc-800 text-white text-center text-xl md:text-2xl font-mono focus:outline-none focus:border-glaze-500/50 focus:ring-4 focus:ring-glaze-500/10 transition-all"
+                                                className="w-10 h-12 md:w-12 md:h-14 rounded-xl bg-black/40 border border-zinc-800 text-white text-center text-xl md:text-2xl font-mono focus:outline-none focus:border-statuscode-500/50 focus:ring-4 focus:ring-statuscode-500/10 transition-all"
                                                 autoFocus={idx === 0}
                                             />
                                         ))}
@@ -755,7 +755,7 @@ function AuthPageContent() {
                                                 >
                                                     <button
                                                         onClick={() => setShowApiTooltip(!showApiTooltip)}
-                                                        className="text-[10px] flex items-center gap-1 text-glaze-400 hover:underline cursor-help"
+                                                        className="text-[10px] flex items-center gap-1 text-statuscode-400 hover:underline cursor-help"
                                                     >
                                                         <HelpCircle className="w-3 h-3" /> Where to find?
                                                     </button>
@@ -771,7 +771,7 @@ function AuthPageContent() {
                                                                     <p>1. Log in to <strong>UptimeRobot</strong>.</p>
                                                                     <p>2. Go to <strong>Integrations and API</strong> → <strong>API</strong>.</p>
                                                                     <p>3. Create a <strong>Read-Only API Key</strong>.</p>
-                                                                    <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] inline-flex items-center gap-1 text-glaze-400 hover:text-white transition-colors">
+                                                                    <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] inline-flex items-center gap-1 text-statuscode-400 hover:text-white transition-colors">
                                                                         Open Settings <ExternalLink className="w-3 h-3" />
                                                                     </a>
                                                                 </div>
@@ -789,7 +789,7 @@ function AuthPageContent() {
                                                     placeholder="Paste Read-Only API Key"
                                                     value={apiKey}
                                                     onChange={(e) => setApiKey(e.target.value)}
-                                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-glaze-500/50 focus:ring-4 focus:ring-glaze-500/10 transition-all text-sm font-mono"
+                                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-statuscode-500/50 focus:ring-4 focus:ring-statuscode-500/10 transition-all text-sm font-mono"
                                                 />
                                             </div>
                                         </div>
@@ -963,16 +963,16 @@ function AuthPageContent() {
                                 <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-zinc-400 rounded-full" />
 
                                 {/* Final Step Badge */}
-                                <div className="bg-glaze-500/10 backdrop-blur-md border border-glaze-500/20 rounded-full px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                                <div className="bg-statuscode-500/10 backdrop-blur-md border border-statuscode-500/20 rounded-full px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
                                     <div className="text-right">
-                                        <div className="text-xs font-bold text-glaze-300 tracking-wide uppercase">
+                                        <div className="text-xs font-bold text-statuscode-300 tracking-wide uppercase">
                                             {step === 'setup' ? 'Next Step' : 'Final Step'}
                                         </div>
-                                        <div className="text-[10px] text-glaze-400/80">
+                                        <div className="text-[10px] text-statuscode-400/80">
                                             {step === 'setup' ? 'Select Theme' : 'Launch Control'}
                                         </div>
                                     </div>
-                                    <div className="w-8 h-8 rounded-full bg-glaze-500/20 flex items-center justify-center text-glaze-400">
+                                    <div className="w-8 h-8 rounded-full bg-statuscode-500/20 flex items-center justify-center text-statuscode-400">
                                         {step === 'setup' ? <Palette className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}
                                     </div>
                                 </div>

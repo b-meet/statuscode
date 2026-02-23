@@ -47,9 +47,9 @@ export function Features() {
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: idx * 0.1 }}
                             viewport={{ once: true }}
-                            className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 hover:border-glaze-500/30 transition-colors"
+                            className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 hover:border-statuscode-500/30 transition-colors"
                         >
-                            <div className="w-12 h-12 rounded-lg bg-glaze-100 dark:bg-glaze-500/10 flex items-center justify-center text-glaze-600 dark:text-glaze-400 mb-4">
+                            <div className="w-12 h-12 rounded-lg bg-statuscode-100 dark:bg-statuscode-500/10 flex items-center justify-center text-statuscode-600 dark:text-statuscode-400 mb-4">
                                 <feature.icon className="size-6" />
                             </div>
                             <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">

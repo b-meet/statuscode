@@ -28,7 +28,7 @@ export function HowItWorks() {
                         className="md:col-span-2 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
                     >
                         <div className="relative z-10 max-w-md">
-                            <div className="w-10 h-10 rounded-xl bg-glaze-500/10 flex items-center justify-center text-glaze-500 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Plug className="size-5" />
                             </div>
                             <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">1. Connect Your Source</h3>
@@ -51,7 +51,7 @@ export function HowItWorks() {
                                 </div>
                             </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-glaze-500/5 pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-statuscode-500/5 pointer-events-none" />
                     </motion.div>
 
                     {/* Step 2: Choose Vibe (Standard) */}
@@ -64,7 +64,7 @@ export function HowItWorks() {
                     >
                         {/* Header */}
                         <div className="relative z-10">
-                            <div className="w-10 h-10 rounded-xl bg-glaze-500/10 flex items-center justify-center text-glaze-500 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Palette className="size-5" />
                             </div>
                             <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">2. Choose Vibe</h3>
@@ -76,8 +76,8 @@ export function HowItWorks() {
                             {/* Card 1: Minimalist White (Silver/Zinc) */}
                             <div className="w-20 h-24 rounded-t-lg bg-zinc-200 border-t border-x border-zinc-300 translate-y-8 group-hover:translate-y-0 transition-transform duration-500 ease-out delay-0" />
 
-                            {/* Card 2: Brand (Glaze Indigo) - Taller */}
-                            <div className="w-20 h-32 rounded-t-lg bg-glaze-500 shadow-[0_0_30px_rgba(99,102,241,0.4)] z-10 translate-y-8 group-hover:translate-y-0 transition-transform duration-500 ease-out delay-75" />
+                            {/* Card 2: Brand (Statuscode Indigo) - Taller */}
+                            <div className="w-20 h-32 rounded-t-lg bg-statuscode-500 shadow-[0_0_30px_rgba(99,102,241,0.4)] z-10 translate-y-8 group-hover:translate-y-0 transition-transform duration-500 ease-out delay-75" />
 
                             {/* Card 3: Cyberpunk Dark (Black/Zinc-900) */}
                             <div className="w-20 h-28 rounded-t-lg bg-zinc-900 border-t border-x border-zinc-800 translate-y-8 group-hover:translate-y-0 transition-transform duration-500 ease-out delay-150" />
@@ -100,7 +100,7 @@ export function HowItWorks() {
                         </div>
 
                         <div className="relative z-10">
-                            <div className="w-10 h-10 rounded-xl bg-glaze-500/10 flex items-center justify-center text-glaze-500 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Sliders className="size-5" />
                             </div>
                             <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">3. Tune Motion</h3>
@@ -115,7 +115,7 @@ export function HowItWorks() {
                                     <span>High</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
-                                    <div className="h-full w-[80%] bg-glaze-500" />
+                                    <div className="h-full w-[80%] bg-statuscode-500" />
                                 </div>
                             </div>
                             <div className="space-y-1 opacity-60">
@@ -124,7 +124,7 @@ export function HowItWorks() {
                                     <span>Med</span>
                                 </div>
                                 <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
-                                    <div className="h-full w-[50%] bg-glaze-500" />
+                                    <div className="h-full w-[50%] bg-statuscode-500" />
                                 </div>
                             </div>
                         </div>
@@ -139,7 +139,7 @@ export function HowItWorks() {
                         className="md:col-span-2 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
                     >
                         <div className="relative z-10 max-w-sm">
-                            <div className="w-10 h-10 rounded-xl bg-glaze-500/10 flex items-center justify-center text-glaze-500 mb-4">
+                            <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Play className="size-5" />
                             </div>
                             <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">4. Live Preview</h3>
@@ -152,7 +152,7 @@ export function HowItWorks() {
                             <div className="w-20 h-40 bg-zinc-900 rounded-t-2xl border-4 border-zinc-800 border-b-0 shadow-2xl relative z-20">
                                 <div className="w-full h-full bg-zinc-950 rounded-t-lg p-2">
                                     <div className="h-2 w-8 bg-zinc-800 rounded-full mx-auto mb-2" />
-                                    <div className="h-20 w-full bg-glaze-900/20 rounded-lg border border-glaze-500/20" />
+                                    <div className="h-20 w-full bg-statuscode-900/20 rounded-lg border border-statuscode-500/20" />
                                 </div>
                             </div>
                             {/* Desktop Mock */}
@@ -163,7 +163,7 @@ export function HowItWorks() {
                                         <div className="size-2 rounded-full bg-yellow-500/50" />
                                         <div className="size-2 rounded-full bg-green-500/50" />
                                     </div>
-                                    <div className="h-32 w-full bg-glaze-900/10 rounded-lg border border-glaze-500/10 p-2">
+                                    <div className="h-32 w-full bg-statuscode-900/10 rounded-lg border border-statuscode-500/10 p-2">
                                         <div className="flex justify-between items-center mb-4">
                                             <div className="h-2 w-16 bg-zinc-800 rounded-full" />
                                             <div className="h-4 w-12 bg-green-500/20 rounded-full" />
@@ -172,7 +172,7 @@ export function HowItWorks() {
                                 </div>
                             </div>
                         </div>
-                        <div className="absolute inset-0 bg-gradient-to-bl from-transparent via-transparent to-glaze-500/5 pointer-events-none" />
+                        <div className="absolute inset-0 bg-gradient-to-bl from-transparent via-transparent to-statuscode-500/5 pointer-events-none" />
                     </motion.div>
 
                     {/* Step 5: Deploy (Full Width) */}
@@ -185,7 +185,7 @@ export function HowItWorks() {
                     >
                         <div className="relative z-10 max-w-lg">
                             <div className="flex items-center gap-3 mb-2">
-                                <div className="p-2 rounded-lg bg-glaze-500/10 text-glaze-500">
+                                <div className="p-2 rounded-lg bg-statuscode-500/10 text-statuscode-500">
                                     <Rocket className="size-5" />
                                 </div>
                                 <h3 className="text-xl font-bold text-white">5. Deploy Anywhere</h3>
@@ -196,14 +196,14 @@ export function HowItWorks() {
                         </div>
 
                         <div className="relative z-10 mt-6 md:mt-0">
-                            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-glaze-600 text-white font-bold shadow-lg shadow-glaze-500/20 group-hover:scale-105 transition-transform hover:bg-glaze-500 cursor-pointer">
+                            <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-statuscode-600 text-white font-bold shadow-lg shadow-statuscode-500/20 group-hover:scale-105 transition-transform hover:bg-statuscode-500 cursor-pointer">
                                 <span>Launch Now</span>
                                 <Rocket className="size-4" />
                             </div>
                         </div>
 
                         {/* Decor */}
-                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-glaze-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-statuscode-600/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                     </motion.div>
                 </div>
             </div>

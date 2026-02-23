@@ -7,9 +7,9 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationSidebar from "@/components/dashboard/NotificationSidebar";
-import { Site } from "@/lib/types";
-
+import { Site, AppNotification } from "@/lib/types";
 import Image from "next/image";
+import { useNotifications } from "@/context/NotificationContext";
 
 export default function DashboardLayout({
     children,
@@ -32,6 +32,7 @@ export default function DashboardLayout({
             const { data } = await supabase.from('sites').select('*').order('created_at', { ascending: false });
             if (data) setSites(data);
         };
+
         fetchSites();
     }, [supabase]);
 
@@ -62,14 +63,7 @@ export default function DashboardLayout({
 
                 <div className="flex items-center gap-4">
                     {/* Notifications */}
-                    <button
-                        onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all relative group"
-                    >
-                        <Bell className="w-5 h-5" />
-                        {/* Pulse indicator for 'new' notifications */}
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 border border-zinc-950 shadow-[0_0_10px_rgba(99,102,241,0.6)] group-hover:scale-110 transition-transform animate-pulse" />
-                    </button>
+                    <NotificationBell onClick={() => setIsSidebarOpen(true)} />
 
                     <div className="h-6 w-[1px] bg-zinc-800 mx-2" />
 
@@ -149,11 +143,41 @@ export default function DashboardLayout({
                 {children}
             </main>
 
-            <NotificationSidebar
+            <SidebarWrapper
                 isOpen={isSidebarOpen}
                 onClose={() => setIsSidebarOpen(false)}
                 sites={sites}
             />
         </div>
+    );
+}
+
+// Sub-components to consume context
+function NotificationBell({ onClick }: { onClick: () => void }) {
+    const { notifications } = useNotifications();
+    return (
+        <button
+            onClick={onClick}
+            className="p-2 rounded-xl bg-zinc-900/50 border border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-700 transition-all relative group"
+        >
+            <Bell className="w-5 h-5" />
+            {notifications.some((n: AppNotification) => !n.is_read) && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-indigo-500 border border-zinc-950 shadow-[0_0_10px_rgba(99,102,241,0.6)] group-hover:scale-110 transition-transform animate-pulse" />
+            )}
+        </button>
+    );
+}
+
+function SidebarWrapper({ isOpen, onClose, sites }: { isOpen: boolean, onClose: () => void, sites: Site[] }) {
+    const { notifications, isLoading, fetchNotifications } = useNotifications();
+    return (
+        <NotificationSidebar
+            isOpen={isOpen}
+            onClose={onClose}
+            sites={sites}
+            notifications={notifications}
+            isLoading={isLoading}
+            onRefresh={fetchNotifications}
+        />
     );
 }

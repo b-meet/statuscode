@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Site, ThemeConfig, MaintenanceWindow } from "@/lib/types";
 import { formatUptimePercentage } from "@/lib/utils";
 import { useRouter } from "next/navigation";
+import { useNotifications } from "@/context/NotificationContext";
 
 
 export default function DashboardPage() {
@@ -20,6 +21,7 @@ export default function DashboardPage() {
     const [sites, setSites] = useState<Site[]>([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
+    const { addNotification } = useNotifications();
     const [uptimeMap, setUptimeMap] = useState<Record<string, string | null>>({});
     // Deletion Modal State
     const [isDeletingSiteId, setIsDeletingSiteId] = useState<string | null>(null);
@@ -148,6 +150,17 @@ export default function DashboardPage() {
                 .eq('id', id);
 
             if (error) throw error;
+
+            // Trigger persistent notification
+            if (user) {
+                addNotification(
+                    'project',
+                    'deleted',
+                    'Project Deleted',
+                    `"${siteName}" and all its history have been removed.`,
+                    { siteId: id, siteName }
+                );
+            }
 
             // Update local state
             setSites(prev => prev.filter(s => s.id !== id));
@@ -300,6 +313,18 @@ export default function DashboardPage() {
             }));
 
             toast.success("Project settings saved");
+
+            // Trigger persistent notification if published immediately
+            if (settingsPublishImmediately && user) {
+                addNotification(
+                    'project',
+                    'published',
+                    'Changes Published ✨',
+                    `Your latest settings for "${settingsName}" are now live.`,
+                    { siteId: isSettingsSiteId }
+                );
+            }
+
             setIsSettingsSiteId(null);
         } catch (error) {
             console.error("Failed to save settings:", error);

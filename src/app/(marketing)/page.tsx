@@ -35,7 +35,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen selection:bg-glaze-500/30 relative">
+    <div className="min-h-screen selection:bg-statuscode-500/30 relative">
       <Script
         id="json-ld"
         type="application/ld+json"

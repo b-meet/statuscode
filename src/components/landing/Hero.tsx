@@ -14,7 +14,7 @@ export function Hero() {
 
             {/* Background Gradients */}
             <div className="absolute top-0 right-0 -z-10 opacity-40 dark:opacity-20 translate-x-1/3 -translate-y-1/4">
-                <div className="w-[800px] h-[800px] bg-glaze-400/30 rounded-full blur-[120px]" />
+                <div className="w-[800px] h-[800px] bg-statuscode-400/30 rounded-full blur-[120px]" />
             </div>
             <div className="absolute bottom-0 left-0 -z-10 opacity-40 dark:opacity-20 -translate-x-1/3 translate-y-1/4">
                 <div className="w-[600px] h-[600px] bg-accent-500/30 rounded-full blur-[100px]" />
@@ -29,7 +29,7 @@ export function Hero() {
                     transition={{ duration: 0.5 }}
                     className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white dark:bg-white/10 border border-zinc-200 dark:border-white/10 mb-8 shadow-sm backdrop-blur-sm relative z-30"
                 >
-                    <span className="flex h-2 w-2 rounded-full bg-glaze-500 animate-pulse"></span>
+                    <span className="flex h-2 w-2 rounded-full bg-statuscode-500 animate-pulse"></span>
                     <span className="text-sm font-medium text-zinc-600 dark:text-zinc-200">
                         Version βeta
                     </span>
@@ -44,7 +44,7 @@ export function Hero() {
                         className="text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight text-zinc-900 dark:text-white"
                     >
                         Status Pages, <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-500 to-accent-500">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-statuscode-500 to-accent-500">
                             Elevated by Design.
                         </span>
                     </motion.h1>
@@ -113,16 +113,16 @@ export function Hero() {
                                     return (
                                         <div
                                             key={i}
-                                            className="flex-1 bg-glaze-500/20 dark:bg-glaze-500/20 rounded-t-sm"
+                                            className="flex-1 bg-statuscode-500/20 dark:bg-statuscode-500/20 rounded-t-sm"
                                             style={{ height: `${h}%` }}
                                         >
-                                            <div className="w-full bg-glaze-500 dark:bg-glaze-500 rounded-t-sm opacity-80" style={{ height: '100%' }} />
+                                            <div className="w-full bg-statuscode-500 dark:bg-statuscode-500 rounded-t-sm opacity-80" style={{ height: '100%' }} />
                                         </div>
                                     );
                                 })}
                             </div>
                             {/* Glow effect */}
-                            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-glaze-500/10 to-transparent pointer-events-none" />
+                            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-statuscode-500/10 to-transparent pointer-events-none" />
                         </div>
 
                         {/* Box 2: Current Status */}

@@ -57,7 +57,7 @@ export function FAQ() {
                                     {faq.question}
                                 </span>
                                 <span className={`flex-shrink-0 transition-transform duration-300 ${openIndex === idx ? "rotate-45" : ""}`}>
-                                    <Plus className="size-5 text-glaze-500" />
+                                    <Plus className="size-5 text-statuscode-500" />
                                 </span>
                             </button>
                             <motion.div

@@ -53,7 +53,7 @@ export function BoringStatusReveal() {
                 >
                     <h2 className="text-5xl md:text-7xl lg:text-8xl font-black text-center max-w-5xl leading-tight tracking-tighter text-zinc-900 dark:text-white">
                         Say{" "}
-                        <span className="relative inline-block px-6 py-2 mx-2 -rotate-3 bg-glaze-500 text-white rounded-lg shadow-[6px_6px_0px_rgba(0,0,0,0.2)] border-2 border-white/20 transform">
+                        <span className="relative inline-block px-6 py-2 mx-2 -rotate-3 bg-statuscode-500 text-white rounded-lg shadow-[6px_6px_0px_rgba(0,0,0,0.2)] border-2 border-white/20 transform">
                             bye bye
                         </span>
                         {" "}to native{" "}

@@ -28,16 +28,16 @@ export function Footer() {
                     <div>
                         <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Product</h4>
                         <ul className="flex flex-col gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            <li><Link href="#" className="hover:text-glaze-500 transition-colors">Features</Link></li>
-                            <li><Link href="#" className="hover:text-glaze-500 transition-colors">Changelog</Link></li>
+                            <li><Link href="#" className="hover:text-statuscode-500 transition-colors">Features</Link></li>
+                            <li><Link href="#" className="hover:text-statuscode-500 transition-colors">Changelog</Link></li>
                         </ul>
                     </div>
                     <div>
                         <h4 className="font-semibold text-zinc-900 dark:text-white mb-4">Company</h4>
                         <ul className="flex flex-col gap-2 text-sm text-zinc-600 dark:text-zinc-400">
-                            <li><Link href="#" className="hover:text-glaze-500 transition-colors">About</Link></li>
-                            <li><Link href="#" className="hover:text-glaze-500 transition-colors">Blog</Link></li>
-                            <li><Link href="#" className="hover:text-glaze-500 transition-colors">Twitter</Link></li>
+                            <li><Link href="#" className="hover:text-statuscode-500 transition-colors">About</Link></li>
+                            <li><Link href="#" className="hover:text-statuscode-500 transition-colors">Blog</Link></li>
+                            <li><Link href="#" className="hover:text-statuscode-500 transition-colors">Twitter</Link></li>
                         </ul>
                     </div>
                 </div>

@@ -47,7 +47,7 @@ export function WaitlistForm() {
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
-                        className="flex items-center gap-2 text-glaze-500 font-medium p-2"
+                        className="flex items-center gap-2 text-statuscode-500 font-medium p-2"
                     >
                         <Check className="size-5" />
                         <span>You&apos;re on the list! We&apos;ll be in touch.</span>
@@ -67,7 +67,7 @@ export function WaitlistForm() {
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             disabled={status === "loading"}
-                            className="flex-1 h-10 px-4 rounded-full bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-glaze-500/50 transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500"
+                            className="flex-1 h-10 px-4 rounded-full bg-white dark:bg-white/5 border border-zinc-200 dark:border-white/10 focus:outline-none focus:ring-2 focus:ring-statuscode-500/50 transition-all text-zinc-900 dark:text-zinc-100 placeholder:text-zinc-500"
                             required
                         />
                         <Button

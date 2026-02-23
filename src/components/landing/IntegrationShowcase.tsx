@@ -25,7 +25,7 @@ export function IntegrationShowcase() {
                                 "Instatus"
                             ].map((item, i) => (
                                 <div key={i} className="flex items-center gap-3 p-3 rounded-lg border border-zinc-200 dark:border-white/10 bg-white dark:bg-zinc-900/50">
-                                    <CheckCircle2 className="size-5 text-glaze-500 flex-shrink-0" />
+                                    <CheckCircle2 className="size-5 text-statuscode-500 flex-shrink-0" />
                                     <span className="font-medium text-zinc-800 dark:text-zinc-200">{item}</span>
                                 </div>
                             ))}
@@ -52,7 +52,7 @@ export function IntegrationShowcase() {
                                         <motion.div
                                             animate={{ x: ["-100%", "100%"] }}
                                             transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
-                                            className="absolute inset-0 bg-glaze-500 w-1/2"
+                                            className="absolute inset-0 bg-statuscode-500 w-1/2"
                                         />
                                     </div>
                                     <div className="absolute bg-white dark:bg-zinc-950 p-2 rounded-full border border-zinc-200 dark:border-zinc-800">
@@ -60,12 +60,12 @@ export function IntegrationShowcase() {
                                     </div>
                                 </div>
 
-                                {/* Glaze */}
+                                {/* Statuscode */}
                                 <motion.div
                                     initial={{ x: 20, opacity: 0 }}
                                     whileInView={{ x: 0, opacity: 1 }}
                                     transition={{ duration: 0.5 }}
-                                    className="w-24 h-24 rounded-xl bg-gradient-to-br from-glaze-500 to-glaze-600 shadow-xl shadow-glaze-500/20 flex flex-col items-center justify-center gap-2 text-white"
+                                    className="w-24 h-24 rounded-xl bg-gradient-to-br from-statuscode-500 to-statuscode-600 shadow-xl shadow-statuscode-500/20 flex flex-col items-center justify-center gap-2 text-white"
                                 >
                                     <Server className="size-8" />
                                     <span className="text-xs font-medium text-white/90">Statuscode</span>

@@ -8,18 +8,18 @@
   --color-zinc-950: #0c0c0e;
 
   /* Primary: Linear Indigo/Violet (Electric/Magical) */
-  --color-glaze-50: #eef2ff;
-  --color-glaze-100: #e0e7ff;
-  --color-glaze-200: #c7d2fe;
-  --color-glaze-300: #a5b4fc;
-  --color-glaze-400: #818cf8;
-  --color-glaze-500: #6366f1;
+  --color-statuscode-50: #eef2ff;
+  --color-statuscode-100: #e0e7ff;
+  --color-statuscode-200: #c7d2fe;
+  --color-statuscode-300: #a5b4fc;
+  --color-statuscode-400: #818cf8;
+  --color-statuscode-500: #6366f1;
   /* Indigo-500 */
-  --color-glaze-600: #4f46e5;
-  --color-glaze-700: #4338ca;
-  --color-glaze-800: #3730a3;
-  --color-glaze-900: #312e81;
-  --color-glaze-950: #1e1b4b;
+  --color-statuscode-600: #4f46e5;
+  --color-statuscode-700: #4338ca;
+  --color-statuscode-800: #3730a3;
+  --color-statuscode-900: #312e81;
+  --color-statuscode-950: #1e1b4b;
 
   /* Secondary: Electric Purple */
   --color-accent-50: #faf5ff;

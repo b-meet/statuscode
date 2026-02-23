@@ -69,3 +69,17 @@ export interface NotificationChannel {
     is_enabled: boolean;
     created_at: string;
 }
+
+export type NotificationCategory = 'maintenance' | 'project' | 'billing' | 'platform';
+
+export interface AppNotification {
+    id: string;
+    user_id: string;
+    category: NotificationCategory;
+    type: string;
+    title: string;
+    message: string;
+    metadata: Record<string, any>;
+    is_read: boolean;
+    created_at: string;
+}

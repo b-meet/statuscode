@@ -25,9 +25,9 @@ const THEMES: Theme[] = [
         description: "Sleek, frosted aesthetics for forward-thinking brands.",
         container: "bg-zinc-900/80 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl",
         header: "text-white",
-        badge: "bg-glaze-500/20 text-glaze-300 border border-glaze-500/30 rounded-full",
+        badge: "bg-statuscode-500/20 text-statuscode-300 border border-statuscode-500/30 rounded-full",
         gridBg: "bg-white/5 rounded-sm",
-        gridFill: "bg-glaze-500 rounded-sm",
+        gridFill: "bg-statuscode-500 rounded-sm",
         font: "font-sans",
         button: "bg-zinc-800 text-white hover:bg-zinc-700 rounded-full"
     },
@@ -71,7 +71,7 @@ export function LiveThemePlayground() {
                 <div className="max-w-3xl mx-auto text-center mb-16">
                     <h2 className="text-3xl md:text-5xl font-bold mb-6 text-zinc-900 dark:text-white">
                         Status pages soo premium & relevant.<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-glaze-500 to-accent-500">
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-statuscode-500 to-accent-500">
                             That you would break your app on purpose.
                         </span>
                     </h2>
@@ -92,19 +92,19 @@ export function LiveThemePlayground() {
                                 className={clsx(
                                     "w-full text-left p-6 rounded-xl border-2 transition-all duration-300 group",
                                     activeTheme.id === theme.id
-                                        ? "border-glaze-500 bg-glaze-500/5 dark:bg-glaze-500/10 shadow-lg scale-[1.02]"
+                                        ? "border-statuscode-500 bg-statuscode-500/5 dark:bg-statuscode-500/10 shadow-lg scale-[1.02]"
                                         : "border-transparent bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800"
                                 )}
                             >
                                 <div className="flex justify-between items-center mb-1">
                                     <h3 className={clsx(
                                         "font-bold text-lg",
-                                        activeTheme.id === theme.id ? "text-glaze-600 dark:text-glaze-400" : "text-zinc-900 dark:text-white"
+                                        activeTheme.id === theme.id ? "text-statuscode-600 dark:text-statuscode-400" : "text-zinc-900 dark:text-white"
                                     )}>
                                         {theme.name}
                                     </h3>
                                     {activeTheme.id === theme.id && (
-                                        <motion.div layoutId="active-dot" className="w-2 h-2 rounded-full bg-glaze-500" />
+                                        <motion.div layoutId="active-dot" className="w-2 h-2 rounded-full bg-statuscode-500" />
                                     )}
                                 </div>
                                 <p className="text-sm text-zinc-500 dark:text-zinc-400">
@@ -126,7 +126,7 @@ export function LiveThemePlayground() {
                                     exit={{ opacity: 0, scale: 0.8 }}
                                     className="absolute inset-0 flex items-center justify-center -z-10"
                                 >
-                                    <div className="w-[120%] h-[120%] bg-gradient-to-tr from-glaze-500/10 via-purple-500/10 to-blue-500/10 blur-3xl animate-pulse-slow rounded-full" />
+                                    <div className="w-[120%] h-[120%] bg-gradient-to-tr from-statuscode-500/10 via-purple-500/10 to-blue-500/10 blur-3xl animate-pulse-slow rounded-full" />
                                 </motion.div>
                             )}
                         </AnimatePresence>

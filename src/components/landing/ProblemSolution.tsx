@@ -33,7 +33,7 @@ export function ProblemSolution() {
                         transition={{ duration: 0.5, delay: 0.2 }}
                         className="bg-zinc-50 dark:bg-zinc-900/50 p-8 rounded-2xl border border-zinc-200 dark:border-white/5"
                     >
-                        <h2 className="text-sm font-bold tracking-wider text-glaze-500 uppercase mb-4">
+                        <h2 className="text-sm font-bold tracking-wider text-statuscode-500 uppercase mb-4">
                             The Designer Layer
                         </h2>
                         <h3 className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">
@@ -50,7 +50,7 @@ export function ProblemSolution() {
                                 "Total Brand Control: Custom fonts, fluid grids, and animations."
                             ].map((item, i) => (
                                 <li key={i} className="flex items-start gap-3">
-                                    <span className="flex-shrink-0 size-5 rounded-full bg-glaze-500/10 text-glaze-500 flex items-center justify-center text-xs">✓</span>
+                                    <span className="flex-shrink-0 size-5 rounded-full bg-statuscode-500/10 text-statuscode-500 flex items-center justify-center text-xs">✓</span>
                                     <span className="text-zinc-700 dark:text-zinc-300 text-sm font-medium">{item}</span>
                                 </li>
                             ))}

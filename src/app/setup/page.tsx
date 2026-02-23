@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useNotifications } from "@/context/NotificationContext";
 
 // --- Animation Variants ---
 const slideVariants = {
@@ -43,6 +44,8 @@ function SetupPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const mode = searchParams.get('mode');
+    const [user, setUser] = useState<any>(null);
+    const { addNotification } = useNotifications();
     const [step, setStep] = useState<"setup" | "setup-theme" | "success">("setup");
     const [direction, setDirection] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -68,6 +71,7 @@ function SetupPageContent() {
             if (!user) {
                 router.push("/auth");
             } else {
+                setUser(user);
                 setAuthLoading(false);
             }
         }
@@ -115,11 +119,12 @@ function SetupPageContent() {
                 }
             }
 
-            // Check if site exists for this user
+            // Check if site with this brand name already exists for this user (Idempotency check)
             const { data: existingSite } = await supabase
                 .from('sites')
-                .select('id')
+                .select('id, brand_name, subdomain')
                 .eq('user_id', user.id)
+                .eq('brand_name', brandName)
                 .maybeSingle();
 
             const baseSubdomain = brandName.toLowerCase().replace(/[^a-z0-9]/g, '-');
@@ -145,25 +150,68 @@ function SetupPageContent() {
                         .eq('id', existingSite.id);
                     if (error) throw error;
                 } else {
-                    const { error } = await supabase
+                    const { data: newSite, error } = await supabase
                         .from('sites')
-                        .insert({ ...sitePayload, subdomain });
+                        .insert({ ...sitePayload, subdomain })
+                        .select()
+                        .single();
                     if (error) throw error;
+
+                    // Trigger persistent notification for creation
+                    if (user) {
+                        addNotification(
+                            'project',
+                            'created',
+                            'Welcome to Statuscode! ✨',
+                            `Your project "${brandName}" is ready for customization.`,
+                            { siteId: newSite.id }
+                        );
+                    }
                 }
             } catch (error: any) {
                 if (error.code === '23505') {
                     const fallbackSubdomain = `site-${user.id.slice(0, 8)}-${Math.random().toString(36).slice(2, 6)}`;
-                    if (existingSite) {
+                    if (existingSite && mode !== 'create') {
                         const { error: retryError } = await supabase
                             .from('sites')
                             .update({ ...sitePayload, subdomain: fallbackSubdomain })
                             .eq('id', existingSite.id);
                         if (retryError) throw retryError;
                     } else {
-                        const { error: retryError } = await supabase
+                        // Double check if the site was created by a race between Req A and Req B
+                        const { data: racedSite } = await supabase
                             .from('sites')
-                            .insert({ ...sitePayload, subdomain: fallbackSubdomain });
-                        if (retryError) throw retryError;
+                            .select('id')
+                            .eq('user_id', user.id)
+                            .eq('brand_name', brandName)
+                            .maybeSingle();
+
+                        if (racedSite) {
+                            // It was a race! Update the raced site instead of creating a duplicate.
+                            const { error: retryError } = await supabase
+                                .from('sites')
+                                .update({ ...sitePayload, subdomain: fallbackSubdomain })
+                                .eq('id', racedSite.id);
+                            if (retryError) throw retryError;
+                        } else {
+                            // Genuine collision with a DIFFERENT project. Insert with fallback.
+                            const { data: newSite, error: retryError } = await supabase
+                                .from('sites')
+                                .insert({ ...sitePayload, subdomain: fallbackSubdomain })
+                                .select()
+                                .single();
+                            if (retryError) throw retryError;
+
+                            if (user && newSite) {
+                                addNotification(
+                                    'project',
+                                    'created',
+                                    'Welcome to Statuscode! ✨',
+                                    `Your project "${brandName}" is ready for customization.`,
+                                    { siteId: newSite.id }
+                                );
+                            }
+                        }
                     }
                 } else {
                     throw error;
@@ -195,7 +243,7 @@ function SetupPageContent() {
     }
 
     return (
-        <div className="min-h-screen bg-black text-white font-sans selection:bg-glaze-500/30 flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="min-h-screen bg-black text-white font-sans selection:bg-statuscode-500/30 flex items-center justify-center p-4 relative overflow-hidden">
             {/* SKIP CONFIRMATION MODAL */}
             <AnimatePresence>
                 {showSkipModal && (
@@ -239,7 +287,7 @@ function SetupPageContent() {
                 }}
             />
             <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_50%,transparent,rgba(0,0,0,0.4))] z-0" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-glaze-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[500px] bg-statuscode-500/10 rounded-full blur-[120px] pointer-events-none z-0" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] bg-indigo-500/10 rounded-full blur-[100px] pointer-events-none z-0" />
 
             <div className="relative z-10 w-full max-w-6xl grid grid-cols-1 md:grid-cols-12 items-center gap-8 md:gap-12 h-[600px]">
@@ -372,7 +420,7 @@ function SetupPageContent() {
                                             <div className="flex justify-between items-center">
                                                 <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">3. API Configuration</label>
                                                 <div className="relative" onMouseEnter={() => setShowApiTooltip(true)} onMouseLeave={() => setShowApiTooltip(false)}>
-                                                    <button onClick={() => setShowApiTooltip(!showApiTooltip)} className="text-[10px] flex items-center gap-1 text-glaze-400 hover:underline cursor-help">
+                                                    <button onClick={() => setShowApiTooltip(!showApiTooltip)} className="text-[10px] flex items-center gap-1 text-statuscode-400 hover:underline cursor-help">
                                                         <HelpCircle className="w-3 h-3" /> Where to find?
                                                     </button>
                                                     <AnimatePresence>
@@ -401,7 +449,7 @@ function SetupPageContent() {
                                                     placeholder="Paste Read-Only API Key"
                                                     value={apiKey}
                                                     onChange={(e) => setApiKey(e.target.value)}
-                                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-glaze-500/50 focus:ring-4 focus:ring-glaze-500/10 transition-all text-sm font-mono"
+                                                    className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-statuscode-500/50 focus:ring-4 focus:ring-statuscode-500/10 transition-all text-sm font-mono"
                                                 />
                                             </div>
                                         </div>
@@ -509,16 +557,16 @@ function SetupPageContent() {
                         >
                             <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-16 h-[1px] bg-gradient-to-r from-zinc-600 to-transparent" />
                             <div className="absolute -left-16 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-zinc-400 rounded-full" />
-                            <div className="bg-glaze-500/10 backdrop-blur-md border border-glaze-500/20 rounded-full px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                            <div className="bg-statuscode-500/10 backdrop-blur-md border border-statuscode-500/20 rounded-full px-5 py-3 flex items-center gap-3 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
                                 <div className="text-right">
-                                    <div className="text-xs font-bold text-glaze-300 tracking-wide uppercase">
+                                    <div className="text-xs font-bold text-statuscode-300 tracking-wide uppercase">
                                         {step === 'setup' ? 'Next Step' : 'Final Step'}
                                     </div>
-                                    <div className="text-[10px] text-glaze-400/80">
+                                    <div className="text-[10px] text-statuscode-400/80">
                                         {step === 'setup' ? 'Select Theme' : 'Launch Control'}
                                     </div>
                                 </div>
-                                <div className="w-8 h-8 rounded-full bg-glaze-500/20 flex items-center justify-center text-glaze-400">
+                                <div className="w-8 h-8 rounded-full bg-statuscode-500/20 flex items-center justify-center text-statuscode-400">
                                     {step === 'setup' ? <Palette className="w-4 h-4" /> : <Rocket className="w-4 h-4" />}
                                 </div>
                             </div>

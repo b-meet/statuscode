@@ -28,13 +28,13 @@ export function Navbar() {
             </Link>
 
             <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
-                <Link href="#how-it-works" className="hover:text-glaze-500 transition-colors">
+                <Link href="#how-it-works" className="hover:text-statuscode-500 transition-colors">
                     How it Works
                 </Link>
-                <Link href="#features" className="hover:text-glaze-500 transition-colors">
+                <Link href="#features" className="hover:text-statuscode-500 transition-colors">
                     Features
                 </Link>
-                <Link href="#faq" className="hover:text-glaze-500 transition-colors">
+                <Link href="#faq" className="hover:text-statuscode-500 transition-colors">
                     FAQ
                 </Link>
             </nav>

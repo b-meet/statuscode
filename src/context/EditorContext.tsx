@@ -1,7 +1,8 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { createClient } from '@/utils/supabase/client';
+import { createClient } from "@/utils/supabase/client";
+import { useNotifications } from "@/context/NotificationContext";
 import { toast } from 'sonner';
 import { MonitorData, IncidentUpdate, MaintenanceWindow, Log } from '@/lib/types';
 import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
@@ -98,6 +99,7 @@ const defaultConfig: SiteConfig = {
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
 export function EditorProvider({ children }: { children: ReactNode }) {
+    const { addNotification } = useNotifications();
     const [config, setConfig] = useState<SiteConfig>(defaultConfig);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
@@ -437,10 +439,21 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
         toast.promise(promise, {
             loading: 'Publishing your status page...',
-            success: () => {
+            success: (data: any) => {
                 const slug = config.subdomain || config.brandName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
                 const url = `${window.location.origin}/s/${slug}`;
                 window.open(url, '_blank');
+
+                // Trigger persistent notification
+                if (user) {
+                    addNotification(
+                        'project',
+                        'published',
+                        'Changes Published ✨',
+                        'Your latest modifications are now live on your status page.',
+                        { siteId: config.id }
+                    );
+                }
                 return "Congratulations! Your site is live.";
             },
             error: 'Failed to publish site'
