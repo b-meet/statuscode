@@ -53,6 +53,7 @@ export interface Site {
     published_config?: any;
     uptimerobot_api_key?: string | null;
     monitors?: string[] | null;
+    created_at?: string;
 }
 
 export type ChannelType = 'email' | 'discord' | 'slack';

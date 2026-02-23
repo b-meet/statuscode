@@ -7,7 +7,7 @@ import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { Plus, ExternalLink, Activity, ArrowRight, Loader2, Cog, RefreshCw, Trash2, AlertCircle, UploadCloud, X, Globe } from "lucide-react";
+import { Plus, ExternalLink, Activity, ArrowRight, Loader2, Cog, RefreshCw, Trash2, AlertCircle, UploadCloud, X, Globe, Search, Filter, ArrowUpDown, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Site, ThemeConfig, MaintenanceWindow } from "@/lib/types";
@@ -47,6 +47,12 @@ export default function DashboardPage() {
 
     const [mounted, setMounted] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
+    // Filtering & Sorting State
+    const [searchQuery, setSearchQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'draft' | 'unconfigured'>('all');
+    const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za' | 'uptime'>('newest');
+    const [isSortOpen, setIsSortOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -371,6 +377,49 @@ export default function DashboardPage() {
         settingsSupportEmail, settingsSupportUrl, settingsLogoUrl
     ]);
 
+    // Derived State: Filtered and Sorted Sites
+    const filteredAndSortedSites = useMemo(() => {
+        let result = [...sites];
+
+        // 1. Search Filter
+        if (searchQuery) {
+            const q = searchQuery.toLowerCase();
+            result = result.filter(s =>
+                (s.brand_name?.toLowerCase().includes(q)) ||
+                (s.subdomain?.toLowerCase().includes(q))
+            );
+        }
+
+        // 2. Status Filter
+        if (statusFilter !== 'all') {
+            result = result.filter(site => {
+                const isPublished = !!site.published_config;
+                const hasApiKey = !!(site.published_config?.uptimerobot_api_key || site.uptimerobot_api_key);
+
+                if (statusFilter === 'live') return isPublished;
+                if (statusFilter === 'draft') return !isPublished && hasApiKey;
+                if (statusFilter === 'unconfigured') return !hasApiKey;
+                return true;
+            });
+        }
+
+        // 3. Sorting
+        result.sort((a, b) => {
+            if (sortBy === 'az') return (a.brand_name || "").localeCompare(b.brand_name || "");
+            if (sortBy === 'za') return (b.brand_name || "").localeCompare(a.brand_name || "");
+            if (sortBy === 'newest') return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+            if (sortBy === 'oldest') return new Date(a.created_at || 0).getTime() - new Date(b.created_at || 0).getTime();
+            if (sortBy === 'uptime') {
+                const uptimeA = parseFloat(uptimeMap[a.id] || '-1');
+                const uptimeB = parseFloat(uptimeMap[b.id] || '-1');
+                return uptimeB - uptimeA;
+            }
+            return 0;
+        });
+
+        return result;
+    }, [sites, searchQuery, statusFilter, sortBy, uptimeMap]);
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-[50vh] text-zinc-500 gap-3">
@@ -398,10 +447,116 @@ export default function DashboardPage() {
                 */}
             </div>
 
+            {/* Filter Bar */}
+            {sites.length > 0 && (
+                <div className="relative z-50 flex flex-col gap-5">
+                    {/* Search row - Prominent Full Width */}
+                    <div className="relative group w-full">
+                        <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                            <Search className="w-5 h-5 text-zinc-500 group-focus-within:text-indigo-400 transition-colors" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search projects by name or subdomain..."
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            className="w-full bg-[#0d0d0f] border border-zinc-800/80 rounded-[2rem] pl-14 pr-14 py-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-indigo-500/50 focus:ring-[6px] focus:ring-indigo-500/10 transition-all shadow-xl"
+                        />
+                        {searchQuery && (
+                            <button
+                                onClick={() => setSearchQuery("")}
+                                className="absolute inset-y-0 right-0 pr-5 flex items-center"
+                            >
+                                <div className="p-2 hover:bg-zinc-800 rounded-xl transition-colors">
+                                    <X className="w-4 h-4 text-zinc-500" />
+                                </div>
+                            </button>
+                        )}
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
+                        {/* Status Filters - h-11 container with inner buttons filling height */}
+                        <div className="flex items-center gap-1 p-1 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl backdrop-blur-md overflow-x-auto no-scrollbar w-full sm:w-auto h-11">
+                            {[
+                                { id: 'all', label: 'All Projects' },
+                                { id: 'live', label: 'Live' },
+                                { id: 'draft', label: 'Draft' },
+                                { id: 'unconfigured', label: 'Setup' }
+                            ].map((btn) => (
+                                <button
+                                    key={btn.id}
+                                    onClick={() => setStatusFilter(btn.id as any)}
+                                    className={`
+                                        h-full px-6 rounded-xl text-xs font-bold transition-all whitespace-nowrap
+                                        ${statusFilter === btn.id
+                                            ? 'bg-white text-black shadow-lg scale-[1.02]'
+                                            : 'text-zinc-500 hover:text-white hover:bg-white/5'}
+                                    `}
+                                >
+                                    {btn.label}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Sort Dropdown - Perfect match at h-11 */}
+                        <div className="relative w-full sm:w-64">
+                            <button
+                                onClick={() => setIsSortOpen(!isSortOpen)}
+                                className="flex items-center justify-between gap-4 w-full h-11 px-6 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl text-[11px] uppercase tracking-widest font-black text-zinc-500 hover:text-white hover:border-zinc-700 transition-all backdrop-blur-md"
+                            >
+                                <div className="flex items-center gap-2.5">
+                                    <ArrowUpDown className="w-4 h-4 text-indigo-400" />
+                                    <span className="truncate">Sort: {
+                                        sortBy === 'newest' ? 'Newest' :
+                                            sortBy === 'oldest' ? 'Oldest' :
+                                                sortBy === 'az' ? 'A-Z' :
+                                                    sortBy === 'za' ? 'Z-A' : 'Uptime'
+                                    }</span>
+                                </div>
+                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
+                            </button>
+
+                            <AnimatePresence>
+                                {isSortOpen && (
+                                    <>
+                                        <div className="fixed inset-0 z-[60] bg-transparent" onClick={() => setIsSortOpen(false)} />
+                                        <motion.div
+                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            animate={{ opacity: 1, scale: 1, y: 5 }}
+                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                            className="absolute right-0 top-full mt-2 w-full sm:w-64 bg-[#0d0d0f] border border-zinc-800 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] z-[70] p-1.5 backdrop-blur-xl"
+                                        >
+                                            {[
+                                                { id: 'newest', label: 'Newest First' },
+                                                { id: 'oldest', label: 'Oldest First' },
+                                                { id: 'az', label: 'Name (A-Z)' },
+                                                { id: 'za', label: 'Name (Z-A)' },
+                                                { id: 'uptime', label: 'Highest Uptime' }
+                                            ].map((opt) => (
+                                                <button
+                                                    key={opt.id}
+                                                    onClick={() => { setSortBy(opt.id as any); setIsSortOpen(false); }}
+                                                    className={`
+                                                        w-full text-left px-5 py-3 rounded-xl text-xs font-bold transition-all
+                                                        ${sortBy === opt.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:bg-white/5 hover:text-white'}
+                                                    `}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </motion.div>
+                                    </>
+                                )}
+                            </AnimatePresence>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Grid */}
-            {sites.length > 0 ? (
+            {filteredAndSortedSites.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {sites.map((site) => {
+                    {filteredAndSortedSites.map((site) => {
                         const now = new Date().getTime();
                         const publishedMaintenance = site.published_config?.theme_config?.maintenance || [];
 
@@ -622,6 +777,21 @@ export default function DashboardPage() {
                         </div>
                     </Link>
 
+                </div>
+            ) : sites.length > 0 ? (
+                // Filter No Results State
+                <div className="flex flex-col items-center justify-center min-h-[400px] border border-dashed border-zinc-800 rounded-3xl bg-zinc-900/20">
+                    <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center border border-zinc-800 mb-6">
+                        <Search className="w-8 h-8 text-zinc-600" />
+                    </div>
+                    <h2 className="text-xl font-bold text-white">No matches found</h2>
+                    <p className="text-zinc-500 mt-2 max-w-sm text-center">We couldn&apos;t find any projects matching your current filters or search query.</p>
+                    <button
+                        onClick={() => { setSearchQuery(""); setStatusFilter('all'); setSortBy('newest'); }}
+                        className="mt-8 px-6 h-12 bg-white text-black rounded-full font-semibold hover:bg-zinc-200 transition-colors"
+                    >
+                        Clear all filters
+                    </button>
                 </div>
             ) : (
                 // Empty State
