@@ -45,7 +45,7 @@ function SetupPageContent() {
     const searchParams = useSearchParams();
     const mode = searchParams.get('mode');
     const [user, setUser] = useState<any>(null);
-    const { addNotification } = useNotifications();
+    const { addNotification, notifyProjectChange } = useNotifications();
     const [step, setStep] = useState<"setup" | "setup-theme" | "success">("setup");
     const [direction, setDirection] = useState(0);
     const [loading, setLoading] = useState(false);
@@ -167,6 +167,8 @@ function SetupPageContent() {
                             { siteId: newSite.id }
                         );
                     }
+                    // Broadcast to other tabs
+                    notifyProjectChange();
                 }
             } catch (error: any) {
                 if (error.code === '23505') {
@@ -211,6 +213,8 @@ function SetupPageContent() {
                                     { siteId: newSite.id }
                                 );
                             }
+                            // Broadcast to other tabs
+                            notifyProjectChange();
                         }
                     }
                 } else {

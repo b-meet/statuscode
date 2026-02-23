@@ -3,7 +3,7 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useRef, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
@@ -14,6 +14,7 @@ import { Site, ThemeConfig, MaintenanceWindow } from "@/lib/types";
 import { formatUptimePercentage } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
+import { BroadcastChannel } from 'broadcast-channel';
 
 
 export default function DashboardPage() {
@@ -21,7 +22,7 @@ export default function DashboardPage() {
     const [sites, setSites] = useState<Site[]>([]);
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
-    const { addNotification } = useNotifications();
+    const { addNotification, notifyProjectChange } = useNotifications();
     const [uptimeMap, setUptimeMap] = useState<Record<string, string | null>>({});
     // Deletion Modal State
     const [isDeletingSiteId, setIsDeletingSiteId] = useState<string | null>(null);
@@ -51,24 +52,38 @@ export default function DashboardPage() {
         setMounted(true);
     }, []);
 
-    useEffect(() => {
-        async function loadDashboard() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return; // Middleware should handle redirect
-            setUser(user);
+    const loadDashboard = useCallback(async () => {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        setUser(user);
 
-            const { data: sitesData, error } = await supabase
-                .from('sites')
-                .select('*')
-                .eq('user_id', user.id); // Show all sites for user
+        const { data: sitesData } = await supabase
+            .from('sites')
+            .select('*')
+            .eq('user_id', user.id);
 
-            if (sitesData) {
-                setSites(sitesData);
-            }
-            setLoading(false);
+        if (sitesData) {
+            setSites(sitesData);
         }
-        loadDashboard();
+        setLoading(false);
     }, [supabase]);
+
+    useEffect(() => {
+        loadDashboard();
+    }, [loadDashboard]);
+
+    // Handle cross-tab sync for project data (e.g. from Setup or other Dashboard tabs)
+    useEffect(() => {
+        const channel = new BroadcastChannel('statuscode-notifications');
+        channel.onmessage = (msg) => {
+            if (msg.type === 'PROJECT_CHANGE') {
+                loadDashboard();
+            }
+        };
+        return () => {
+            channel.close();
+        };
+    }, [loadDashboard]);
 
     useEffect(() => {
         sites.forEach(async (site) => {
@@ -164,6 +179,8 @@ export default function DashboardPage() {
 
             // Update local state
             setSites(prev => prev.filter(s => s.id !== id));
+            // Broadcast to other tabs
+            notifyProjectChange();
             return "Project deleted successfully";
         })();
 
@@ -324,6 +341,9 @@ export default function DashboardPage() {
                     { siteId: isSettingsSiteId }
                 );
             }
+
+            // Broadcast to other tabs
+            notifyProjectChange();
 
             setIsSettingsSiteId(null);
         } catch (error) {

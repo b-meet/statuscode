@@ -1,8 +1,15 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { AppNotification, NotificationCategory } from '@/lib/types';
 import { createClient } from '@/utils/supabase/client';
+import { BroadcastChannel } from 'broadcast-channel';
+
+type NotificationMessage =
+    | { type: 'MARK_READ', id: string }
+    | { type: 'MARK_ALL_READ' }
+    | { type: 'REFRESH' }
+    | { type: 'PROJECT_CHANGE' };
 
 interface NotificationContextType {
     notifications: AppNotification[];
@@ -17,6 +24,7 @@ interface NotificationContextType {
     ) => Promise<void>;
     markRead: (id: string) => Promise<void>;
     markAllRead: () => Promise<void>;
+    notifyProjectChange: () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -25,6 +33,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const supabase = createClient();
     const [notifications, setNotifications] = useState<AppNotification[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const syncChannel = useRef<BroadcastChannel<NotificationMessage> | null>(null);
 
     const fetchNotifications = useCallback(async () => {
         const { data: { user } } = await supabase.auth.getUser();
@@ -91,6 +100,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             setNotifications(prev =>
                 prev.map(n => n.id === id ? { ...n, is_read: true } : n)
             );
+            // Broadcast to other tabs
+            syncChannel.current?.postMessage({ type: 'MARK_READ', id });
         }
     }, [supabase]);
 
@@ -106,12 +117,44 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
 
         if (!error) {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            // Broadcast to other tabs
+            syncChannel.current?.postMessage({ type: 'MARK_ALL_READ' });
         }
     }, [supabase]);
+
+    const notifyProjectChange = useCallback(() => {
+        syncChannel.current?.postMessage({ type: 'PROJECT_CHANGE' });
+    }, []);
 
     // Initial load
     useEffect(() => {
         fetchNotifications();
+    }, [fetchNotifications]);
+
+    // Cross-tab Synchronization using broadcast-channel
+    useEffect(() => {
+        const channel = new BroadcastChannel<NotificationMessage>('statuscode-notifications');
+        syncChannel.current = channel;
+
+        channel.onmessage = (msg) => {
+            if (msg.type === 'MARK_READ') {
+                setNotifications(prev =>
+                    prev.map(n => n.id === msg.id ? { ...n, is_read: true } : n)
+                );
+            } else if (msg.type === 'MARK_ALL_READ') {
+                setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+            } else if (msg.type === 'REFRESH') {
+                fetchNotifications();
+            } else if (msg.type === 'PROJECT_CHANGE') {
+                // This will be handled by components listening to the context
+                // But we can also trigger a local notification refresh if needed
+                fetchNotifications();
+            }
+        };
+
+        return () => {
+            channel.close();
+        };
     }, [fetchNotifications]);
 
     // Realtime Sync for multi-tab / background events
@@ -154,7 +197,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             fetchNotifications,
             addNotification,
             markRead,
-            markAllRead
+            markAllRead,
+            notifyProjectChange
         }}>
             {children}
         </NotificationContext.Provider>
