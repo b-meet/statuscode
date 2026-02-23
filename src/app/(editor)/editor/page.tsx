@@ -317,9 +317,45 @@ export default function EditorPage() {
 
                     {(() => {
                         const hasRealMonitors = config.monitors.some(id => !id.startsWith('demo-'));
-                        const isDisabled = isPublishing || !hasRealMonitors || !!subdomainError;
+
+                        const draftState = {
+                            brandName: config.brandName,
+                            logoUrl: config.logoUrl,
+                            apiKey: config.apiKey,
+                            monitors: config.monitors.filter((id: string) => !id.startsWith('demo-')),
+                            theme: config.theme,
+                            layout: config.layout,
+                            colorPreset: config.colorPreset,
+                            primaryColor: config.primaryColor,
+                            visibility: config.visibility,
+                            maintenance: config.maintenance,
+                            subdomain: config.subdomain,
+                            supportEmail: config.supportEmail,
+                            supportUrl: config.supportUrl
+                        };
+
+                        const publishedState = publishedConfig ? {
+                            brandName: publishedConfig.brandName,
+                            logoUrl: publishedConfig.logoUrl,
+                            apiKey: publishedConfig.apiKey,
+                            monitors: (publishedConfig.monitors || []).filter((id: string) => !id.startsWith('demo-')),
+                            theme: publishedConfig.theme,
+                            layout: publishedConfig.layout,
+                            colorPreset: publishedConfig.colorPreset,
+                            primaryColor: publishedConfig.primaryColor,
+                            visibility: publishedConfig.visibility,
+                            maintenance: publishedConfig.maintenance,
+                            subdomain: publishedConfig.subdomain,
+                            supportEmail: publishedConfig.supportEmail,
+                            supportUrl: publishedConfig.supportUrl
+                        } : null;
+
+                        const hasUnpublishedChanges = !publishedConfig || JSON.stringify(draftState) !== JSON.stringify(publishedState);
+
+                        const isDisabled = isPublishing || !hasRealMonitors || !!subdomainError || !hasUnpublishedChanges;
                         let tooltip = !hasRealMonitors ? "You need at least 1 active (non-demo) monitor to publish your page" : undefined;
                         if (subdomainError) tooltip = subdomainError;
+                        if (!hasUnpublishedChanges && !tooltip) tooltip = "No new changes to publish";
 
                         return (
                             <button

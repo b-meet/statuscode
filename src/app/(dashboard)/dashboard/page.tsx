@@ -3,37 +3,17 @@
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { createClient } from "@/utils/supabase/client";
 import Link from "next/link";
-import { Plus, ExternalLink, Activity, ArrowRight, Loader2, Cog, RefreshCw, Trash2, AlertCircle } from "lucide-react";
+import { Plus, ExternalLink, Activity, ArrowRight, Loader2, Cog, RefreshCw, Trash2, AlertCircle, UploadCloud, X, Globe } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MaintenanceWindow } from "@/lib/types";
-import { formatUptimePercentage } from "@/lib/utils";
 import { toast } from "sonner";
-import { createPortal } from "react-dom";
+import { Site, ThemeConfig, MaintenanceWindow } from "@/lib/types";
+import { formatUptimePercentage } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
-interface Site {
-    id: string;
-    brand_name: string;
-    subdomain: string;
-    logo_url: string;
-    uptimerobot_api_key?: string;
-    monitors?: string[];
-    theme_config?: {
-        maintenance?: MaintenanceWindow[];
-    };
-    published_config?: {
-        brand_name?: string;
-        logo_url?: string;
-        uptimerobot_api_key?: string;
-        monitors?: string[];
-        subdomain?: string;
-        theme_config?: {
-            maintenance?: MaintenanceWindow[];
-        };
-    };
-}
 
 export default function DashboardPage() {
     const supabase = createClient();
@@ -41,11 +21,29 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true);
     const [user, setUser] = useState<any>(null);
     const [uptimeMap, setUptimeMap] = useState<Record<string, string | null>>({});
+    // Deletion Modal State
     const [isDeletingSiteId, setIsDeletingSiteId] = useState<string | null>(null);
     const [isDeletingSiteName, setIsDeletingSiteName] = useState<string>('');
     const [deleteConfirmationInput, setDeleteConfirmationInput] = useState('');
     const [hasConsented, setHasConsented] = useState(false);
+
+    // Settings Modal State
+    const [isSettingsSiteId, setIsSettingsSiteId] = useState<string | null>(null);
+    const [settingsName, setSettingsName] = useState('');
+    const [settingsLiveWebsiteUrl, setSettingsLiveWebsiteUrl] = useState('');
+    const [settingsSubdomain, setSettingsSubdomain] = useState('');
+    const [settingsSupportEmail, setSettingsSupportEmail] = useState('');
+    const [settingsSupportUrl, setSettingsSupportUrl] = useState('');
+    const [settingsLogoUrl, setSettingsLogoUrl] = useState('');
+    const [settingsPublishImmediately, setSettingsPublishImmediately] = useState(false);
+    const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+    const [settingsSubdomainError, setSettingsSubdomainError] = useState<string | null>(null);
+    const [isVerifyingSubdomain, setIsVerifyingSubdomain] = useState(false);
+    const [isSavingSettings, setIsSavingSettings] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [mounted, setMounted] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -76,7 +74,7 @@ export default function DashboardPage() {
 
             // For dashboard display, prefer published monitor settings if they exist, else draft.
             const apiKey = site.published_config?.uptimerobot_api_key || site.uptimerobot_api_key;
-            const monitors = (site.published_config?.monitors || site.monitors || []).filter(id => !id.startsWith('demo-'));
+            const monitors = (site.published_config?.monitors || site.monitors || []).filter((id: string) => !id.startsWith('demo-'));
 
             if (!apiKey || monitors.length === 0) {
                 setUptimeMap(prev => ({ ...prev, [site.id]: null }));
@@ -163,6 +161,171 @@ export default function DashboardPage() {
         });
     };
 
+    // Subdomain Validation Effect for Settings Modal
+    useEffect(() => {
+        if (!isSettingsSiteId || !settingsSubdomain) {
+            setSettingsSubdomainError(null);
+            return;
+        }
+
+        const timeoutId = setTimeout(async () => {
+            setIsVerifyingSubdomain(true);
+            setSettingsSubdomainError(null);
+
+            try {
+                const { data, error } = await supabase
+                    .from('sites')
+                    .select('id')
+                    .eq('subdomain', settingsSubdomain)
+                    .neq('id', isSettingsSiteId || '') // Exclude current site
+                    .maybeSingle();
+
+                if (error) throw error;
+
+                if (data) {
+                    setSettingsSubdomainError("This subdomain is already taken");
+                }
+            } catch (err) {
+                console.error("Subdomain check failed:", err);
+            } finally {
+                setIsVerifyingSubdomain(false);
+            }
+        }, 500);
+
+        return () => clearTimeout(timeoutId);
+    }, [settingsSubdomain, isSettingsSiteId, supabase]);
+
+    const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            toast.error("Please upload an image file");
+            return;
+        }
+        if (file.size > 2 * 1024 * 1024) {
+            toast.error("File size must be less than 2MB");
+            return;
+        }
+
+        setIsUploadingLogo(true);
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+            const filePath = `${fileName}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('logos')
+                .upload(filePath, file);
+
+            if (uploadError) throw uploadError;
+
+            const { data: publicUrlData } = supabase.storage
+                .from('logos')
+                .getPublicUrl(filePath);
+
+            setSettingsLogoUrl(publicUrlData.publicUrl);
+            toast.success("Logo uploaded successfully");
+        } catch (error) {
+            console.error("Upload failed:", error);
+            toast.error("Failed to upload logo");
+        } finally {
+            setIsUploadingLogo(false);
+            if (fileInputRef.current) {
+                fileInputRef.current.value = '';
+            }
+        }
+    };
+
+    // Function to calculate response times
+    const fetchResponseTimes = async (id: string) => {
+        // TODO: Implement actual response time fetching logic here
+        console.log("Fetching response times for site ID:", id);
+    };
+
+    const handleSaveSettings = async () => {
+        if (!isSettingsSiteId || settingsSubdomainError) return;
+
+        setIsSavingSettings(true);
+        try {
+            // First get the current site to preserve other theme_config values
+            const currentSite = sites.find(s => s.id === isSettingsSiteId);
+            const currentThemeConfig = currentSite?.theme_config || {};
+
+            const updatedThemeConfig: ThemeConfig = {
+                ...currentThemeConfig,
+                supportEmail: settingsSupportEmail,
+                supportUrl: settingsSupportUrl,
+                liveWebsiteUrl: settingsLiveWebsiteUrl,
+            };
+
+            const updates: any = {
+                brand_name: settingsName,
+                subdomain: settingsSubdomain,
+                logo_url: settingsLogoUrl,
+                theme_config: updatedThemeConfig
+            };
+
+            // If the user wants to publish immediately, update published_config too
+            if (settingsPublishImmediately) {
+                const currentPublishedConfig = currentSite?.published_config || {};
+                updates.published_config = {
+                    ...currentPublishedConfig,
+                    brand_name: settingsName,
+                    subdomain: settingsSubdomain,
+                    logo_url: settingsLogoUrl,
+                    theme_config: updatedThemeConfig,
+                    // Preserve existing published monitors and api key
+                    monitors: currentPublishedConfig.monitors || currentSite?.monitors || [],
+                    uptimerobot_api_key: currentPublishedConfig.uptimerobot_api_key || currentSite?.uptimerobot_api_key || ''
+                };
+            }
+
+            const { error } = await supabase
+                .from('sites')
+                .update(updates)
+                .eq('id', isSettingsSiteId);
+
+            if (error) throw error;
+
+            // Optimistically update local state
+            setSites(prev => prev.map(site => {
+                if (site.id === isSettingsSiteId) {
+                    return {
+                        ...site,
+                        ...updates
+                    };
+                }
+                return site;
+            }));
+
+            toast.success("Project settings saved");
+            setIsSettingsSiteId(null);
+        } catch (error) {
+            console.error("Failed to save settings:", error);
+            toast.error("Failed to save settings");
+        } finally {
+            setIsSavingSettings(false);
+        }
+    };
+
+    // Check if settings have actually changed to conditionally disable the save button
+    const currentEditSite = useMemo(() => sites.find(s => s.id === isSettingsSiteId), [sites, isSettingsSiteId]);
+    const hasSettingsChanges = useMemo(() => {
+        if (!currentEditSite) return false;
+        return (
+            settingsName !== (currentEditSite.brand_name || '') ||
+            settingsLiveWebsiteUrl !== (currentEditSite.theme_config?.liveWebsiteUrl || '') ||
+            settingsSubdomain !== (currentEditSite.subdomain || '') ||
+            settingsSupportEmail !== (currentEditSite.theme_config?.supportEmail || '') ||
+            settingsSupportUrl !== (currentEditSite.theme_config?.supportUrl || '') ||
+            settingsLogoUrl !== (currentEditSite.logo_url || '')
+        );
+    }, [
+        currentEditSite, settingsName, settingsLiveWebsiteUrl, settingsSubdomain,
+        settingsSupportEmail, settingsSupportUrl, settingsLogoUrl
+    ]);
+
     if (loading) {
         return (
             <div className="flex flex-col items-center justify-center h-[50vh] text-zinc-500 gap-3">
@@ -176,9 +339,11 @@ export default function DashboardPage() {
         <div className="space-y-8">
             {/* Header Section */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
-                    <h1 className="text-3xl font-bold text-white tracking-tight">Projects</h1>
-                    <p className="text-zinc-400 mt-2">Manage your status pages and monitors.</p>
+                <div className="flex items-center gap-4">
+                    <div>
+                        <h1 className="text-3xl font-bold text-white tracking-tight">Projects</h1>
+                        <p className="text-zinc-400 mt-2">Manage your status pages and monitors.</p>
+                    </div>
                 </div>
 
                 {/* 
@@ -195,13 +360,13 @@ export default function DashboardPage() {
                         const now = new Date().getTime();
                         const publishedMaintenance = site.published_config?.theme_config?.maintenance || [];
 
-                        const activeMaint = publishedMaintenance.find(m => {
+                        const activeMaint = publishedMaintenance.find((m: MaintenanceWindow) => {
                             const start = new Date(m.startTime).getTime();
                             const end = start + m.durationMinutes * 60000;
                             return now >= start && now <= end;
                         });
 
-                        const upcomingMaint = !activeMaint ? publishedMaintenance.find(m => {
+                        const upcomingMaint = !activeMaint ? publishedMaintenance.find((m: MaintenanceWindow) => {
                             const start = new Date(m.startTime).getTime();
                             return start > now && start <= now + 12 * 60 * 60 * 1000; // within 12 hours
                         }) : null;
@@ -264,7 +429,7 @@ export default function DashboardPage() {
                                 <div className="h-32 bg-zinc-900/50 border-b border-zinc-800 relative z-0 flex items-center justify-center p-6">
                                     {/* Abstract preview or Logo */}
                                     {site.logo_url ? (
-                                        <img src={site.logo_url} alt={site.brand_name} className="h-12 w-auto object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+                                        <img src={site.logo_url} alt={site.brand_name || ''} className="h-12 w-auto object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
                                     ) : (
                                         <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-700 transition-colors">
                                             <Activity className="w-6 h-6 text-zinc-500" />
@@ -365,7 +530,18 @@ export default function DashboardPage() {
                                             </button>
                                         </Link>
                                         <button
-                                            onClick={() => toast.info("Project settings coming soon!")}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                setIsSettingsSiteId(site.id);
+                                                setSettingsName(site.brand_name || '');
+                                                setSettingsLiveWebsiteUrl(site.theme_config?.liveWebsiteUrl || '');
+                                                setSettingsSubdomain(site.subdomain || '');
+                                                setSettingsSupportEmail(site.theme_config?.supportEmail || '');
+                                                setSettingsSupportUrl(site.theme_config?.supportUrl || '');
+                                                setSettingsLogoUrl(site.logo_url || '');
+                                                setSettingsPublishImmediately(false); // Default to draft mode
+                                            }}
                                             className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 transition-colors"
                                             title="Project Settings"
                                         >
@@ -375,7 +551,7 @@ export default function DashboardPage() {
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 e.stopPropagation();
-                                                setIsDeletingSiteId(site.id);
+                                                setIsDeletingSiteId(site.id || '');
                                                 setIsDeletingSiteName(site.brand_name || "Untitled Project");
                                             }}
                                             className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/50 transition-all"
@@ -418,6 +594,230 @@ export default function DashboardPage() {
                     </Link>
                 </div>
             )}
+
+
+
+            {/* Settings Modal */}
+            <AnimatePresence>
+                {isSettingsSiteId && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            className="bg-[#09090b] border border-zinc-800 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh]"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-6 border-b border-zinc-800/50 bg-zinc-900/20">
+                                <div>
+                                    <h3 className="text-xl font-bold text-white">Project Settings</h3>
+                                    <p className="text-sm text-zinc-400 mt-1">Update your brand and project details.</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsSettingsSiteId(null)}
+                                    className="w-8 h-8 rounded-full bg-zinc-900 flex items-center justify-center text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="p-6 overflow-y-auto custom-scrollbar space-y-6">
+                                {/* Brand Name */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Brand Name</label>
+                                    <input
+                                        type="text"
+                                        value={settingsName}
+                                        onChange={(e) => setSettingsName(e.target.value)}
+                                        placeholder="e.g. Acme Corp"
+                                        className="w-full h-11 px-4 rounded-xl bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                    />
+                                </div>
+
+                                {/* Live Website URL */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Live Website URL (Optional)</label>
+                                    <input
+                                        type="url"
+                                        value={settingsLiveWebsiteUrl}
+                                        onChange={(e) => setSettingsLiveWebsiteUrl(e.target.value)}
+                                        placeholder="https://example.com"
+                                        className="w-full h-11 px-4 rounded-xl bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-700 focus:outline-none focus:border-indigo-500/50 transition-colors"
+                                    />
+                                    <p className="text-[11px] text-zinc-600">The primary website this status page belongs to.</p>
+                                </div>
+
+                                {/* Logo */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Logo</label>
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleLogoUpload}
+                                        accept="image/*"
+                                        className="hidden"
+                                    />
+                                    <div
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={`
+                                            relative w-full h-24 rounded-xl border border-dashed border-zinc-800 bg-black/50 
+                                            flex flex-col items-center justify-center gap-2 cursor-pointer 
+                                            hover:border-zinc-700 hover:bg-zinc-900/50 transition-all group
+                                            ${isUploadingLogo ? 'opacity-50 pointer-events-none' : ''}
+                                        `}
+                                    >
+                                        {settingsLogoUrl ? (
+                                            <>
+                                                <img
+                                                    src={settingsLogoUrl}
+                                                    alt="Logo Preview"
+                                                    className="h-12 object-contain absolute z-0 opacity-50 group-hover:opacity-20 transition-opacity"
+                                                />
+                                                <div className="z-10 bg-black/50 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity border border-white/10">
+                                                    <UploadCloud className="w-5 h-5 text-white" />
+                                                </div>
+                                                <span className="text-[11px] text-zinc-400 z-10 opacity-0 group-hover:opacity-100 transition-opacity">Change Logo</span>
+
+                                                <div
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setSettingsLogoUrl('');
+                                                    }}
+                                                    className="absolute -top-3 -right-3 p-1.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-400 hover:text-white hover:bg-red-500 hover:border-red-500 transition-all z-30 opacity-0 group-hover:opacity-100"
+                                                    title="Remove Logo"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </div>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <div className="p-2.5 rounded-full bg-zinc-900 border border-zinc-800 group-hover:border-zinc-700 transition-colors">
+                                                    <UploadCloud className="w-5 h-5 text-zinc-400" />
+                                                </div>
+                                                <span className="text-xs text-zinc-500 font-medium">Click to upload logo</span>
+                                            </>
+                                        )}
+                                        {isUploadingLogo && (
+                                            <div className="absolute inset-0 flex items-center justify-center bg-black/80 backdrop-blur-sm z-20 rounded-xl">
+                                                <Loader2 className="w-6 h-6 text-indigo-500 animate-spin" />
+                                            </div>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-zinc-600">Recommended: PNG or SVG, max 2MB.</p>
+                                </div>
+
+                                {/* Subdomain */}
+                                <div className="space-y-2">
+                                    <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Subdomain URL</label>
+                                    <div className={`
+                                        flex bg-black border rounded-xl items-center px-4 overflow-hidden transition-colors
+                                        ${settingsSubdomainError ? 'border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.1)]' : 'border-zinc-800'}
+                                    `}>
+                                        <span className="text-zinc-500 text-sm whitespace-nowrap">statuscode.in/s/</span>
+                                        <input
+                                            type="text"
+                                            value={settingsSubdomain}
+                                            onChange={(e) => setSettingsSubdomain(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                                            placeholder={settingsName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo'}
+                                            className="flex-1 h-11 bg-transparent border-none text-white text-sm placeholder:text-zinc-800 focus:outline-none focus:ring-0 p-0 min-w-0"
+                                        />
+                                        {isVerifyingSubdomain && (
+                                            <Loader2 className="w-4 h-4 text-zinc-500 animate-spin shrink-0 ml-2" />
+                                        )}
+                                        <button
+                                            onClick={() => {
+                                                const slug = settingsSubdomain || settingsName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'demo';
+                                                window.open(`/s/${slug}`, '_blank');
+                                            }}
+                                            className="ml-3 p-1.5 rounded-md text-zinc-500 hover:text-white hover:bg-zinc-800 transition-colors shrink-0"
+                                            title="Preview Public Page"
+                                        >
+                                            <ExternalLink className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    {settingsSubdomainError ? (
+                                        <p className="text-[11px] text-red-500 font-medium">{settingsSubdomainError}</p>
+                                    ) : (
+                                        <p className="text-[11px] text-zinc-600">The public URL for this status page.</p>
+                                    )}
+                                </div>
+
+                                {/* Support */}
+                                <div className="space-y-4 pt-4 border-t border-zinc-800/50">
+                                    <h4 className="text-sm font-semibold text-white">Support Details</h4>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Support Email (Optional)</label>
+                                        <input
+                                            type="email"
+                                            value={settingsSupportEmail}
+                                            onChange={(e) => setSettingsSupportEmail(e.target.value)}
+                                            placeholder="support@example.com"
+                                            className="w-full h-11 px-4 rounded-xl bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-xs font-semibold uppercase tracking-wider text-zinc-500">Custom Support URL (Optional)</label>
+                                        <input
+                                            type="url"
+                                            value={settingsSupportUrl}
+                                            onChange={(e) => setSettingsSupportUrl(e.target.value)}
+                                            placeholder="https://help.example.com"
+                                            className="w-full h-11 px-4 rounded-xl bg-black border border-zinc-800 text-white text-sm placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors"
+                                        />
+                                        <p className="text-[11px] text-zinc-600">If set, overrides the email link.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-6 border-t border-zinc-800/50 bg-[#09090b] flex flex-col sm:flex-row items-center justify-between gap-4">
+                                <label className="flex items-center gap-2.5 cursor-pointer group">
+                                    <div className="relative flex items-center justify-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={settingsPublishImmediately}
+                                            onChange={(e) => setSettingsPublishImmediately(e.target.checked)}
+                                            className="peer h-4 w-4 rounded border-zinc-800 bg-black text-indigo-600 focus:ring-indigo-600 focus:ring-offset-zinc-950 transition-all cursor-pointer"
+                                        />
+                                    </div>
+                                    <span className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors select-none">
+                                        Publish changes immediately
+                                    </span>
+                                </label>
+
+                                <div className="flex gap-3 w-full sm:w-auto">
+                                    <button
+                                        onClick={() => setIsSettingsSiteId(null)}
+                                        className="flex-1 sm:flex-none px-6 h-11 rounded-xl border border-zinc-800 text-zinc-400 hover:text-white hover:bg-zinc-800 transition-all font-medium text-sm"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleSaveSettings}
+                                        disabled={!!settingsSubdomainError || isSavingSettings || isVerifyingSubdomain || !hasSettingsChanges}
+                                        className={`flex-1 sm:flex-none px-6 h-11 rounded-xl transition-all font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${settingsPublishImmediately
+                                            ? "bg-indigo-600 text-white hover:bg-indigo-500 shadow-[0_0_20px_rgba(79,70,229,0.2)]"
+                                            : "bg-amber-500 text-black hover:bg-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.2)]"
+                                            }`}
+                                    >
+                                        {isSavingSettings ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 animate-spin" />
+                                                Saving...
+                                            </>
+                                        ) : (
+                                            settingsPublishImmediately ? "Publish" : "Save Draft"
+                                        )}
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
 
             {/* Delete Confirmation Modal */}
             <AnimatePresence>

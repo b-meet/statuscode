@@ -36,3 +36,36 @@ export interface MaintenanceWindow {
     durationMinutes: number;
     status: 'scheduled' | 'in_progress' | 'completed';
 }
+
+export interface ThemeConfig {
+    maintenance?: MaintenanceWindow[];
+    supportEmail?: string;
+    supportUrl?: string;
+    liveWebsiteUrl?: string;
+}
+
+export interface Site {
+    id: string;
+    brand_name: string | null;
+    subdomain: string | null;
+    logo_url: string | null;
+    theme_config?: ThemeConfig;
+    published_config?: any;
+    uptimerobot_api_key?: string | null;
+    monitors?: string[] | null;
+}
+
+export type ChannelType = 'email' | 'discord' | 'slack';
+
+export interface NotificationChannel {
+    id: string;
+    user_id: string;
+    type: ChannelType;
+    config: {
+        email?: string;
+        webhook_url?: string;
+        channel_name?: string;
+    };
+    is_enabled: boolean;
+    created_at: string;
+}
