@@ -7,6 +7,7 @@ import { createClient } from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import NotificationSidebar from "@/components/dashboard/NotificationSidebar";
+import UserAvatar from "@/components/ui/UserAvatar";
 import { Site, AppNotification } from "@/lib/types";
 import Image from "next/image";
 import { useNotifications } from "@/context/NotificationContext";
@@ -34,16 +35,16 @@ export default function DashboardLayout({
         };
 
         fetchSites();
-    }, [supabase]);
 
-    const initials = user
-        ? (user.user_metadata?.full_name || user.email || '?')
-            .split(' ')
-            .map((n: string) => n[0])
-            .slice(0, 2)
-            .join('')
-            .toUpperCase()
-        : '';
+        // Listen for metadata updates
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+            if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+                setUser(session?.user || null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
+    }, [supabase]);
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
@@ -53,7 +54,7 @@ export default function DashboardLayout({
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
             {/* Header */}
-            <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 lg:px-12 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-50">
+            <header className="h-16 border-b border-zinc-800 flex items-center justify-between px-6 lg:px-12 bg-zinc-950/50 backdrop-blur-md sticky top-0 z-[100]">
                 <Link href="/dashboard" className="flex items-center gap-2">
                     <Image src="/logo.svg" alt="Statuscode" width={32} height={32} className="w-8 h-8" />
                     <span className="font-bold text-xl tracking-tight bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent">
@@ -73,9 +74,11 @@ export default function DashboardLayout({
                             onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
                             className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-full bg-zinc-900/50 border border-zinc-800 hover:border-zinc-700 transition-all group"
                         >
-                            <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold border border-white/10 group-hover:scale-105 transition-transform">
-                                {user ? initials : <User className="w-4 h-4" />}
-                            </div>
+                            <UserAvatar
+                                user={user}
+                                className="group-hover:scale-105 transition-transform"
+                                size="md"
+                            />
                             <ChevronDown className={`w-4 h-4 text-zinc-500 group-hover:text-zinc-300 transition-transform duration-300 ${isUserMenuOpen ? 'rotate-180' : ''}`} />
                         </button>
 
@@ -112,13 +115,14 @@ export default function DashboardLayout({
                                                 <Analytics className="w-4 h-4 group-hover/item:text-emerald-400" />
                                                 Analytics
                                             </a>
-                                            <a
-                                                href="#"
+                                            <Link
+                                                href="/dashboard/settings"
+                                                onClick={() => setIsUserMenuOpen(false)}
                                                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all group/item"
                                             >
                                                 <Settings className="w-4 h-4 group-hover/item:text-amber-400" />
                                                 Settings
-                                            </a>
+                                            </Link>
                                         </div>
 
                                         <div className="h-[1px] bg-zinc-800/50 my-2 mx-2" />

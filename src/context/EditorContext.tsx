@@ -207,12 +207,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         });
     }, [config.apiKey, config.monitors]);
 
-    // Fetch initial data
+    // Fetch initial data & listen for auth changes
     useEffect(() => {
         async function fetchSite() {
             try {
                 const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return; // Should handle auth redirect elsewhere
+                if (!user) return;
                 setUser(user);
 
                 const { data: site } = await supabase
@@ -247,7 +247,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                                 if (Array.isArray(val)) {
                                     migrated[key] = val;
                                 } else if (typeof val === 'string') {
-                                    // Migration: Convert legacy string to single update
                                     migrated[key] = [{
                                         id: 'legacy-' + Date.now(),
                                         content: val,
@@ -263,19 +262,14 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         apiKey: site.uptimerobot_api_key || '',
                     });
 
-                    // Set published config
                     if (site.published_config) {
                         setPublishedConfig(site.published_config);
                     }
 
-                    // Sync local real-time state with config
                     if (site.theme_config?.previewScenario === 'none') {
                         setIsRealDataEnabled(true);
                     }
 
-                    // If we have an API key, we intentionally omit the manual duplicate fetch here 
-                    // because the polling `useEffect` observing `config.apiKey` will automatically sequence `fetchMonitors()`.
-                    // Just load demo monitors if they are in the list
                     const demos = getDemoMonitors().filter(m => (site.monitors || []).includes(toDemoStringId(m.id)));
                     if (demos.length > 0) setBaseMonitors(demos);
                 }
@@ -285,7 +279,17 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 setLoading(false);
             }
         }
+
         fetchSite();
+
+        // Listen for metadata updates (like avatar_url or full_name)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+            if (event === 'USER_UPDATED' || event === 'SIGNED_IN') {
+                setUser(session?.user || null);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, [supabase]);
 
     const updateConfig = (updates: Partial<SiteConfig>) => {
