@@ -11,6 +11,7 @@ import PreviewSelector from "./PreviewSelector";
 import ColorPresetSelector from "./ColorPresetSelector";
 import VisibilitySettings from "./VisibilitySettings";
 import MaintenanceManager from "./MaintenanceManager";
+import UserAvatar from "../ui/UserAvatar";
 
 import Image from "next/image";
 
@@ -75,50 +76,17 @@ export default function Sidebar() {
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <UserAvatar user={user} />
+                        <UserAvatar user={user} size="md" />
                         <div className="text-xs">
-                            <div className="text-white font-medium group-hover:text-amber-400 transition-colors">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</div>
-                            <div className="text-zinc-500">Free Plan</div>
+                            <div className="text-white font-medium group-hover:text-indigo-400 transition-colors">{user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'User'}</div>
+                            <div className="text-zinc-500">Tier: Professional</div>
                         </div>
                     </div>
-                    <div className="p-2 rounded-lg text-zinc-500 group-hover:text-amber-400 group-hover:bg-amber-400/10 transition-all">
+                    <div className="p-2 rounded-lg text-zinc-500 group-hover:text-indigo-400 group-hover:bg-indigo-400/10 transition-all">
                         <LayoutDashboard className="w-4 h-4" />
                     </div>
                 </div>
             </Link>
         </aside>
-    );
-}
-
-function UserAvatar({ user }: { user: any }) {
-    if (!user) return <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse" />;
-
-    const initials = (user.user_metadata?.full_name || user.email || '?')
-        .split(' ')
-        .map((n: string) => n[0])
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-
-    // Generate a consistent deep color based on user ID
-    const getDeepColor = (id: string) => {
-        const colors = [
-            'bg-indigo-900', 'bg-blue-900', 'bg-emerald-900',
-            'bg-rose-900', 'bg-purple-900', 'bg-amber-900',
-            'bg-cyan-900', 'bg-fuchsia-900', 'bg-lime-950'
-        ];
-        let hash = 0;
-        for (let i = 0; i < id.length; i++) {
-            hash = id.charCodeAt(i) + ((hash << 5) - hash);
-        }
-        return colors[Math.abs(hash) % colors.length];
-    };
-
-    const bgClass = getDeepColor(user.id);
-
-    return (
-        <div className={`w-8 h-8 rounded-full ${bgClass} flex items-center justify-center border border-white/10`}>
-            <span className="text-xs font-bold text-white/90 tracking-wide">{initials}</span>
-        </div>
     );
 }
