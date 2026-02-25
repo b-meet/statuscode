@@ -40,6 +40,22 @@ export async function PUT(req: Request) {
             return NextResponse.json({ error: error.message }, { status: 500 });
         }
 
+        // 3. Sync changes to the public.users table as well
+        const { error: publicError } = await supabase
+            .from('users')
+            .update({
+                full_name: body.full_name,
+                avatar_url: body.avatar_url,
+                updated_at: new Date().toISOString()
+            })
+            .eq('id', user.id);
+
+        if (publicError) {
+            console.error("Failed to sync profile change to public users table:", publicError);
+            // We don't necessarily fail the whole request just because the sync failed, 
+            // but we log it for debugging.
+        }
+
         return NextResponse.json({ user: data.user });
     } catch (err: any) {
         console.error("PUT /api/user/me error:", err);
