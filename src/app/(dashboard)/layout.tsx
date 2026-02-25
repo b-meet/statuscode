@@ -12,6 +12,7 @@ import { Site, AppNotification } from "@/lib/types";
 import Image from "next/image";
 import { useNotifications } from "@/context/NotificationContext";
 import { fetchProjectsDedupe } from "@/lib/utils";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 
 export default function DashboardLayout({
     children,
@@ -150,6 +151,7 @@ export default function DashboardLayout({
 
             {/* Main Content */}
             <main className="flex-1 p-6 lg:p-12 max-w-7xl mx-auto w-full">
+                <Breadcrumbs />
                 {children}
             </main>
 
