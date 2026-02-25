@@ -37,8 +37,19 @@ export async function POST(req: NextRequest) {
         if (data.stat !== "ok") {
             return NextResponse.json({ error: data.error?.message || "Failed to fetch monitors" }, { status: 400 });
         }
+        // Trim down the response to only what the frontend consumes
+        const minimalMonitors = data.monitors.map((m: any) => ({
+            id: m.id,
+            friendly_name: m.friendly_name,
+            url: m.url,
+            status: m.status,
+            custom_uptime_ratio: m.custom_uptime_ratio,
+            response_times: m.response_times,
+            logs: m.logs,
+            create_datetime: m.create_datetime,
+        }));
 
-        return NextResponse.json({ monitors: data.monitors });
+        return NextResponse.json({ monitors: minimalMonitors });
     } catch (error) {
         console.error("UptimeRobot Proxy Error:", error);
         return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

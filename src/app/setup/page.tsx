@@ -103,29 +103,31 @@ function SetupPageContent() {
 
             // Upload Logo if exists
             if (brandLogo instanceof File) {
-                const fileExt = brandLogo.name.split('.').pop();
-                const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('logos')
-                    .upload(fileName, brandLogo);
+                try {
+                    const formData = new FormData();
+                    formData.append("file", brandLogo);
+                    formData.append("bucket", "logos");
 
-                if (uploadError) {
-                    console.warn("Logo upload failed (bucket might be missing):", uploadError.message);
-                } else {
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('logos')
-                        .getPublicUrl(fileName);
-                    logoUrl = publicUrl;
+                    const res = await fetch("/api/upload", {
+                        method: "POST",
+                        body: formData
+                    });
+
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed to upload logo");
+                    logoUrl = data.url;
+                } catch (err: any) {
+                    console.warn("Logo upload failed:", err.message);
                 }
             }
 
             // Check if site with this brand name already exists for this user (Idempotency check)
-            const { data: existingSite } = await supabase
-                .from('sites')
-                .select('id, brand_name, subdomain')
-                .eq('user_id', user.id)
-                .eq('brand_name', brandName)
-                .maybeSingle();
+            const resProjects = await fetch('/api/projects');
+            let existingSite = null;
+            if (resProjects.ok) {
+                const dataProjects = await resProjects.json();
+                existingSite = dataProjects.projects?.find((p: any) => p.brand_name === brandName);
+            }
 
             const baseSubdomain = brandName.toLowerCase().replace(/[^a-z0-9]/g, '-');
             let subdomain = `${baseSubdomain}-${user.id.slice(0, 4)}`;
@@ -142,80 +144,46 @@ function SetupPageContent() {
                 }
             };
 
-            try {
+            const submitProjectReq = async (payloadWithSub: any) => {
                 if (existingSite && mode !== 'create') {
-                    const { error } = await supabase
-                        .from('sites')
-                        .update({ ...sitePayload, subdomain })
-                        .eq('id', existingSite.id);
-                    if (error) throw error;
+                    const res = await fetch(`/api/projects/${existingSite.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payloadWithSub)
+                    });
+                    const resData = await res.json();
+                    if (!res.ok) throw Object.assign(new Error(resData.error || "Update failed"), { code: resData.code });
+                    return { isNew: false, id: existingSite.id };
                 } else {
-                    const { data: newSite, error } = await supabase
-                        .from('sites')
-                        .insert({ ...sitePayload, subdomain })
-                        .select()
-                        .single();
-                    if (error) throw error;
+                    const res = await fetch(`/api/projects`, {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payloadWithSub)
+                    });
+                    const resData = await res.json();
+                    if (!res.ok) throw Object.assign(new Error(resData.error || "Create failed"), { code: resData.code });
+                    return { isNew: true, id: resData.project.id };
+                }
+            };
 
-                    // Trigger persistent notification for creation
-                    if (user) {
-                        addNotification(
-                            'project',
-                            'created',
-                            'Welcome to Statuscode! ✨',
-                            `Your project "${brandName}" is ready for customization.`,
-                            { siteId: newSite.id }
-                        );
-                    }
-                    // Broadcast to other tabs
+            try {
+                const result = await submitProjectReq({ ...sitePayload, subdomain });
+                if (result.isNew && user) {
+                    addNotification('project', 'created', 'Welcome to Statuscode! ✨', `Your project "${brandName}" is ready for customization.`, { siteId: result.id });
                     notifyProjectChange();
                 }
             } catch (error: any) {
                 if (error.code === '23505') {
+                    // Fallback to a highly unique ID on collision
                     const fallbackSubdomain = `site-${user.id.slice(0, 8)}-${Math.random().toString(36).slice(2, 6)}`;
-                    if (existingSite && mode !== 'create') {
-                        const { error: retryError } = await supabase
-                            .from('sites')
-                            .update({ ...sitePayload, subdomain: fallbackSubdomain })
-                            .eq('id', existingSite.id);
-                        if (retryError) throw retryError;
-                    } else {
-                        // Double check if the site was created by a race between Req A and Req B
-                        const { data: racedSite } = await supabase
-                            .from('sites')
-                            .select('id')
-                            .eq('user_id', user.id)
-                            .eq('brand_name', brandName)
-                            .maybeSingle();
-
-                        if (racedSite) {
-                            // It was a race! Update the raced site instead of creating a duplicate.
-                            const { error: retryError } = await supabase
-                                .from('sites')
-                                .update({ ...sitePayload, subdomain: fallbackSubdomain })
-                                .eq('id', racedSite.id);
-                            if (retryError) throw retryError;
-                        } else {
-                            // Genuine collision with a DIFFERENT project. Insert with fallback.
-                            const { data: newSite, error: retryError } = await supabase
-                                .from('sites')
-                                .insert({ ...sitePayload, subdomain: fallbackSubdomain })
-                                .select()
-                                .single();
-                            if (retryError) throw retryError;
-
-                            if (user && newSite) {
-                                addNotification(
-                                    'project',
-                                    'created',
-                                    'Welcome to Statuscode! ✨',
-                                    `Your project "${brandName}" is ready for customization.`,
-                                    { siteId: newSite.id }
-                                );
-                            }
-                            // Broadcast to other tabs
+                    try {
+                        const fallbackResult = await submitProjectReq({ ...sitePayload, subdomain: fallbackSubdomain });
+                        if (fallbackResult.isNew && user) {
+                            addNotification('project', 'created', 'Welcome to Statuscode! ✨', `Your project "${brandName}" is ready for customization.`, { siteId: fallbackResult.id });
                             notifyProjectChange();
                         }
+                    } catch (retryError) {
+                        throw retryError;
                     }
                 } else {
                     throw error;

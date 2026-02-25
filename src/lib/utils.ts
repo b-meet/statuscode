@@ -99,3 +99,25 @@ export function stripMarkdown(text: string): string {
         .replace(/^-{3,}$/gm, '')
         .trim();
 }
+
+// Global cache for projects API to deduplicate concurrent requests from layout and dashboard
+let projectsCache: { promise: Promise<any> | null, ts: number } = { promise: null, ts: 0 };
+
+export function fetchProjectsDedupe() {
+    const now = Date.now();
+    // Valid for 2 seconds to cover initial concurrent mounts
+    if (projectsCache.promise && (now - projectsCache.ts < 2000)) {
+        return projectsCache.promise;
+    }
+
+    projectsCache.promise = fetch("/api/projects").then(res => {
+        if (!res.ok) throw new Error("Failed to fetch projects");
+        return res.json();
+    }).catch(err => {
+        projectsCache.promise = null; // Clear on error
+        throw err;
+    });
+
+    projectsCache.ts = now;
+    return projectsCache.promise;
+}

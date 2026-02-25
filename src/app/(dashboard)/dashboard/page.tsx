@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Site, ThemeConfig, MaintenanceWindow } from "@/lib/types";
 import { formatUptimePercentage } from "@/lib/utils";
+import { fetchProjectsDedupe } from "@/lib/utils";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
 import { BroadcastChannel } from 'broadcast-channel';
@@ -44,6 +45,7 @@ export default function DashboardPage() {
     const [isVerifyingSubdomain, setIsVerifyingSubdomain] = useState(false);
     const [isSavingSettings, setIsSavingSettings] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const fetchingUptimeRef = useRef(new Set<string>()); // Lock to prevent redundant monitor calls
 
     const [mounted, setMounted] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -59,19 +61,19 @@ export default function DashboardPage() {
     }, []);
 
     const loadDashboard = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) return;
         setUser(user);
 
-        const { data: sitesData } = await supabase
-            .from('sites')
-            .select('*')
-            .eq('user_id', user.id);
-
-        if (sitesData) {
-            setSites(sitesData);
+        try {
+            const data = await fetchProjectsDedupe();
+            setSites(data.projects || []);
+        } catch (err) {
+            console.error("Failed to load dashboard projects:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     }, [supabase]);
 
     useEffect(() => {
@@ -93,7 +95,10 @@ export default function DashboardPage() {
 
     useEffect(() => {
         sites.forEach(async (site) => {
-            if (uptimeMap[site.id] !== undefined) return; // Already requested
+            // Check state or ref lock to prevent infinite re-rendering loops
+            if (uptimeMap[site.id] !== undefined || fetchingUptimeRef.current.has(site.id)) return;
+
+            fetchingUptimeRef.current.add(site.id);
 
             // For dashboard display, prefer published monitor settings if they exist, else draft.
             const apiKey = site.published_config?.uptimerobot_api_key || site.uptimerobot_api_key;
@@ -105,7 +110,7 @@ export default function DashboardPage() {
             }
 
             try {
-                const res = await fetch("/api/uptimerobot/monitors", {
+                const res = await fetch("/api/monitors", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -133,6 +138,7 @@ export default function DashboardPage() {
     }, [sites, uptimeMap]);
 
     const handleRefreshUptime = (siteId: string) => {
+        fetchingUptimeRef.current.delete(siteId);
         setUptimeMap(prev => {
             const next = { ...prev };
             delete next[siteId];
@@ -149,28 +155,15 @@ export default function DashboardPage() {
         setHasConsented(false);
 
         const promise = (async () => {
-            // 1. Log consent
-            try {
-                await supabase
-                    .from('deletion_logs')
-                    .insert({
-                        site_id: id,
-                        user_id: user.id,
-                        site_name: siteName,
-                        consent_text: "I understand the consequences and statuscode is not liable for any issues",
-                        action: 'delete'
-                    });
-            } catch (e) {
-                console.warn("Failed to log deletion consent, but proceeding with deletion:", e);
-            }
+            // 1. Delete site (automatically logs consent in the API handler)
+            const consentText = "I understand the consequences and statuscode is not liable for any issues";
 
-            // 2. Delete site
-            const { error } = await supabase
-                .from('sites')
-                .delete()
-                .eq('id', id);
+            const res = await fetch(`/api/projects/${id}?siteName=${encodeURIComponent(siteName)}&consentText=${encodeURIComponent(consentText)}`, {
+                method: "DELETE"
+            });
 
-            if (error) throw error;
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to delete project");
 
             // Trigger persistent notification
             if (user) {
@@ -209,16 +202,12 @@ export default function DashboardPage() {
             setSettingsSubdomainError(null);
 
             try {
-                const { data, error } = await supabase
-                    .from('sites')
-                    .select('id')
-                    .eq('subdomain', settingsSubdomain)
-                    .neq('id', isSettingsSiteId || '') // Exclude current site
-                    .maybeSingle();
+                const res = await fetch(`/api/projects/check-subdomain?subdomain=${encodeURIComponent(settingsSubdomain)}&excludeId=${isSettingsSiteId || ''}`);
+                const data = await res.json();
 
-                if (error) throw error;
+                if (!res.ok) throw new Error(data.error || "Check failed");
 
-                if (data) {
+                if (!data.available) {
                     setSettingsSubdomainError("This subdomain is already taken");
                 }
             } catch (err) {
@@ -250,17 +239,19 @@ export default function DashboardPage() {
             const fileName = `${user.id}-${Date.now()}.${fileExt}`;
             const filePath = `${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('logos')
-                .upload(filePath, file);
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("bucket", "logos");
 
-            if (uploadError) throw uploadError;
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData
+            });
 
-            const { data: publicUrlData } = supabase.storage
-                .from('logos')
-                .getPublicUrl(filePath);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to upload");
 
-            setSettingsLogoUrl(publicUrlData.publicUrl);
+            setSettingsLogoUrl(data.url);
             toast.success("Logo uploaded successfully");
         } catch (error) {
             console.error("Upload failed:", error);
@@ -317,12 +308,19 @@ export default function DashboardPage() {
                 };
             }
 
-            const { error } = await supabase
-                .from('sites')
-                .update(updates)
-                .eq('id', isSettingsSiteId);
+            const res = await fetch(`/api/projects/${isSettingsSiteId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(updates),
+            });
+            const data = await res.json();
 
-            if (error) throw error;
+            if (!res.ok) {
+                if (data.code === '23505') {
+                    throw new Error("Subdomain already taken");
+                }
+                throw new Error(data.error || "Failed to update project");
+            }
 
             // Optimistically update local state
             setSites(prev => prev.map(site => {

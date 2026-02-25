@@ -36,17 +36,19 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const syncChannel = useRef<BroadcastChannel<NotificationMessage> | null>(null);
 
     const fetchNotifications = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) return;
 
         setIsLoading(true);
         try {
-            const { data } = await supabase
-                .from('app_notifications')
-                .select('*')
-                .order('created_at', { ascending: false })
-                .limit(20);
-            if (data) setNotifications(data);
+            const res = await fetch("/api/notifications");
+            if (res.ok) {
+                const { notifications: data } = await res.json();
+                if (data) setNotifications(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch notifications via API:", error);
         } finally {
             setIsLoading(false);
         }
@@ -59,66 +61,79 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         message: string,
         metadata: Record<string, any> = {}
     ) => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) return;
 
-        // Optimistic UI could be added here, but let's first ensure the DB result is pushed
-        const { data, error } = await supabase
-            .from('app_notifications')
-            .insert({
-                user_id: user.id,
-                category,
-                type,
-                title,
-                message,
-                metadata,
-                is_read: false
-            })
-            .select()
-            .single();
-
-        if (data && !error) {
-            // DIRECT STATE UPDATE: This is what ensures it shows up immediately
-            // without waiting for Realtime propagation
-            setNotifications(prev => {
-                // Check if already exists (to prevent double entry if Realtime is fast)
-                if (prev.some(n => n.id === data.id)) return prev;
-                return [data as AppNotification, ...prev].slice(0, 20);
+        try {
+            const res = await fetch("/api/notifications", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    category,
+                    type,
+                    title,
+                    message,
+                    metadata
+                })
             });
-        } else if (error) {
-            console.error("Failed to add notification:", error);
+            const { notification: data, error } = await res.json();
+
+            if (data && !error && res.ok) {
+                // DIRECT STATE UPDATE: This is what ensures it shows up immediately
+                // without waiting for Realtime propagation
+                setNotifications(prev => {
+                    // Check if already exists (to prevent double entry if Realtime is fast)
+                    if (prev.some(n => n.id === data.id)) return prev;
+                    return [data as AppNotification, ...prev].slice(0, 20);
+                });
+            } else if (error) {
+                console.error("Failed to add notification:", error);
+            }
+        } catch (err) {
+            console.error("Failed to add notification request:", err);
         }
     }, [supabase]);
 
     const markRead = useCallback(async (id: string) => {
-        const { error } = await supabase
-            .from('app_notifications')
-            .update({ is_read: true })
-            .eq('id', id);
+        try {
+            const res = await fetch("/api/notifications", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id })
+            });
 
-        if (!error) {
-            setNotifications(prev =>
-                prev.map(n => n.id === id ? { ...n, is_read: true } : n)
-            );
-            // Broadcast to other tabs
-            syncChannel.current?.postMessage({ type: 'MARK_READ', id });
+            if (res.ok) {
+                setNotifications(prev =>
+                    prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+                );
+                // Broadcast to other tabs
+                syncChannel.current?.postMessage({ type: 'MARK_READ', id });
+            }
+        } catch (error) {
+            console.error("Failed to mark read request:", error);
         }
     }, [supabase]);
 
     const markAllRead = useCallback(async () => {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { session } } = await supabase.auth.getSession();
+        const user = session?.user;
         if (!user) return;
 
-        const { error } = await supabase
-            .from('app_notifications')
-            .update({ is_read: true })
-            .eq('user_id', user.id)
-            .eq('is_read', false);
+        try {
+            const res = await fetch("/api/notifications", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ all: true })
+            });
 
-        if (!error) {
-            setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
-            // Broadcast to other tabs
-            syncChannel.current?.postMessage({ type: 'MARK_ALL_READ' });
+            if (res.ok) {
+                setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+                // Broadcast to other tabs
+                syncChannel.current?.postMessage({ type: 'MARK_ALL_READ' });
+            }
+        } catch (error) {
+            console.error("Failed to mark all read request:", error);
         }
     }, [supabase]);
 

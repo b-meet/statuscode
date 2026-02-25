@@ -11,6 +11,7 @@ import UserAvatar from "@/components/ui/UserAvatar";
 import { Site, AppNotification } from "@/lib/types";
 import Image from "next/image";
 import { useNotifications } from "@/context/NotificationContext";
+import { fetchProjectsDedupe } from "@/lib/utils";
 
 export default function DashboardLayout({
     children,
@@ -25,13 +26,17 @@ export default function DashboardLayout({
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
     useEffect(() => {
-        supabase.auth.getUser().then((res: any) => {
-            if (res.data?.user) setUser(res.data.user);
+        supabase.auth.getSession().then((res: any) => {
+            if (res.data?.session?.user) setUser(res.data.session.user);
         });
 
         const fetchSites = async () => {
-            const { data } = await supabase.from('sites').select('*').order('created_at', { ascending: false });
-            if (data) setSites(data);
+            try {
+                const data = await fetchProjectsDedupe();
+                setSites(data.projects || []);
+            } catch (err) {
+                console.error("Failed to fetch sites:", err);
+            }
         };
 
         fetchSites();
@@ -108,13 +113,14 @@ export default function DashboardLayout({
                                                 <LayoutDashboard className="w-4 h-4 group-hover/item:text-indigo-400" />
                                                 Projects
                                             </Link>
-                                            <a
-                                                href="#"
+                                            <Link
+                                                href="/analytics"
+                                                onClick={() => setIsUserMenuOpen(false)}
                                                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all group/item"
                                             >
                                                 <Analytics className="w-4 h-4 group-hover/item:text-emerald-400" />
                                                 Analytics
-                                            </a>
+                                            </Link>
                                             <Link
                                                 href="/settings"
                                                 onClick={() => setIsUserMenuOpen(false)}

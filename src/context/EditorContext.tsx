@@ -127,7 +127,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         let realMonitors: MonitorData[] = [];
         if (config.apiKey) {
             try {
-                const res = await fetch("/api/uptimerobot/monitors", {
+                const res = await fetch("/api/monitors", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -215,13 +215,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 if (!user) return;
                 setUser(user);
 
-                const { data: site } = await supabase
-                    .from('sites')
-                    .select('*')
-                    .eq('user_id', user.id)
-                    .order('created_at', { ascending: false })
-                    .limit(1)
-                    .single();
+                const res = await fetch("/api/projects");
+                if (!res.ok) throw new Error("Failed to load projects");
+                const { projects } = await res.json();
+                const site = projects?.[0];
 
                 if (site) {
                     setConfig({
@@ -339,25 +336,26 @@ export function EditorProvider({ children }: { children: ReactNode }) {
 
                 if (config.id) {
                     // Update existing
-                    const { error } = await supabase
-                        .from('sites')
-                        .update(payload)
-                        .eq('id', config.id);
-
-                    if (error) throw error;
+                    const res = await fetch(`/api/projects/${config.id}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed to save project");
                 } else {
                     // Insert new
-                    const { data, error } = await supabase
-                        .from('sites')
-                        .insert([payload])
-                        .select()
-                        .single();
-
-                    if (error) throw error;
+                    const res = await fetch("/api/projects", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify(payload),
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.error || "Failed to create project");
 
                     // Update local config with new ID so future saves are updates
-                    if (data) {
-                        setConfig(prev => ({ ...prev, id: data.id }));
+                    if (data.project) {
+                        setConfig(prev => ({ ...prev, id: data.project.id }));
                     }
                 }
 

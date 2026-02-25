@@ -59,6 +59,7 @@ function AuthPageContent() {
     const [apiKey, setApiKey] = useState("");
     const [showApiTooltip, setShowApiTooltip] = useState(false);
     const [showSkipModal, setShowSkipModal] = useState(false);
+    const [isNewUser, setIsNewUser] = useState<boolean>(true); // Assume new until checked
     // Theme State
     const [selectedTheme, setSelectedTheme] = useState<'modern' | 'minimal' | 'brutal'>('modern');
 
@@ -122,19 +123,28 @@ function AuthPageContent() {
         setLoading(true);
         setMessage("");
 
-        const { error } = await supabase.auth.signInWithOtp({
-            email,
-            options: { shouldCreateUser: true },
-        });
+        try {
+            const res = await fetch("/api/auth/otp/send", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+            const data = await res.json();
 
-        if (error) {
-            setMessage(error.message);
-        } else {
+            if (!res.ok) throw new Error(data.error || "Failed to send verification code");
+
+            if (data.isNewUser !== undefined) {
+                setIsNewUser(data.isNewUser);
+            }
+
             setDirection(1); // Moving forward
             setStep("otp");
             setTimer(60);
+        } catch (err: any) {
+            setMessage(err.message);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const handleOtpChange = (index: number, value: string) => {
@@ -200,26 +210,29 @@ function AuthPageContent() {
     const verifyOtp = async (tokenOverride?: string) => {
         const token = tokenOverride || otp.join("");
         setLoading(true);
-        const { error } = await supabase.auth.verifyOtp({
-            email,
-            token,
-            type: "email",
-        });
+        try {
+            const res = await fetch("/api/auth/otp/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, token }),
+            });
+            const data = await res.json();
 
-        if (error) {
-            setMessage(error.message);
-            setLoading(false);
-        } else {
+            if (!res.ok) throw new Error(data.error || "Invalid verification code");
+
             // Success
-            if (isMobile) {
-                // Mobile: Skip setup, go to dashboard (Editor not supported)
+            if (isMobile || !isNewUser) {
+                // Return users or Mobile: Skip setup, go to dashboard
                 window.location.href = "/dashboard";
             } else {
-                // Desktop: Go to Setup
+                // Desktop New User: Go to Setup
                 setDirection(1);
                 setStep("setup");
-                setLoading(false);
             }
+        } catch (err: any) {
+            setMessage(err.message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -577,7 +590,7 @@ function AuthPageContent() {
                                             <input
                                                 key={idx}
                                                 ref={(el) => { otpInputRefs.current[idx] = el; }} // No return value needed
-                                                type="number"
+                                                type="text"
                                                 pattern="[0-9]*"
                                                 inputMode="numeric"
                                                 maxLength={1}
@@ -920,7 +933,7 @@ function AuthPageContent() {
                  */}
                 <div className="hidden md:flex col-span-3 justify-start items-center relative h-full">
                     <AnimatePresence mode="popLayout" initial={false}>
-                        {step === 'email' || step === 'otp' ? (
+                        {(step === 'email' || step === 'otp') && isNewUser ? (
                             <motion.div
                                 key="badge-select-method"
                                 initial={{ x: 20, opacity: 0 }}

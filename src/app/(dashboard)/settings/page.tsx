@@ -78,17 +78,19 @@ export default function AccountSettingsPage() {
             const fileName = `${user.id}-${Date.now()}.${fileExt}`;
             const filePath = `avatars/${fileName}`;
 
-            const { error: uploadError } = await supabase.storage
-                .from('avatars')
-                .upload(filePath, file);
+            const formData = new FormData();
+            formData.append("file", file);
+            formData.append("bucket", "avatars");
 
-            if (uploadError) throw uploadError;
+            const res = await fetch("/api/upload", {
+                method: "POST",
+                body: formData
+            });
 
-            const { data: { publicUrl } } = supabase.storage
-                .from('avatars')
-                .getPublicUrl(filePath);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to upload");
 
-            setAvatarUrl(publicUrl);
+            setAvatarUrl(data.url);
             setAvatarSelection('photo');
             setIsDirty(true);
 
@@ -111,16 +113,19 @@ export default function AccountSettingsPage() {
 
         setIsSaving(true);
         try {
-            const { data, error } = await supabase.auth.updateUser({
-                data: {
+            const res = await fetch("/api/user/me", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
                     full_name: fullName,
                     avatar_url: avatarUrl,
                     avatar_selection: avatarSelection,
                     avatar_color: avatarColor
-                }
+                })
             });
 
-            if (error) throw error;
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Failed to update profile");
 
             setUser(data.user);
             setIsDirty(false);
