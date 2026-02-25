@@ -116,7 +116,7 @@ export default function DashboardLayout({
                                                 Analytics
                                             </a>
                                             <Link
-                                                href="/dashboard/settings"
+                                                href="/settings"
                                                 onClick={() => setIsUserMenuOpen(false)}
                                                 className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-zinc-400 hover:text-white hover:bg-zinc-800/50 transition-all group/item"
                                             >

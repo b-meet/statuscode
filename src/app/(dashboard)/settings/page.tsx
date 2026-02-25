@@ -140,7 +140,7 @@ export default function AccountSettingsPage() {
 
     const handleSignOut = async () => {
         await supabase.auth.signOut();
-        router.push("/login");
+        router.push("/");
     };
 
     if (loading) {
@@ -178,7 +178,7 @@ export default function AccountSettingsPage() {
                 className="space-y-12"
             >
                 {/* Header */}
-                <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-8 pb-10 border-b border-zinc-900/50">
+                <header className="flex flex-col sm:flex-row sm:items-start justify-between gap-8 pb-10 border-b border-zinc-900/50">
                     <div className="flex flex-col sm:flex-row items-center gap-6">
                         <div className="relative group shrink-0">
                             <div
@@ -216,67 +216,41 @@ export default function AccountSettingsPage() {
                                 />
                             </div>
 
-                            <div className="absolute -bottom-2 -right-2 flex bg-zinc-950 border border-zinc-800 rounded-xl p-1 shadow-2xl z-10">
+                            <div className="absolute -bottom-2 -right-2 flex bg-zinc-950 border border-zinc-800 rounded-full p-0.5 shadow-2xl z-10">
                                 <button
                                     onClick={() => { setAvatarSelection('photo'); setIsDirty(true); }}
-                                    className={`p-1.5 rounded-lg transition-all ${avatarSelection === 'photo' ? 'bg-white text-black shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`relative w-6 h-6 flex items-center justify-center rounded-full transition-colors duration-200 z-10 ${avatarSelection === 'photo' ? 'text-black' : 'text-zinc-500 hover:text-zinc-300'}`}
                                     title="Use Photo"
                                 >
-                                    <ImageIcon className="w-3.5 h-3.5" />
+                                    {avatarSelection === 'photo' && (
+                                        <motion.div
+                                            layoutId="avatarModeToggle"
+                                            className="absolute inset-0 bg-white rounded-full shadow-sm"
+                                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                                        />
+                                    )}
+                                    <ImageIcon className="w-3.5 h-3.5 relative z-20" />
                                 </button>
                                 <button
                                     onClick={() => { setAvatarSelection('initials'); setIsDirty(true); }}
-                                    className={`p-1.5 rounded-lg transition-all ${avatarSelection === 'initials' ? 'bg-white text-black shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+                                    className={`relative w-6 h-6 flex items-center justify-center rounded-full transition-colors duration-200 z-10 ${avatarSelection === 'initials' ? 'text-black' : 'text-zinc-500 hover:text-zinc-300'}`}
                                     title="Use Initials"
                                 >
-                                    <span className="text-[10px] font-black leading-none uppercase">Az</span>
+                                    {avatarSelection === 'initials' && (
+                                        <motion.div
+                                            layoutId="avatarModeToggle"
+                                            className="absolute inset-0 bg-white rounded-full shadow-sm"
+                                            transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                                        />
+                                    )}
+                                    <span className="text-[10px] font-black leading-none uppercase relative z-20">Az</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="space-y-4 text-center sm:text-left">
-                            <div>
-                                <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Account</h1>
-                                <p className="text-zinc-500 text-sm font-medium">Manage your profile and appearance.</p>
-                            </div>
-
-                            {avatarSelection === 'initials' && (
-                                <div className="space-y-2.5">
-                                    <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest leading-none">Avatar Background</p>
-                                    <div className="flex flex-wrap justify-center sm:justify-start gap-3">
-                                        {avatarBgColors.map((color) => (
-                                            <button
-                                                key={color.label}
-                                                onClick={() => {
-                                                    setAvatarColor(color.value);
-                                                    setIsDirty(true);
-                                                }}
-                                                className={`w-7 h-7 rounded-full border-2 transition-all shadow-sm ${avatarColor === color.value ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-zinc-800 hover:border-zinc-600 hover:scale-105'}`}
-                                                style={{ backgroundColor: color.value || '#18181b' }}
-                                                title={color.label}
-                                            />
-                                        ))}
-
-                                        <div className="relative group">
-                                            <input
-                                                type="color"
-                                                value={avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? avatarColor : "#4f46e5"}
-                                                onChange={(e) => {
-                                                    setAvatarColor(e.target.value);
-                                                    setIsDirty(true);
-                                                }}
-                                                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                                                title="Custom Color"
-                                            />
-                                            <div className={`w-7 h-7 rounded-full border-2 border-dashed transition-all flex items-center justify-center ${avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? 'border-white scale-110' : 'border-zinc-800 hover:border-zinc-600 hover:scale-105'}`}
-                                                style={{ backgroundColor: avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? avatarColor : 'transparent' }}
-                                            >
-                                                <Zap className={`w-3.5 h-3.5 ${avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? getContrastColor(avatarColor) : 'text-zinc-500'}`} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
+                        <div className="text-center sm:text-left">
+                            <h1 className="text-2xl font-bold tracking-tight text-white mb-1">Account</h1>
+                            <p className="text-zinc-500 text-sm font-medium">Manage your profile and appearance.</p>
                         </div>
                     </div>
 
@@ -296,6 +270,47 @@ export default function AccountSettingsPage() {
                         )}
                     </AnimatePresence>
                 </header>
+
+                {/* Avatar Color Picker - animated collapse/expand */}
+                <div className={`grid transition-all duration-300 ease-in-out ${avatarSelection === 'initials' ? 'grid-rows-[1fr] opacity-100 -mt-4' : 'grid-rows-[0fr] opacity-0 -mt-12'}`}>
+                    <div className="overflow-hidden">
+                        <div className="space-y-2.5 pb-2">
+                            <p className="text-[10px] font-black text-zinc-600 uppercase tracking-widest leading-none">Avatar Background</p>
+                            <div className="flex flex-wrap gap-3">
+                                {avatarBgColors.map((color) => (
+                                    <button
+                                        key={color.label}
+                                        onClick={() => {
+                                            setAvatarColor(color.value);
+                                            setIsDirty(true);
+                                        }}
+                                        className={`w-7 h-7 rounded-full border-2 transition-all shadow-sm ${avatarColor === color.value ? 'border-white scale-110 shadow-lg shadow-white/20' : 'border-zinc-800 hover:border-zinc-600 hover:scale-105'}`}
+                                        style={{ backgroundColor: color.value || '#18181b' }}
+                                        title={color.label}
+                                    />
+                                ))}
+
+                                <div className="relative group">
+                                    <input
+                                        type="color"
+                                        value={avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? avatarColor : "#4f46e5"}
+                                        onChange={(e) => {
+                                            setAvatarColor(e.target.value);
+                                            setIsDirty(true);
+                                        }}
+                                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                                        title="Custom Color"
+                                    />
+                                    <div className={`w-7 h-7 rounded-full border-2 border-dashed transition-all flex items-center justify-center ${avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? 'border-white scale-110' : 'border-zinc-800 hover:border-zinc-600 hover:scale-105'}`}
+                                        style={{ backgroundColor: avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? avatarColor : 'transparent' }}
+                                    >
+                                        <Zap className={`w-3.5 h-3.5 ${avatarColor && !avatarBgColors.some(c => c.value === avatarColor) ? getContrastColor(avatarColor) : 'text-zinc-500'}`} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Form Area */}
