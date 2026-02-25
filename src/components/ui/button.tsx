@@ -21,8 +21,8 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
                     {
                         "bg-gradient-to-r from-statuscode-500 to-accent-600 text-white shadow-lg shadow-statuscode-500/20 hover:shadow-statuscode-500/40 border-t border-white/20": variant === "primary",
                         "bg-zinc-800 text-zinc-100 hover:bg-zinc-700 border border-zinc-700": variant === "secondary",
-                        "border border-zinc-200 bg-transparent hover:bg-zinc-100 text-zinc-900 dark:border-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-800": variant === "outline",
-                        "hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-900 dark:text-zinc-100": variant === "ghost",
+                        "border border-zinc-200 bg-transparent hover:bg-zinc-800 border-zinc-800 text-zinc-100": variant === "outline",
+                        "hover:bg-zinc-100 hover:bg-zinc-800 text-zinc-100": variant === "ghost",
                         "h-8 px-4 text-xs": size === "sm",
                         "h-10 px-6 text-sm": size === "md",
                         "h-12 px-8 text-base": size === "lg",

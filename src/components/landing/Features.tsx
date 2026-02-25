@@ -28,13 +28,13 @@ const features = [
 
 export function Features() {
     return (
-        <section id="features" className="py-24 bg-zinc-50 dark:bg-zinc-900/30">
+        <section id="features" className="py-24 bg-zinc-900/30">
             <div className="container mx-auto px-6">
                 <div className="mb-16 text-center">
-                    <h2 className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-4">
+                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
                         Everything you need.
                     </h2>
-                    <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                    <p className="text-lg text-zinc-400">
                         We handle the complexity, you get the credit for looking good.
                     </p>
                 </div>
@@ -47,15 +47,15 @@ export function Features() {
                             whileInView={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.5, delay: idx * 0.1 }}
                             viewport={{ once: true }}
-                            className="p-6 rounded-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-white/5 hover:border-statuscode-500/30 transition-colors"
+                            className="p-6 rounded-2xl bg-zinc-900 border border-white/5 hover:border-statuscode-500/30 transition-colors"
                         >
-                            <div className="w-12 h-12 rounded-lg bg-statuscode-100 dark:bg-statuscode-500/10 flex items-center justify-center text-statuscode-600 dark:text-statuscode-400 mb-4">
+                            <div className="w-12 h-12 rounded-lg bg-statuscode-500/10 flex items-center justify-center text-statuscode-400 mb-4">
                                 <feature.icon className="size-6" />
                             </div>
-                            <h3 className="text-xl font-semibold text-zinc-900 dark:text-white mb-2">
+                            <h3 className="text-xl font-semibold text-white mb-2">
                                 {feature.title}
                             </h3>
-                            <p className="text-zinc-600 dark:text-zinc-400 leading-relaxed">
+                            <p className="text-zinc-400 leading-relaxed">
                                 {feature.description}
                             </p>
                         </motion.div>

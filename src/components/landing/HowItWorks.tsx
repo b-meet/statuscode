@@ -11,10 +11,10 @@ export function HowItWorks() {
 
             <div className="container mx-auto px-6 relative z-10">
                 <div className="text-center mb-20">
-                    <h2 className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-6">
+                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-6">
                         How Statuscode Works
                     </h2>
-                    <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                    <p className="text-lg text-zinc-400">
                         From clinical data to brand experience in minutes.
                     </p>
                 </div>
@@ -25,23 +25,23 @@ export function HowItWorks() {
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
-                        className="md:col-span-2 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
+                        className="md:col-span-2 min-h-[300px] rounded-3xl bg-zinc-950 border border-white/10 p-8 relative overflow-hidden group"
                     >
                         <div className="relative z-10 max-w-md">
                             <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Plug className="size-5" />
                             </div>
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">1. Connect Your Source</h3>
-                            <p className="text-zinc-600 dark:text-zinc-400">Paste your read-only API key. We instantly sync monitors and history.</p>
+                            <h3 className="text-xl font-bold text-white mb-2">1. Connect Your Source</h3>
+                            <p className="text-zinc-400">Paste your read-only API key. We instantly sync monitors and history.</p>
                         </div>
 
                         {/* Mock: API Key Input */}
                         <div className="absolute right-0 bottom-8 w-2/3 md:w-1/2 translate-x-12 group-hover:translate-x-8 transition-transform duration-500">
-                            <div className="rounded-l-xl bg-zinc-100 dark:bg-zinc-900 border border-zinc-200 dark:border-white/10 p-4 shadow-xl">
+                            <div className="rounded-l-xl bg-zinc-900 border border-white/10 p-4 shadow-xl">
                                 <div className="space-y-3">
-                                    <div className="h-2 w-16 bg-zinc-200 dark:bg-zinc-800 rounded-full" />
+                                    <div className="h-2 w-16 bg-zinc-200 bg-zinc-800 rounded-full" />
                                     <div className="flex gap-2">
-                                        <div className="h-10 flex-1 rounded-lg bg-white dark:bg-black border border-zinc-200 dark:border-zinc-800 flex items-center px-3 text-xs text-zinc-400 font-mono">
+                                        <div className="h-10 flex-1 rounded-lg bg-white bg-black border border-zinc-800 flex items-center px-3 text-xs text-zinc-400 font-mono">
                                             ur12948-2948...
                                         </div>
                                         <div className="h-10 w-10 rounded-lg bg-green-500 flex items-center justify-center text-white">
@@ -60,15 +60,15 @@ export function HowItWorks() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.1 }}
-                        className="md:col-span-1 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
+                        className="md:col-span-1 min-h-[300px] rounded-3xl bg-zinc-950 border border-white/10 p-8 relative overflow-hidden group"
                     >
                         {/* Header */}
                         <div className="relative z-10">
                             <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Palette className="size-5" />
                             </div>
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">2. Choose Vibe</h3>
-                            <p className="text-zinc-600 dark:text-zinc-400 text-sm">Minimalist White or Cyberpunk Dark.</p>
+                            <h3 className="text-xl font-bold text-white mb-2">2. Choose Vibe</h3>
+                            <p className="text-zinc-400 text-sm">Minimalist White or Cyberpunk Dark.</p>
                         </div>
 
                         {/* Mock: Template Cards */}
@@ -90,11 +90,11 @@ export function HowItWorks() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.2 }}
-                        className="md:col-span-1 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
+                        className="md:col-span-1 min-h-[300px] rounded-3xl bg-zinc-950 border border-white/10 p-8 relative overflow-hidden group"
                     >
                         {/* Coming Soon Badge */}
                         <div className="absolute top-8 right-8 z-20">
-                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-100 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 text-[10px] font-medium text-zinc-500 dark:text-zinc-400 opacity-80 backdrop-blur-sm">
+                            <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-zinc-100 bg-zinc-800 border border-zinc-200 border-zinc-700 text-[10px] font-medium text-zinc-400 opacity-80 backdrop-blur-sm">
                                 Coming Soon
                             </span>
                         </div>
@@ -103,8 +103,8 @@ export function HowItWorks() {
                             <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Sliders className="size-5" />
                             </div>
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">3. Tune Motion</h3>
-                            <p className="text-zinc-600 dark:text-zinc-400 text-sm">Control animation intensity.</p>
+                            <h3 className="text-xl font-bold text-white mb-2">3. Tune Motion</h3>
+                            <p className="text-zinc-400 text-sm">Control animation intensity.</p>
                         </div>
 
                         {/* Mock: Sliders */}
@@ -114,7 +114,7 @@ export function HowItWorks() {
                                     <span>Pulse</span>
                                     <span>High</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
                                     <div className="h-full w-[80%] bg-statuscode-500" />
                                 </div>
                             </div>
@@ -123,7 +123,7 @@ export function HowItWorks() {
                                     <span>Slide</span>
                                     <span>Med</span>
                                 </div>
-                                <div className="h-1.5 w-full bg-zinc-100 dark:bg-zinc-900 rounded-full overflow-hidden">
+                                <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
                                     <div className="h-full w-[50%] bg-statuscode-500" />
                                 </div>
                             </div>
@@ -136,14 +136,14 @@ export function HowItWorks() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.3 }}
-                        className="md:col-span-2 min-h-[300px] rounded-3xl bg-white dark:bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 relative overflow-hidden group"
+                        className="md:col-span-2 min-h-[300px] rounded-3xl bg-zinc-950 border border-white/10 p-8 relative overflow-hidden group"
                     >
                         <div className="relative z-10 max-w-sm">
                             <div className="w-10 h-10 rounded-xl bg-statuscode-500/10 flex items-center justify-center text-statuscode-500 mb-4">
                                 <Play className="size-5" />
                             </div>
-                            <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">4. Live Preview</h3>
-                            <p className="text-zinc-600 dark:text-zinc-400">Check responsive layouts instantly. No deployments needed.</p>
+                            <h3 className="text-xl font-bold text-white mb-2">4. Live Preview</h3>
+                            <p className="text-zinc-400">Check responsive layouts instantly. No deployments needed.</p>
                         </div>
 
                         {/* Mock: Responsive Preview */}
@@ -181,7 +181,7 @@ export function HowItWorks() {
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ delay: 0.4 }}
-                        className="md:col-span-3 min-h-[200px] rounded-3xl bg-zinc-950 border border-zinc-200 dark:border-white/10 p-8 flex flex-col md:flex-row items-center justify-between relative overflow-hidden group"
+                        className="md:col-span-3 min-h-[200px] rounded-3xl bg-zinc-950 border border-white/10 p-8 flex flex-col md:flex-row items-center justify-between relative overflow-hidden group"
                     >
                         <div className="relative z-10 max-w-lg">
                             <div className="flex items-center gap-3 mb-2">

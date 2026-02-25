@@ -69,13 +69,13 @@ export function LiveThemePlayground() {
 
                 {/* Section Header */}
                 <div className="max-w-3xl mx-auto text-center mb-16">
-                    <h2 className="text-3xl md:text-5xl font-bold mb-6 text-zinc-900 dark:text-white">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-6 text-white">
                         Status pages soo premium & relevant.<br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-statuscode-500 to-accent-500">
                             That you would break your app on purpose.
                         </span>
                     </h2>
-                    <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                    <p className="text-lg text-zinc-400">
                         Statuscode adapts to your brand identity instantly. Own your layout, content, and vibe—turning dry data into a premium brand experience.
                     </p>
                 </div>
@@ -92,14 +92,14 @@ export function LiveThemePlayground() {
                                 className={clsx(
                                     "w-full text-left p-6 rounded-xl border-2 transition-all duration-300 group",
                                     activeTheme.id === theme.id
-                                        ? "border-statuscode-500 bg-statuscode-500/5 dark:bg-statuscode-500/10 shadow-lg scale-[1.02]"
-                                        : "border-transparent bg-zinc-50 dark:bg-zinc-900/50 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                        ? "border-statuscode-500 bg-statuscode-500/5 bg-statuscode-500/10 shadow-lg scale-[1.02]"
+                                        : "border-transparent bg-zinc-50 bg-zinc-900/50 hover:bg-zinc-100 hover:bg-zinc-800"
                                 )}
                             >
                                 <div className="flex justify-between items-center mb-1">
                                     <h3 className={clsx(
                                         "font-bold text-lg",
-                                        activeTheme.id === theme.id ? "text-statuscode-600 dark:text-statuscode-400" : "text-zinc-900 dark:text-white"
+                                        activeTheme.id === theme.id ? "text-statuscode-400" : "text-white"
                                     )}>
                                         {theme.name}
                                     </h3>
@@ -107,7 +107,7 @@ export function LiveThemePlayground() {
                                         <motion.div layoutId="active-dot" className="w-2 h-2 rounded-full bg-statuscode-500" />
                                     )}
                                 </div>
-                                <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                <p className="text-sm text-zinc-400">
                                     {theme.description}
                                 </p>
                             </button>

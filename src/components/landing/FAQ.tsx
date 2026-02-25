@@ -27,14 +27,14 @@ export function FAQ() {
     const [openIndex, setOpenIndex] = useState<number | null>(null);
 
     return (
-        <section id="faq" className="py-24 bg-zinc-50 dark:bg-zinc-900/30 border-t border-zinc-200 dark:border-white/5 relative overflow-hidden">
+        <section id="faq" className="py-24 bg-zinc-900/30 border-t border-white/5 relative overflow-hidden">
 
             <div className="container mx-auto px-6 max-w-3xl relative z-10">
                 <div className="text-center mb-16">
-                    <h2 className="text-3xl md:text-5xl font-bold text-zinc-900 dark:text-white mb-4">
+                    <h2 className="text-3xl md:text-5xl font-bold text-white mb-4">
                         Common Questions
                     </h2>
-                    <p className="text-lg text-zinc-600 dark:text-zinc-400">
+                    <p className="text-lg text-zinc-400">
                         Everything you need to know about the product and billing.
                     </p>
                 </div>
@@ -47,13 +47,13 @@ export function FAQ() {
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
                             transition={{ duration: 0.3, delay: idx * 0.1 }}
-                            className="bg-white dark:bg-zinc-950 rounded-2xl border border-zinc-200 dark:border-white/5 overflow-hidden"
+                            className="bg-zinc-950 rounded-2xl border border-white/5 overflow-hidden"
                         >
                             <button
                                 onClick={() => setOpenIndex(openIndex === idx ? null : idx)}
                                 className="flex items-center justify-between w-full p-6 text-left"
                             >
-                                <span className="text-lg font-medium text-zinc-900 dark:text-white pr-8">
+                                <span className="text-lg font-medium text-white pr-8">
                                     {faq.question}
                                 </span>
                                 <span className={`flex-shrink-0 transition-transform duration-300 ${openIndex === idx ? "rotate-45" : ""}`}>
@@ -69,7 +69,7 @@ export function FAQ() {
                                 transition={{ duration: 0.3 }}
                                 className="overflow-hidden"
                             >
-                                <div className="p-6 pt-0 text-zinc-600 dark:text-zinc-400 leading-relaxed border-t border-dashed border-zinc-100 dark:border-white/5 mt-2">
+                                <div className="p-6 pt-0 text-zinc-400 leading-relaxed border-t border-dashed border-zinc-100 border-white/5 mt-2">
                                     {faq.answer}
                                 </div>
                             </motion.div>

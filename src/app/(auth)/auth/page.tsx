@@ -510,7 +510,7 @@ function AuthPageContent() {
                                                 priority
                                             />
                                         </div>
-                                        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-zinc-700 to-zinc-500 dark:from-white dark:to-zinc-400 bg-clip-text text-transparent">
+                                        <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-b from-white to-zinc-400 bg-clip-text text-transparent">
                                             Statuscode
                                         </h1>
                                     </div>

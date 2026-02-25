@@ -199,7 +199,7 @@ export function PhysicsBadges() {
                     // touch-action-none on badgse specifically to prevent scroll WHEN dragging a badge
                     className={`absolute top-0 left-0 flex items-center justify-center gap-2 px-4 py-2 rounded-full border backdrop-blur-md shadow-lg select-none cursor-grab active:cursor-grabbing will-change-transform z-50 pointer-events-auto touch-none
                         ${badge.status === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-500' : ''}
-                        ${badge.status === 'neutral' ? 'bg-zinc-500/10 border-zinc-500/20 text-zinc-500 dark:text-zinc-400' : ''}
+                        ${badge.status === 'neutral' ? 'bg-zinc-500/10 border-zinc-500/20 text-zinc-400' : ''}
                         ${badge.status === 'warning' ? 'bg-amber-500/10 border-amber-500/20 text-amber-500' : ''}
                         ${badge.status === 'error' ? 'bg-red-500/10 border-red-500/20 text-red-500' : ''}
                     `}
