@@ -156,6 +156,7 @@ export default function MonitorManager() {
                                 >
                                     <option value="uptimerobot">UptimeRobot</option>
                                     <option value="betterstack">Better Stack</option>
+                                    <option value="instatus">Instatus</option>
                                     <option value="manual">Demo Mode</option>
                                 </select>
                             </div>
@@ -163,14 +164,16 @@ export default function MonitorManager() {
                             {config.monitorProvider !== 'manual' && (
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">
-                                        {config.monitorProvider === 'betterstack' ? 'Better Stack Token' : 'UptimeRobot Key'}
+                                        {config.monitorProvider === 'betterstack' ? 'Better Stack Token' :
+                                            config.monitorProvider === 'instatus' ? 'Instatus API Key' : 'UptimeRobot Key'}
                                     </label>
                                     <div className="flex gap-2">
                                         <input
                                             type="password"
                                             value={config.apiKey}
                                             onChange={(e) => updateConfig({ apiKey: e.target.value })}
-                                            placeholder={config.monitorProvider === 'betterstack' ? "u12345-..." : "ur12345-..."}
+                                            placeholder={config.monitorProvider === 'betterstack' ? "u12345-..." :
+                                                config.monitorProvider === 'instatus' ? "Paste Instatus API Key" : "ur12345-..."}
                                             disabled={globalLoading}
                                             className="flex-1 min-w-0 h-8 px-2 rounded bg-black border border-zinc-800 text-white text-xs placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors font-mono disabled:opacity-50"
                                         />

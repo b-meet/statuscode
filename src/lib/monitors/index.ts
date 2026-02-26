@@ -1,6 +1,7 @@
 import { MonitorData, MonitorProvider } from "../types";
 import { getMonitors as getUptimeRobotMonitors } from "./uptimerobot";
 import { getMonitors as getBetterStackMonitors } from "./betterstack";
+import { getMonitors as getInstatusMonitors } from "./instatus";
 
 export interface GetMonitorsOptions {
     monitors?: string[];
@@ -23,6 +24,8 @@ export async function getMonitors(
         return getUptimeRobotMonitors(apiKey, options);
     } else if (activeProvider === 'betterstack') {
         return getBetterStackMonitors(apiKey, options);
+    } else if (activeProvider === 'instatus') {
+        return getInstatusMonitors(apiKey, options);
     }
 
     throw new Error(`Unsupported monitor provider: ${activeProvider}`);

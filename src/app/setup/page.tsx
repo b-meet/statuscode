@@ -407,6 +407,16 @@ function SetupPageContent() {
                                                             </div>
                                                             {source === 'betterstack' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
                                                         </button>
+                                                        <button onClick={() => { setSource('instatus'); setIsSourceOpen(false); }} className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors">
+                                                            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                                                                <Activity className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-sm font-medium text-white">Instatus</div>
+                                                                <div className="text-xs text-zinc-500">Auto-sync pages & monitors</div>
+                                                            </div>
+                                                            {source === 'instatus' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
+                                                        </button>
                                                         <button onClick={() => { setSource('manual'); setIsSourceOpen(false); }} className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors">
                                                             <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
                                                                 <FileText className="w-4 h-4" />
@@ -423,13 +433,13 @@ function SetupPageContent() {
                                         </div>
                                     </div>
 
-                                    {(source === 'uptimerobot' || source === 'betterstack') && (
+                                    {(source === 'uptimerobot' || source === 'betterstack' || source === 'instatus') && (
                                         <div className="space-y-2 relative">
                                             <div className="flex justify-between items-center">
                                                 <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">3. API Configuration</label>
                                                 <div className="relative" onMouseEnter={() => setShowApiTooltip(true)} onMouseLeave={() => setShowApiTooltip(false)}>
                                                     <button onClick={() => setShowApiTooltip(!showApiTooltip)} className="text-[10px] flex items-center gap-1 text-statuscode-400 hover:underline cursor-help">
-                                                        <HelpCircle className="w-3 h-3" /> Where to find {source === 'betterstack' ? 'Better Stack Token' : 'UptimeRobot Key'}?
+                                                        <HelpCircle className="w-3 h-3" /> Where to find {source === 'betterstack' ? 'Better Stack Token' : source === 'instatus' ? 'Instatus API Key' : 'UptimeRobot Key'}?
                                                     </button>
                                                     <AnimatePresence>
                                                         {showApiTooltip && (
@@ -444,6 +454,12 @@ function SetupPageContent() {
                                                                         <p>1. Log in to <strong>Better Stack</strong>.</p>
                                                                         <p>2. Go to <a href="https://betterstack.com/settings/global-api-tokens" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-4"><strong>Settings</strong> {'->'} <strong>API tokens</strong></a>.</p>
                                                                         <p>3. Create a new <strong>Uptime API Token</strong>.</p>
+                                                                    </div>
+                                                                ) : source === 'instatus' ? (
+                                                                    <div className="text-xs text-zinc-300 space-y-2">
+                                                                        <p>1. Log in to <strong>Instatus</strong>.</p>
+                                                                        <p>2. Go to <a href="https://instatus.com/app/developer" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-4"><strong>Developer Settings</strong></a>.</p>
+                                                                        <p>3. Generate a new <strong>API Key</strong>.</p>
                                                                     </div>
                                                                 ) : (
                                                                     <div className="text-xs text-zinc-300 space-y-2">
@@ -462,7 +478,7 @@ function SetupPageContent() {
                                                 <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                                                 <input
                                                     type="password"
-                                                    placeholder={source === 'betterstack' ? "Paste Uptime API Token" : "Paste Read-Only API Key"}
+                                                    placeholder={source === 'betterstack' ? "Paste Uptime API Token" : source === 'instatus' ? "Paste Instatus API Key" : "Paste Read-Only API Key"}
                                                     value={apiKey}
                                                     onChange={(e) => setApiKey(e.target.value)}
                                                     className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-statuscode-500/50 focus:ring-4 focus:ring-statuscode-500/10 transition-all text-sm font-mono"

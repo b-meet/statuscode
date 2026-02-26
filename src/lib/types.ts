@@ -44,7 +44,7 @@ export interface ThemeConfig {
     liveWebsiteUrl?: string;
 }
 
-export type MonitorProvider = 'uptimerobot' | 'betterstack' | 'manual';
+export type MonitorProvider = 'uptimerobot' | 'betterstack' | 'manual' | 'instatus';
 
 export interface Site {
     id: string;

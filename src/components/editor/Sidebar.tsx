@@ -3,7 +3,9 @@
 import { LayoutDashboard } from "lucide-react";
 import { useEditor } from "@/context/EditorContext";
 import Link from "next/link";
-import BrandSettings from "./BrandSettings";
+import BrandIdentityManager from "./BrandIdentityManager";
+import BrandLogoManager from "./BrandLogoManager";
+import BrandSupportManager from "./BrandSupportManager";
 import ThemeSelector from "./ThemeSelector";
 import LayoutSelector from "./LayoutSelector";
 import MonitorManager from "./MonitorManager";
@@ -31,8 +33,15 @@ export default function Sidebar() {
             <div className="flex-1 overflow-y-auto overflow-x-hidden custom-scrollbar">
                 <div className="p-4 space-y-6">
 
-                    {/* Section 1: Brand */}
-                    <BrandSettings />
+                    {/* Section 1: Brand Configuration */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Brand Configuration</h3>
+                        <div className="space-y-1">
+                            <BrandIdentityManager />
+                            <BrandLogoManager />
+                            <BrandSupportManager />
+                        </div>
+                    </div>
 
                     <div className="border-t border-zinc-800/50" />
 
