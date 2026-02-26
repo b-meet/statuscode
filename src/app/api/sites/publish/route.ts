@@ -81,6 +81,8 @@ export async function POST(req: NextRequest) {
             brand_name: site.brand_name,
             logo_url: site.logo_url,
             uptimerobot_api_key: site.uptimerobot_api_key,
+            api_key: site.api_key || site.uptimerobot_api_key,
+            monitor_provider: site.monitor_provider || 'uptimerobot',
             monitors: filteredMonitors,
             annotations: updatedAnnotations, // Use the updated annotations
             theme_config: { ...site.theme_config, annotations: updatedAnnotations },

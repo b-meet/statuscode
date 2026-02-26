@@ -44,6 +44,8 @@ export interface ThemeConfig {
     liveWebsiteUrl?: string;
 }
 
+export type MonitorProvider = 'uptimerobot' | 'betterstack' | 'manual';
+
 export interface Site {
     id: string;
     brand_name: string | null;
@@ -51,7 +53,9 @@ export interface Site {
     logo_url: string | null;
     theme_config?: ThemeConfig;
     published_config?: any;
-    uptimerobot_api_key?: string | null;
+    api_key?: string | null;
+    monitor_provider?: MonitorProvider;
+    uptimerobot_api_key?: string | null; // legacy
     monitors?: string[] | null;
     created_at?: string;
 }

@@ -5,20 +5,12 @@ import { cookies } from "next/headers";
 import { themes, Theme } from "@/lib/themes";
 import { IncidentHistory } from "@/components/status-page/IncidentHistory";
 import StatusPageClient from "@/components/status-page/StatusPageClient";
+import { getMonitors } from "@/lib/monitors";
 
 export const runtime = 'edge';
 export const dynamic = 'force-dynamic';
 
-// --- Types ---
-interface MonitorData {
-    id: number;
-    friendly_name: string;
-    url: string;
-    status: number; // 2=up, 8=seems down, 9=down
-    custom_uptime_ratio: string; // "100.00-99.98-99.50" (24h-7d-30d)
-    response_times?: { datetime: number; value: number }[];
-    logs?: { type: number; datetime: number; duration: number; reason: any }[];
-}
+import { MonitorData } from "@/lib/types";
 
 // --- Helpers ---
 function formatUptime(ratioString: string) {
@@ -54,35 +46,7 @@ async function getSite(subdomain: string) {
     return site;
 }
 
-async function getMonitorStatuses(apiKey: string, monitorIds: string[]) {
-    if (!apiKey) return [];
 
-    try {
-        const params = new URLSearchParams({
-            api_key: apiKey,
-            format: 'json',
-            monitors: monitorIds.join('-'),
-            custom_uptime_ratios: '1-7-30', // 24h, 7d, 30d
-            response_times: '1',
-            response_times_limit: '20', // Last 20 data points for sparkline
-            logs: '1',
-            logs_limit: '50' // Last 50 incidents
-        });
-
-        const res = await fetch(`https://api.uptimerobot.com/v2/getMonitors`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params,
-            next: { revalidate: 60 }
-        });
-
-        const data = await res.json();
-        return data.monitors || [];
-    } catch (e) {
-        console.error("Failed to fetch uptime status", e);
-        return [];
-    }
-}
 
 // --- Components ---
 
@@ -144,8 +108,16 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
     }
 
     // Add Real Monitors
-    if (realIds.length > 0 && site.uptimerobot_api_key) {
-        const realMonitors = await getMonitorStatuses(site.uptimerobot_api_key, realIds);
+    const apiKey = site.api_key || site.uptimerobot_api_key;
+    if (realIds.length > 0 && apiKey) {
+        const realMonitors = await getMonitors(site.monitor_provider, apiKey, {
+            monitors: realIds,
+            custom_uptime_ratios: '1-7-30', // 24h, 7d, 30d
+            response_times: '1',
+            response_times_limit: '20', // Last 20 data points for sparkline
+            logs: '1',
+            logs_limit: '50' // Last 50 incidents
+        });
         monitors = [...monitors, ...realMonitors];
     }
 

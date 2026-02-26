@@ -36,7 +36,18 @@ export default function Sidebar() {
 
                     <div className="border-t border-zinc-800/50" />
 
-                    {/* Section 2: Appearance (Theme, Colors, Layout, Visibility) */}
+                    {/* Section 2: Monitoring & Maintenance */}
+                    <div className="space-y-2">
+                        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Monitoring & Maintenance</h3>
+                        <div className="space-y-1">
+                            <MonitorManager />
+                            <MaintenanceManager />
+                        </div>
+                    </div>
+
+                    <div className="border-t border-zinc-800/50" />
+
+                    {/* Section 3: Appearance (Theme, Colors, Layout, Visibility) */}
                     <div className="space-y-2">
                         <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Appearance</h3>
                         <div className="space-y-1">
@@ -44,17 +55,6 @@ export default function Sidebar() {
                             <ColorPresetSelector />
                             <LayoutSelector />
                             <VisibilitySettings />
-                        </div>
-                    </div>
-
-                    <div className="border-t border-zinc-800/50" />
-
-                    {/* Section 3: Monitoring & Maintenance */}
-                    <div className="space-y-2">
-                        <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Monitoring & Maintenance</h3>
-                        <div className="space-y-1">
-                            <MonitorManager />
-                            <MaintenanceManager />
                         </div>
                     </div>
 

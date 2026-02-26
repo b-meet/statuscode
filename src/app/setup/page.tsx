@@ -16,6 +16,7 @@ import {
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useNotifications } from "@/context/NotificationContext";
+import { MonitorProvider } from "@/lib/types";
 
 // --- Animation Variants ---
 const slideVariants = {
@@ -56,7 +57,16 @@ function SetupPageContent() {
     const [brandName, setBrandName] = useState("");
     const [brandLogo, setBrandLogo] = useState<File | null>(null);
     const [brandLogoPreview, setBrandLogoPreview] = useState<string | null>(null);
-    const [source, setSource] = useState<"uptimerobot" | "manual">("uptimerobot");
+    const [source, setSource] = useState<MonitorProvider | "manual">("manual");
+
+    // Mobile Detection
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const checkMobile = () => setIsMobile(window.innerWidth < 768);
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
     const [isSourceOpen, setIsSourceOpen] = useState(false);
     const [apiKey, setApiKey] = useState("");
     const [showApiTooltip, setShowApiTooltip] = useState(false);
@@ -136,8 +146,9 @@ function SetupPageContent() {
                 user_id: user.id,
                 brand_name: brandName,
                 logo_url: logoUrl,
-                uptimerobot_api_key: apiKey,
-                monitors: [],
+                api_key: apiKey || null,
+                monitor_provider: source === 'manual' ? null : source,
+                monitors: source === 'manual' ? ['demo-1', 'demo-2', 'demo-3'] : [],
                 theme_config: {
                     theme: selectedTheme,
                     primaryColor: selectedTheme === 'modern' ? '#6366f1' : selectedTheme === 'brutal' ? '#ef4444' : '#18181b'
@@ -190,8 +201,11 @@ function SetupPageContent() {
                 }
             }
 
-            window.open("/editor", "_blank");
-            window.location.href = "/dashboard";
+            if (isMobile) {
+                window.location.href = "/dashboard";
+            } else {
+                window.location.href = "/editor";
+            }
         } catch (error: any) {
             console.error("Setup failed:", error);
             setMessage(error.message || "Failed to save setup");
@@ -299,7 +313,7 @@ function SetupPageContent() {
                                 animate="center"
                                 exit="exit"
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
+                                className="absolute w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl z-20"
                             >
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
@@ -356,10 +370,12 @@ function SetupPageContent() {
                                                 className="w-full h-12 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white flex items-center justify-between text-sm hover:bg-zinc-900/50 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${source === 'uptimerobot' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-400'}`}>
-                                                        {source === 'uptimerobot' ? <Activity className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${source === 'uptimerobot' ? 'bg-green-500/20 text-green-400' : source === 'betterstack' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                                                        {source === 'uptimerobot' || source === 'betterstack' ? <Activity className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                                                     </div>
-                                                    <div className="font-medium">{source === 'uptimerobot' ? 'UptimeRobot' : 'Manual / Custom'}</div>
+                                                    <div className="font-medium">
+                                                        {source === 'uptimerobot' ? 'UptimeRobot' : source === 'betterstack' ? 'Better Stack' : 'Demo (No API Key)'}
+                                                    </div>
                                                 </div>
                                                 <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isSourceOpen ? 'rotate-180' : ''}`} />
                                             </button>
@@ -369,7 +385,7 @@ function SetupPageContent() {
                                                         initial={{ opacity: 0, y: -10 }}
                                                         animate={{ opacity: 1, y: 4 }}
                                                         exit={{ opacity: 0, y: -10 }}
-                                                        className="absolute top-full left-0 right-0 bg-[#09090b] border border-zinc-800 rounded-xl p-2 shadow-2xl z-50"
+                                                        className="absolute top-full left-0 right-0 bg-[#09090b] border border-zinc-800 rounded-xl p-2 shadow-2xl z-50 flex flex-col gap-1"
                                                     >
                                                         <button onClick={() => { setSource('uptimerobot'); setIsSourceOpen(false); }} className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors">
                                                             <div className="w-8 h-8 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center">
@@ -381,19 +397,39 @@ function SetupPageContent() {
                                                             </div>
                                                             {source === 'uptimerobot' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
                                                         </button>
+                                                        <button onClick={() => { setSource('betterstack'); setIsSourceOpen(false); }} className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors">
+                                                            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                                                                <Activity className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-sm font-medium text-white">Better Stack</div>
+                                                                <div className="text-xs text-zinc-500">Auto-sync monitors</div>
+                                                            </div>
+                                                            {source === 'betterstack' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
+                                                        </button>
+                                                        <button onClick={() => { setSource('manual'); setIsSourceOpen(false); }} className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors">
+                                                            <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
+                                                                <FileText className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-sm font-medium text-white">Demo Mode</div>
+                                                                <div className="text-xs text-zinc-500">Test with fake data</div>
+                                                            </div>
+                                                            {source === 'manual' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
+                                                        </button>
                                                     </motion.div>
                                                 )}
                                             </AnimatePresence>
                                         </div>
                                     </div>
 
-                                    {source === 'uptimerobot' && (
+                                    {(source === 'uptimerobot' || source === 'betterstack') && (
                                         <div className="space-y-2 relative">
                                             <div className="flex justify-between items-center">
                                                 <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">3. API Configuration</label>
                                                 <div className="relative" onMouseEnter={() => setShowApiTooltip(true)} onMouseLeave={() => setShowApiTooltip(false)}>
                                                     <button onClick={() => setShowApiTooltip(!showApiTooltip)} className="text-[10px] flex items-center gap-1 text-statuscode-400 hover:underline cursor-help">
-                                                        <HelpCircle className="w-3 h-3" /> Where to find?
+                                                        <HelpCircle className="w-3 h-3" /> Where to find {source === 'betterstack' ? 'Better Stack Token' : 'UptimeRobot Key'}?
                                                     </button>
                                                     <AnimatePresence>
                                                         {showApiTooltip && (
@@ -403,11 +439,19 @@ function SetupPageContent() {
                                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                                                 className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl p-4 shadow-2xl z-[100]"
                                                             >
-                                                                <div className="text-xs text-zinc-300 space-y-2">
-                                                                    <p>1. Log in to <strong>UptimeRobot</strong>.</p>
-                                                                    <p>2. Go to <strong>Integrations and API</strong>.</p>
-                                                                    <p>3. Create a <strong>Read-Only API Key</strong>.</p>
-                                                                </div>
+                                                                {source === 'betterstack' ? (
+                                                                    <div className="text-xs text-zinc-300 space-y-2">
+                                                                        <p>1. Log in to <strong>Better Stack</strong>.</p>
+                                                                        <p>2. Go to <a href="https://betterstack.com/settings/global-api-tokens" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-4"><strong>Settings</strong> {'->'} <strong>API tokens</strong></a>.</p>
+                                                                        <p>3. Create a new <strong>Uptime API Token</strong>.</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-xs text-zinc-300 space-y-2">
+                                                                        <p>1. Log in to <strong>UptimeRobot</strong>.</p>
+                                                                        <p>2. Go to <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-4"><strong>Integrations and API</strong></a> → <strong>API</strong>.</p>
+                                                                        <p>3. Create a <strong>Read-Only API Key</strong>.</p>
+                                                                    </div>
+                                                                )}
                                                                 <div className="absolute top-full right-4 -mt-1 w-2 h-2 bg-zinc-900 border-r border-b border-zinc-700 rotate-45 transform" />
                                                             </motion.div>
                                                         )}
@@ -418,7 +462,7 @@ function SetupPageContent() {
                                                 <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                                                 <input
                                                     type="password"
-                                                    placeholder="Paste Read-Only API Key"
+                                                    placeholder={source === 'betterstack' ? "Paste Uptime API Token" : "Paste Read-Only API Key"}
                                                     value={apiKey}
                                                     onChange={(e) => setApiKey(e.target.value)}
                                                     className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-statuscode-500/50 focus:ring-4 focus:ring-statuscode-500/10 transition-all text-sm font-mono"
@@ -429,8 +473,9 @@ function SetupPageContent() {
 
                                     <div className="pt-2">
                                         <Button
-                                            onClick={() => { setDirection(1); setStep("setup-theme"); }}
-                                            className="w-full h-12 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                            onClick={() => { setDirection(1); setStep("setup-theme" as any); }}
+                                            disabled={source !== 'manual' && !apiKey}
+                                            className="w-full h-12 bg-white text-black transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-zinc-200"
                                         >
                                             Next: Select Theme <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                                         </Button>

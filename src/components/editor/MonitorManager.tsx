@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, CheckCircle2, ChevronRight, Activity as ActivityIcon, Sparkles } from "lucide-react";
 import { toDemoStringId } from "@/lib/mockMonitors";
+import { MonitorProvider } from "@/lib/types";
 
 interface Monitor {
     id: number;
@@ -14,7 +15,7 @@ interface Monitor {
 }
 
 export default function MonitorManager() {
-    const { config, updateConfig, monitorsData, fetchMonitors, loading: globalLoading, addDemoMonitors, monitorError } = useEditor();
+    const { config, updateConfig, monitorsData, fetchMonitors, loading: globalLoading, addDemoMonitors, monitorError, setIsRealDataEnabled } = useEditor();
     const [fetching, setFetching] = useState(false);
     const [error, setError] = useState("");
     const [isOpen, setIsOpen] = useState(false);
@@ -137,37 +138,63 @@ export default function MonitorManager() {
                             <div className="text-xs font-semibold text-white uppercase tracking-wider">Monitor Settings</div>
                         </div>
 
-                        {/* API Key Input */}
-                        <div className="space-y-2 mb-6">
-                            <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">UptimeRobot API Key</label>
-                            <div className="flex gap-2">
-                                <input
-                                    type="password"
-                                    value={config.apiKey}
-                                    onChange={(e) => updateConfig({ apiKey: e.target.value })}
-                                    placeholder="u12345-..."
-                                    disabled={globalLoading}
-                                    className="flex-1 min-w-0 h-8 px-2 rounded bg-black border border-zinc-800 text-white text-xs placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors font-mono disabled:opacity-50"
-                                />
-                                <button
-                                    onClick={handleFetch}
-                                    disabled={fetching || globalLoading || !config.apiKey}
-                                    className="px-2 h-8 bg-white text-black rounded text-[10px] font-bold hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        {/* Provider & API Key Input */}
+                        <div className="space-y-3 mb-6">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">Provider</label>
+                                <select
+                                    value={config.monitorProvider || 'uptimerobot'}
+                                    onChange={(e) => {
+                                        const newProvider = e.target.value as MonitorProvider;
+                                        if (config.monitorProvider !== newProvider) {
+                                            updateConfig({ monitorProvider: newProvider, apiKey: '' });
+                                            setIsRealDataEnabled(false);
+                                            addDemoMonitors();
+                                        }
+                                    }}
+                                    className="w-full h-8 px-2 rounded bg-black border border-zinc-800 text-white text-[11px] focus:outline-none focus:border-zinc-700 transition-colors"
                                 >
-                                    {fetching ? <Loader2 className="w-3 h-3 animate-spin" /> : (monitorsData && monitorsData.length > 0 ? "REFRESH" : "FETCH")}
-                                </button>
+                                    <option value="uptimerobot">UptimeRobot</option>
+                                    <option value="betterstack">Better Stack</option>
+                                    <option value="manual">Demo Mode</option>
+                                </select>
                             </div>
-                            {globalLoading && <p className="text-[9px] text-zinc-500 animate-pulse">Loading settings...</p>}
-                            {(error || monitorError) && (
-                                <p className="text-[9px] text-red-500 leading-tight">
-                                    {error || monitorError}
-                                </p>
+
+                            {config.monitorProvider !== 'manual' && (
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">
+                                        {config.monitorProvider === 'betterstack' ? 'Better Stack Token' : 'UptimeRobot Key'}
+                                    </label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="password"
+                                            value={config.apiKey}
+                                            onChange={(e) => updateConfig({ apiKey: e.target.value })}
+                                            placeholder={config.monitorProvider === 'betterstack' ? "u12345-..." : "ur12345-..."}
+                                            disabled={globalLoading}
+                                            className="flex-1 min-w-0 h-8 px-2 rounded bg-black border border-zinc-800 text-white text-xs placeholder:text-zinc-700 focus:outline-none focus:border-zinc-700 transition-colors font-mono disabled:opacity-50"
+                                        />
+                                        <button
+                                            onClick={handleFetch}
+                                            disabled={fetching || globalLoading || !config.apiKey}
+                                            className="px-2 h-8 bg-white text-black rounded text-[10px] font-bold hover:bg-zinc-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                        >
+                                            {fetching ? <Loader2 className="w-3 h-3 animate-spin" /> : (monitorsData && monitorsData.length > 0 ? "REFRESH" : "FETCH")}
+                                        </button>
+                                    </div>
+                                    {globalLoading && <p className="text-[9px] text-zinc-500 animate-pulse">Loading settings...</p>}
+                                    {(error || monitorError) && (
+                                        <p className="text-[9px] text-red-500 leading-tight">
+                                            {error || monitorError}
+                                        </p>
+                                    )}
+                                </div>
                             )}
                         </div>
 
                         <div className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight mb-2">Select Services</div>
 
-                        {/* Demo Action */}
+                        {/* Demo Action (Only show if empty) */}
                         {!monitorsData?.length && (
                             <button
                                 onClick={handleAddDemos}

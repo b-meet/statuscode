@@ -27,14 +27,15 @@ export default function AnalyticsPage() {
 
             const { data: sites, error: sitesError } = await supabase
                 .from("sites")
-                .select("uptimerobot_api_key")
+                .select("uptimerobot_api_key, api_key, monitor_provider")
                 .eq("user_id", user.id);
 
             if (sitesError) throw sitesError;
 
-            // Find the first valid API key (Statuscode Pro architecture uses one key per account conceptually,
-            // or we grab the first configured site's key to fetch fleet status)
-            const apiKey = sites?.find((s: any) => s.uptimerobot_api_key)?.uptimerobot_api_key;
+            // Find the first valid configured API key across sites
+            const siteWithKey = sites?.find((s: any) => s.api_key || s.uptimerobot_api_key);
+            const apiKey = siteWithKey?.api_key || siteWithKey?.uptimerobot_api_key;
+            const monitorProvider = siteWithKey?.monitor_provider || 'uptimerobot';
 
             if (!apiKey) {
                 // If no API key is configured yet, we can't show real analytics
@@ -42,12 +43,13 @@ export default function AnalyticsPage() {
                 return;
             }
 
-            // 2. Fetch rich data from UptimeRobot via our proxy
+            // 2. Fetch rich data from Provider via our proxy
             const res = await fetch("/api/monitors", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     apiKey,
+                    monitorProvider,
                     response_times: 1, // Get recent response times for charting
                     custom_uptime_ratios: "30", // 30-day uptime
                     logs: 1 // Get recent incidents

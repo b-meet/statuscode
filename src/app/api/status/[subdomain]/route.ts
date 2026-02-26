@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/utils/supabase/server";
+import { getMonitors } from "@/lib/monitors";
 
 export const runtime = 'edge';
 
@@ -48,34 +49,29 @@ export async function GET(
             allMonitors = [...selectedDemos];
         }
 
-        // Fetch from UptimeRobot if we have real IDs and an API key
+        // Fetch from Provider if we have real IDs and an API key
         if (realIds.length > 0) {
-            if (!config.uptimerobot_api_key) {
+            const apiKey = config.api_key || config.uptimerobot_api_key;
+            if (!apiKey) {
                 // If we have real IDs but no API key, we have a config issue, 
                 // but we can still return whatever demo data we found.
                 console.warn("[Status API] Real monitors requested but no API key present.");
             } else {
-                const uptimerobotParams = new URLSearchParams({
-                    api_key: config.uptimerobot_api_key,
-                    format: 'json',
-                    monitors: realIds.join('-'),
-                    custom_uptime_ratios: '1-7-30',
-                    response_times: '1',
-                    response_times_limit: '20',
-                    logs: '1',
-                    logs_limit: '50'
-                });
+                try {
+                    const data = await getMonitors(config.monitor_provider, apiKey, {
+                        monitors: realIds,
+                        custom_uptime_ratios: '1-7-30',
+                        response_times: '1',
+                        response_times_limit: '20',
+                        logs: '1',
+                        logs_limit: '50'
+                    });
 
-                const res = await fetch("https://api.uptimerobot.com/v2/getMonitors", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: uptimerobotParams.toString(),
-                    next: { revalidate: 30 }
-                });
-
-                const data = await res.json();
-                if (data.stat === 'ok' && data.monitors) {
-                    allMonitors = [...allMonitors, ...data.monitors];
+                    if (data && data.length > 0) {
+                        allMonitors = [...allMonitors, ...data];
+                    }
+                } catch (err: any) {
+                    console.error("[Status API] Monitor Fetch Error:", err);
                 }
             }
         }

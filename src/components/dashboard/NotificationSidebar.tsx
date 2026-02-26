@@ -146,7 +146,7 @@ export default function NotificationSidebar({ isOpen, onClose, sites, notificati
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 overflow-y-auto px-6 py-2 scrollbar-none space-y-4">
+                        <div className="flex-1 overflow-y-auto px-6 py-2 custom-scrollbar space-y-4">
                             <div className="flex items-center justify-between px-1">
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
                                     {activeTab === 'unread' ? 'New for you' : 'Recently Archived'}

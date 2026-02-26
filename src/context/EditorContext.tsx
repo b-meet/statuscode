@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { createClient } from "@/utils/supabase/client";
 import { useNotifications } from "@/context/NotificationContext";
 import { toast } from 'sonner';
-import { MonitorData, IncidentUpdate, MaintenanceWindow, Log } from '@/lib/types';
+import { MonitorData, IncidentUpdate, MaintenanceWindow, Log, MonitorProvider } from '@/lib/types';
 import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
 
 // --- Types ---
@@ -40,7 +40,8 @@ export interface SiteConfig {
     colorPreset: string;
     primaryColor: string; // Hex code
     monitors: string[]; // List of Monitor IDs
-    apiKey: string; // UptimeRobot API Key (mask in UI)
+    apiKey: string; // Generic Monitor API Key
+    monitorProvider?: MonitorProvider; // UptimeRobot | BetterStack | Manual
     showDummyData?: boolean; // Preview only
     previewScenario?: PreviewScenario;
     visibility: VisibilityConfig; // New field
@@ -81,6 +82,7 @@ const defaultConfig: SiteConfig = {
     primaryColor: '#6366f1',
     monitors: [],
     apiKey: '',
+    monitorProvider: 'uptimerobot',
     showDummyData: false,
     previewScenario: 'none',
     visibility: {
@@ -132,6 +134,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         apiKey: config.apiKey,
+                        monitorProvider: config.monitorProvider,
                         custom_uptime_ratios: '1-7-30',
                         response_times: '1',
                         response_times_limit: '20',
@@ -256,7 +259,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         customLogs: site.theme_config?.customLogs || {},
                         maintenance: site.theme_config?.maintenance || [],
                         monitors: site.monitors || [],
-                        apiKey: site.uptimerobot_api_key || '',
+                        apiKey: site.api_key || site.uptimerobot_api_key || '',
+                        monitorProvider: site.monitor_provider || 'uptimerobot',
                     });
 
                     if (site.published_config) {
@@ -474,22 +478,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         const demos = getDemoMonitors();
         const demoIds = demos.map(m => toDemoStringId(m.id));
 
-        // Add to config.monitors
-        const current = new Set(config.monitors);
-        demoIds.forEach(id => current.add(id));
+        // Clear existing config monitors and set only demo IDs
+        updateConfig({ monitors: demoIds });
 
-        updateConfig({ monitors: Array.from(current) });
-
-        // Add to monitorsData
-        setBaseMonitors(prev => {
-            const next = [...prev];
-            demos.forEach(d => {
-                if (!next.find(m => m.id === d.id)) {
-                    next.push(d);
-                }
-            });
-            return next;
-        });
+        // Wipe out existing monitorsData completely and replace with demos only
+        setBaseMonitors(demos);
 
         toast.success("Added 3 demo monitors");
     };

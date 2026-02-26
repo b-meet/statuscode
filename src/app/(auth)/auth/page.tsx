@@ -11,6 +11,7 @@ import { Loader2, ArrowLeft, Github, ShieldCheck, MousePointerClick, CheckCircle
 import Link from "next/link";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
+import { MonitorProvider } from "@/lib/types";
 
 // --- Animation Variants ---
 const slideVariants = {
@@ -54,7 +55,7 @@ function AuthPageContent() {
     const [brandName, setBrandName] = useState("");
     const [brandLogo, setBrandLogo] = useState<File | null>(null);
     const [brandLogoPreview, setBrandLogoPreview] = useState<string | null>(null);
-    const [source, setSource] = useState<"uptimerobot" | "manual">("uptimerobot");
+    const [source, setSource] = useState<MonitorProvider | "manual">("manual");
     const [isSourceOpen, setIsSourceOpen] = useState(false);
     const [apiKey, setApiKey] = useState("");
     const [showApiTooltip, setShowApiTooltip] = useState(false);
@@ -278,9 +279,10 @@ function AuthPageContent() {
                 user_id: user.id,
                 brand_name: brandName,
                 logo_url: logoUrl,
-                uptimerobot_api_key: apiKey,
+                api_key: apiKey || null,
+                monitor_provider: source === 'manual' ? null : source,
                 // subdomain: subdomain, // Set below dynamically
-                monitors: [],
+                monitors: source === 'manual' ? ['demo-1', 'demo-2', 'demo-3'] : [],
                 theme_config: {
                     theme: selectedTheme,
                     primaryColor: selectedTheme === 'modern' ? '#6366f1' : selectedTheme === 'brutal' ? '#ef4444' : '#18181b'
@@ -327,11 +329,11 @@ function AuthPageContent() {
                 }
             }
 
-            // Redirect
-            if (!isMobile) {
-                window.open("/editor", "_blank");
+            if (isMobile) {
+                window.location.href = "/dashboard";
+            } else {
+                window.location.href = "/editor";
             }
-            window.location.href = "/dashboard";
         } catch (error: any) {
             console.error("Setup failed:", error);
             setMessage(error.message || "Failed to save setup");
@@ -637,7 +639,7 @@ function AuthPageContent() {
                                 animate={!isMobile ? "center" : undefined}
                                 exit={!isMobile ? "exit" : undefined}
                                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className="absolute left-0 w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl overflow-hidden z-20"
+                                className="absolute left-0 w-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl z-20"
                             >
                                 <div className="flex justify-between items-start mb-6">
                                     <div>
@@ -706,11 +708,13 @@ function AuthPageContent() {
                                                 className="w-full h-12 px-4 rounded-xl bg-black/40 border border-zinc-800 text-white flex items-center justify-between text-sm hover:bg-zinc-900/50 transition-colors"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${source === 'uptimerobot' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-400'}`}>
-                                                        {source === 'uptimerobot' ? <Activity className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${source === 'uptimerobot' ? 'bg-green-500/20 text-green-400' : source === 'betterstack' ? 'bg-indigo-500/20 text-indigo-400' : 'bg-zinc-800 text-zinc-400'}`}>
+                                                        {source === 'uptimerobot' || source === 'betterstack' ? <Activity className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                                                     </div>
                                                     <div className="text-left">
-                                                        <div className="font-medium">{source === 'uptimerobot' ? 'UptimeRobot' : 'Manual / Custom'}</div>
+                                                        <div className="font-medium">
+                                                            {source === 'uptimerobot' ? 'UptimeRobot' : source === 'betterstack' ? 'Better Stack' : 'Demo (No API Key)'}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <ChevronDown className={`w-4 h-4 text-zinc-500 transition-transform ${isSourceOpen ? 'rotate-180' : ''}`} />
@@ -739,9 +743,19 @@ function AuthPageContent() {
                                                         </button>
 
                                                         <button
-                                                            disabled
-                                                            className="w-full p-2 rounded-lg flex items-center gap-3 opacity-50 cursor-not-allowed"
+                                                            onClick={() => { setSource('betterstack'); setIsSourceOpen(false); }}
+                                                            className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors"
                                                         >
+                                                            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+                                                                <Activity className="w-4 h-4" />
+                                                            </div>
+                                                            <div className="text-left">
+                                                                <div className="text-sm font-medium text-white">Better Stack</div>
+                                                                <div className="text-xs text-zinc-500">Auto-sync monitors</div>
+                                                            </div>
+                                                            {source === 'betterstack' && <CheckCircle2 className="w-4 h-4 text-green-500 ml-auto" />}
+                                                        </button>
+                                                        <button onClick={() => { setSource('manual'); setIsSourceOpen(false); }} className="w-full p-2 rounded-lg flex items-center gap-3 hover:bg-zinc-900 transition-colors">
                                                             <div className="w-8 h-8 rounded-lg bg-zinc-800 text-zinc-400 flex items-center justify-center">
                                                                 <FileText className="w-4 h-4" />
                                                             </div>
@@ -757,7 +771,7 @@ function AuthPageContent() {
                                     </div>
 
                                     {/* 3. API Key Config */}
-                                    {source === 'uptimerobot' && (
+                                    {(source === 'uptimerobot' || source === 'betterstack') && (
                                         <div className={`space-y-2 relative ${showApiTooltip ? 'z-[60]' : 'z-30'}`}>
                                             <div className="flex justify-between items-center">
                                                 <label className="text-xs font-medium text-zinc-400 uppercase tracking-wider">3. API Configuration</label>
@@ -770,7 +784,7 @@ function AuthPageContent() {
                                                         onClick={() => setShowApiTooltip(!showApiTooltip)}
                                                         className="text-[10px] flex items-center gap-1 text-statuscode-400 hover:underline cursor-help"
                                                     >
-                                                        <HelpCircle className="w-3 h-3" /> Where to find?
+                                                        <HelpCircle className="w-3 h-3" /> Where to find {source === 'betterstack' ? 'Better Stack Token' : 'UptimeRobot Key'}?
                                                     </button>
                                                     <AnimatePresence>
                                                         {showApiTooltip && (
@@ -780,14 +794,19 @@ function AuthPageContent() {
                                                                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                                                 className="absolute bottom-full right-0 mb-2 w-64 bg-zinc-900 border border-zinc-700 rounded-xl p-4 shadow-2xl z-[100]"
                                                             >
-                                                                <div className="text-xs text-zinc-300 space-y-2">
-                                                                    <p>1. Log in to <strong>UptimeRobot</strong>.</p>
-                                                                    <p>2. Go to <strong>Integrations and API</strong> → <strong>API</strong>.</p>
-                                                                    <p>3. Create a <strong>Read-Only API Key</strong>.</p>
-                                                                    <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="mt-2 text-[10px] inline-flex items-center gap-1 text-statuscode-400 hover:text-white transition-colors">
-                                                                        Open Settings <ExternalLink className="w-3 h-3" />
-                                                                    </a>
-                                                                </div>
+                                                                {source === 'betterstack' ? (
+                                                                    <div className="text-xs text-zinc-300 space-y-2">
+                                                                        <p>1. Log in to <strong>Better Stack</strong>.</p>
+                                                                        <p>2. Go to <a href="https://betterstack.com/settings/global-api-tokens" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-4"><strong>Integrations</strong> {'->'} <strong>API tokens</strong></a>.</p>
+                                                                        <p>3. Create a new <strong>Uptime API Token</strong>.</p>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="text-xs text-zinc-300 space-y-2">
+                                                                        <p>1. Log in to <strong>UptimeRobot</strong>.</p>
+                                                                        <p>2. Go to <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-4"><strong>Integrations and API</strong></a> → <strong>API</strong>.</p>
+                                                                        <p>3. Create a <strong>Read-Only API Key</strong>.</p>
+                                                                    </div>
+                                                                )}
                                                                 <div className="absolute top-full right-4 -mt-1 w-2 h-2 bg-zinc-900 border-r border-b border-zinc-700 rotate-45 transform" />
                                                             </motion.div>
                                                         )}
@@ -799,7 +818,7 @@ function AuthPageContent() {
                                                 <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
                                                 <input
                                                     type="password"
-                                                    placeholder="Paste Read-Only API Key"
+                                                    placeholder={source === 'betterstack' ? "Paste Uptime API Token" : "Paste Read-Only API Key"}
                                                     value={apiKey}
                                                     onChange={(e) => setApiKey(e.target.value)}
                                                     className="w-full h-12 pl-12 pr-4 rounded-xl bg-black/40 border border-zinc-800 text-white placeholder:text-zinc-700 focus:outline-none focus:border-statuscode-500/50 focus:ring-4 focus:ring-statuscode-500/10 transition-all text-sm font-mono"
@@ -811,119 +830,125 @@ function AuthPageContent() {
                                     <div className="pt-2">
                                         <Button
                                             onClick={() => { setDirection(1); setStep("setup-theme" as any); }}
-                                            className="w-full h-12 bg-white text-black hover:bg-zinc-200 transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)]"
+                                            disabled={source !== 'manual' && !apiKey}
+                                            className="w-full h-12 bg-white text-black transition-all rounded-xl font-medium shadow-[0_0_20px_rgba(255,255,255,0.2)] disabled:opacity-50 disabled:cursor-not-allowed enabled:hover:bg-zinc-200"
                                         >
                                             Next: Select Theme <ArrowLeft className="w-4 h-4 ml-2 rotate-180" />
                                         </Button>
                                     </div>
                                 </div>
-                            </motion.div>
-                        )}
+                            </motion.div >
+                        )
+                        }
 
                         {/* CARD Setup Step 2: Immersive Theme Selection */}
-                        {step === ('setup-theme' as any) && (
-                            <motion.div
-                                key="step-setup-theme"
-                                custom={direction}
-                                variants={!isMobile ? slideVariants : undefined}
-                                initial={!isMobile ? "enter" : undefined}
-                                animate={!isMobile ? "center" : undefined}
-                                exit={!isMobile ? "exit" : undefined}
-                                transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                                className={`absolute w-full border rounded-3xl p-8 shadow-2xl overflow-hidden z-20 flex flex-col transition-colors duration-500 
+                        {
+                            step === ('setup-theme' as any) && (
+                                <motion.div
+                                    key="step-setup-theme"
+                                    custom={direction}
+                                    variants={!isMobile ? slideVariants : undefined}
+                                    initial={!isMobile ? "enter" : undefined}
+                                    animate={!isMobile ? "center" : undefined}
+                                    exit={!isMobile ? "exit" : undefined}
+                                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                                    className={`absolute w-full border rounded-3xl p-8 shadow-2xl overflow-hidden z-20 flex flex-col transition-colors duration-500 
                                     ${selectedTheme === 'modern' ? 'bg-zinc-950/90 border-zinc-800' :
-                                        selectedTheme === 'minimal' ? 'bg-black border-zinc-800' :
-                                            'bg-[#121212] border-black shadow-[8px_8px_0px_rgba(255,255,255,0.1)]'}`}
-                            >
-                                <div className="flex justify-between items-start mb-8">
-                                    <button
-                                        onClick={() => { setDirection(-1); setStep("setup"); }}
-                                        className="text-zinc-500 hover:text-white transition-colors flex items-center gap-2 text-sm"
-                                    >
-                                        <ArrowLeft className="w-4 h-4" /> Back
-                                    </button>
-                                    <div className="text-right">
-                                        <h1 className={`text-2xl font-bold text-white tracking-tight ${selectedTheme === 'brutal' ? 'uppercase font-mono tracking-widest' : ''}`}>Choose Style</h1>
-                                        <p className="text-zinc-400 text-xs mt-1">Select a theme that fits your brand.</p>
+                                            selectedTheme === 'minimal' ? 'bg-black border-zinc-800' :
+                                                'bg-[#121212] border-black shadow-[8px_8px_0px_rgba(255,255,255,0.1)]'}`}
+                                >
+                                    <div className="flex justify-between items-start mb-8">
+                                        <button
+                                            onClick={() => { setDirection(-1); setStep("setup"); }}
+                                            className="text-zinc-500 hover:text-white transition-colors flex items-center gap-2 text-sm"
+                                        >
+                                            <ArrowLeft className="w-4 h-4" /> Back
+                                        </button>
+                                        <div className="text-right">
+                                            <h1 className={`text-2xl font-bold text-white tracking-tight ${selectedTheme === 'brutal' ? 'uppercase font-mono tracking-widest' : ''}`}>Choose Style</h1>
+                                            <p className="text-zinc-400 text-xs mt-1">Select a theme that fits your brand.</p>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <div className="flex-1 flex flex-col justify-center space-y-6">
-                                    <div className="grid grid-cols-1 gap-4">
-                                        {[
-                                            { id: 'modern', name: 'Modern', desc: 'Clean, trusted.', color: '#6366f1' },
-                                            { id: 'minimal', name: 'Minimal', desc: 'No noise. Just status.', color: '#18181b' },
-                                            { id: 'brutal', name: 'Brutal', desc: 'Bold. High contrast.', color: '#ef4444' }
-                                        ].map((t) => (
-                                            <button
-                                                key={t.id}
-                                                onClick={() => setSelectedTheme(t.id as any)}
-                                                className={`relative p-4 rounded-xl border text-left transition-all duration-300 group
+                                    <div className="flex-1 flex flex-col justify-center space-y-6">
+                                        <div className="grid grid-cols-1 gap-4">
+                                            {[
+                                                { id: 'modern', name: 'Modern', desc: 'Clean, trusted.', color: '#6366f1' },
+                                                { id: 'minimal', name: 'Minimal', desc: 'No noise. Just status.', color: '#18181b' },
+                                                { id: 'brutal', name: 'Brutal', desc: 'Bold. High contrast.', color: '#ef4444' }
+                                            ].map((t) => (
+                                                <button
+                                                    key={t.id}
+                                                    onClick={() => setSelectedTheme(t.id as any)}
+                                                    className={`relative p-4 rounded-xl border text-left transition-all duration-300 group
                                                     ${selectedTheme === t.id
-                                                        ? (t.id === 'modern' ? 'bg-zinc-900 border-indigo-500/50 ring-1 ring-indigo-500/20' :
-                                                            t.id === 'minimal' ? 'bg-black border-white' :
-                                                                'bg-zinc-900 border-black shadow-[4px_4px_0px_white]')
-                                                        : 'bg-transparent border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/30'
+                                                            ? (t.id === 'modern' ? 'bg-zinc-900 border-indigo-500/50 ring-1 ring-indigo-500/20' :
+                                                                t.id === 'minimal' ? 'bg-black border-white' :
+                                                                    'bg-zinc-900 border-black shadow-[4px_4px_0px_white]')
+                                                            : 'bg-transparent border-zinc-800 hover:border-zinc-600 hover:bg-zinc-900/30'
+                                                        }`}
+                                                >
+                                                    <div className="flex items-center justify-between">
+                                                        <div className="flex items-center gap-4">
+                                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${selectedTheme === t.id ? 'scale-110' : 'scale-100'} ${t.id === 'modern' ? 'bg-indigo-500/20 text-indigo-400' : t.id === 'brutal' ? 'bg-red-500/20 text-red-500 rounded-none' : 'bg-white/10 text-white'}`}>
+                                                                {t.id === 'modern' ? <Sparkles className="w-5 h-5" /> : t.id === 'brutal' ? <Activity className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
+                                                            </div>
+                                                            <div>
+                                                                <div className={`font-medium text-white ${t.id === 'brutal' ? 'font-mono uppercase tracking-wider' : 'font-sans'}`}>{t.name}</div>
+                                                                <div className="text-xs text-zinc-500">{t.desc}</div>
+                                                            </div>
+                                                        </div>
+                                                        {selectedTheme === t.id && (
+                                                            <div className={`w-6 h-6 flex items-center justify-center rounded-full ${t.id === 'modern' ? 'bg-indigo-500 text-white' : t.id === 'brutal' ? 'bg-red-500 text-black rounded-none' : 'bg-white text-black'}`}>
+                                                                <CheckCircle2 className="w-4 h-4" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+
+                                        <div className="pt-4">
+                                            <Button
+                                                onClick={handleSetupSubmit}
+                                                className={`w-full h-14 text-lg font-medium transition-all duration-300
+                                                ${selectedTheme === 'modern' ? 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.4)]' :
+                                                        selectedTheme === 'minimal' ? 'bg-white hover:bg-zinc-200 text-black rounded-none border-b-2 border-zinc-300' :
+                                                            'bg-red-600 hover:bg-red-700 text-black border-2 border-black shadow-[4px_4px_0px_black] rounded-md uppercase tracking-widest'
                                                     }`}
                                             >
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${selectedTheme === t.id ? 'scale-110' : 'scale-100'} ${t.id === 'modern' ? 'bg-indigo-500/20 text-indigo-400' : t.id === 'brutal' ? 'bg-red-500/20 text-red-500 rounded-none' : 'bg-white/10 text-white'}`}>
-                                                            {t.id === 'modern' ? <Sparkles className="w-5 h-5" /> : t.id === 'brutal' ? <Activity className="w-5 h-5" /> : <Monitor className="w-5 h-5" />}
-                                                        </div>
-                                                        <div>
-                                                            <div className={`font-medium text-white ${t.id === 'brutal' ? 'font-mono uppercase tracking-wider' : 'font-sans'}`}>{t.name}</div>
-                                                            <div className="text-xs text-zinc-500">{t.desc}</div>
-                                                        </div>
-                                                    </div>
-                                                    {selectedTheme === t.id && (
-                                                        <div className={`w-6 h-6 flex items-center justify-center rounded-full ${t.id === 'modern' ? 'bg-indigo-500 text-white' : t.id === 'brutal' ? 'bg-red-500 text-black rounded-none' : 'bg-white text-black'}`}>
-                                                            <CheckCircle2 className="w-4 h-4" />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </button>
-                                        ))}
+                                                {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "Launch Editor"}
+                                            </Button>
+                                        </div>
                                     </div>
-
-                                    <div className="pt-4">
-                                        <Button
-                                            onClick={handleSetupSubmit}
-                                            className={`w-full h-14 text-lg font-medium transition-all duration-300
-                                                ${selectedTheme === 'modern' ? 'bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl shadow-[0_0_20px_rgba(99,102,241,0.4)]' :
-                                                    selectedTheme === 'minimal' ? 'bg-white hover:bg-zinc-200 text-black rounded-none border-b-2 border-zinc-300' :
-                                                        'bg-red-600 hover:bg-red-700 text-black border-2 border-black shadow-[4px_4px_0px_black] rounded-md uppercase tracking-widest'
-                                                }`}
-                                        >
-                                            {loading ? <Loader2 className="animate-spin w-5 h-5" /> : "Launch Editor"}
-                                        </Button>
-                                    </div>
-                                </div>
-                            </motion.div>
-                        )}
+                                </motion.div>
+                            )
+                        }
 
                         {/* CARD C: Success */}
-                        {step === 'success' && (
-                            <motion.div
-                                key="step-success"
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                className="absolute w-full h-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center justify-center text-center z-30"
-                            >
+                        {
+                            step === 'success' && (
                                 <motion.div
-                                    initial={{ scale: 0, rotate: -45 }}
-                                    animate={{ scale: 1, rotate: 0 }}
-                                    transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                    key="step-success"
+                                    initial={{ scale: 0.9, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className="absolute w-full h-full bg-[#09090b] border border-zinc-800 rounded-3xl p-8 shadow-2xl flex flex-col items-center justify-center text-center z-30"
                                 >
-                                    <CheckCircle2 className="w-20 h-20 text-green-500 mb-6" />
+                                    <motion.div
+                                        initial={{ scale: 0, rotate: -45 }}
+                                        animate={{ scale: 1, rotate: 0 }}
+                                        transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                                    >
+                                        <CheckCircle2 className="w-20 h-20 text-green-500 mb-6" />
+                                    </motion.div>
+                                    <h2 className="text-3xl font-bold text-white">Huge Success!</h2>
+                                    <p className="text-zinc-500 text-sm mt-2">Redirecting to dashboard...</p>
                                 </motion.div>
-                                <h2 className="text-3xl font-bold text-white">Huge Success!</h2>
-                                <p className="text-zinc-500 text-sm mt-2">Redirecting to dashboard...</p>
-                            </motion.div>
-                        )}
+                            )
+                        }
 
-                    </AnimatePresence>
-                </div>
+                    </AnimatePresence >
+                </div >
 
                 {/* 
                     RIGHT REGION: "Select Method" Badge 
@@ -931,7 +956,7 @@ function AuthPageContent() {
                     - Step 'email': Moves here (default).
                     - Step 'otp': Slides left to become the 'active' badge in the left region.
                  */}
-                <div className="hidden md:flex col-span-3 justify-start items-center relative h-full">
+                < div className="hidden md:flex col-span-3 justify-start items-center relative h-full" >
                     <AnimatePresence mode="popLayout" initial={false}>
                         {(step === 'email' || step === 'otp') && isNewUser ? (
                             <motion.div
@@ -992,10 +1017,10 @@ function AuthPageContent() {
                             </motion.div>
                         ) : null}
                     </AnimatePresence>
-                </div>
+                </div >
 
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
 
