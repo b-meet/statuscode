@@ -53,8 +53,10 @@ export default function DashboardPage() {
     // Filtering & Sorting State
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<'all' | 'live' | 'draft' | 'unconfigured'>('all');
+    const [providerFilter, setProviderFilter] = useState<'all' | 'uptimerobot' | 'betterstack' | 'instatus' | 'manual'>('all');
     const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'az' | 'za' | 'uptime'>('newest');
     const [isSortOpen, setIsSortOpen] = useState(false);
+    const [isProviderOpen, setIsProviderOpen] = useState(false);
 
     useEffect(() => {
         setMounted(true);
@@ -405,7 +407,15 @@ export default function DashboardPage() {
             });
         }
 
-        // 3. Sorting
+        // 3. Provider Filter
+        if (providerFilter !== 'all') {
+            result = result.filter(site => {
+                const activeProvider = site.published_config?.monitor_provider || site.monitor_provider || 'uptimerobot';
+                return activeProvider === providerFilter;
+            });
+        }
+
+        // 4. Sorting
         result.sort((a, b) => {
             if (sortBy === 'az') return (a.brand_name || "").localeCompare(b.brand_name || "");
             if (sortBy === 'za') return (b.brand_name || "").localeCompare(a.brand_name || "");
@@ -478,7 +488,7 @@ export default function DashboardPage() {
 
                     <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
                         {/* Status Filters - h-11 container with inner buttons filling height */}
-                        <div className="flex items-center gap-1 p-1 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl backdrop-blur-md overflow-x-auto no-scrollbar w-full sm:w-auto h-11">
+                        <div className="flex items-center gap-1 p-1 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl backdrop-blur-md overflow-x-auto no-scrollbar w-full sm:w-auto h-11 shrink-0">
                             {[
                                 { id: 'all', label: 'All Projects' },
                                 { id: 'live', label: 'Live' },
@@ -500,56 +510,121 @@ export default function DashboardPage() {
                             ))}
                         </div>
 
-                        {/* Sort Dropdown - Perfect match at h-11 */}
-                        <div className="relative w-full sm:w-64">
-                            <button
-                                onClick={() => setIsSortOpen(!isSortOpen)}
-                                className="flex items-center justify-between gap-4 w-full h-11 px-6 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl text-[11px] uppercase tracking-widest font-black text-zinc-500 hover:text-white hover:border-zinc-700 transition-all backdrop-blur-md"
-                            >
-                                <div className="flex items-center gap-2.5">
-                                    <ArrowUpDown className="w-4 h-4 text-indigo-400" />
-                                    <span className="truncate">Sort: {
-                                        sortBy === 'newest' ? 'Newest' :
-                                            sortBy === 'oldest' ? 'Oldest' :
-                                                sortBy === 'az' ? 'A-Z' :
-                                                    sortBy === 'za' ? 'Z-A' : 'Uptime'
-                                    }</span>
-                                </div>
-                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
-                            </button>
+                        <div className="flex gap-4 w-full sm:w-auto ml-auto">
+                            {/* Provider Dropdown */}
+                            <div className="relative w-full sm:w-48 shrink-0">
+                                <button
+                                    onClick={() => { setIsProviderOpen(!isProviderOpen); setIsSortOpen(false); }}
+                                    className="flex items-center justify-between gap-4 w-full h-11 px-5 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl text-[11px] uppercase tracking-widest font-black text-zinc-500 hover:text-white hover:border-zinc-700 transition-all backdrop-blur-md"
+                                >
+                                    <div className="flex items-center gap-2.5 truncate">
+                                        <Filter className="w-4 h-4 text-emerald-400 shrink-0" />
+                                        <span className="truncate">
+                                            {providerFilter === 'all' ? 'All Providers' :
+                                                providerFilter === 'uptimerobot' ? 'UptimeRobot' :
+                                                    providerFilter === 'betterstack' ? 'Better Stack' :
+                                                        providerFilter === 'instatus' ? 'Instatus' : 'Demo / Manual'}
+                                        </span>
+                                    </div>
+                                    <ChevronDown className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isProviderOpen ? 'rotate-180' : ''}`} />
+                                </button>
 
-                            <AnimatePresence>
-                                {isSortOpen && (
-                                    <>
-                                        <div className="fixed inset-0 z-[60] bg-transparent" onClick={() => setIsSortOpen(false)} />
-                                        <motion.div
-                                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                                            animate={{ opacity: 1, scale: 1, y: 5 }}
-                                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                                            className="absolute right-0 top-full mt-2 w-full sm:w-64 bg-[#0d0d0f] border border-zinc-800 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] z-[70] p-1.5 backdrop-blur-xl"
-                                        >
-                                            {[
-                                                { id: 'newest', label: 'Newest First' },
-                                                { id: 'oldest', label: 'Oldest First' },
-                                                { id: 'az', label: 'Name (A-Z)' },
-                                                { id: 'za', label: 'Name (Z-A)' },
-                                                { id: 'uptime', label: 'Highest Uptime' }
-                                            ].map((opt) => (
-                                                <button
-                                                    key={opt.id}
-                                                    onClick={() => { setSortBy(opt.id as any); setIsSortOpen(false); }}
-                                                    className={`
+                                <AnimatePresence>
+                                    {isProviderOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-[60] bg-transparent" onClick={() => setIsProviderOpen(false)} />
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                animate={{ opacity: 1, scale: 1, y: 5 }}
+                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                className="absolute right-0 top-full mt-2 w-full sm:w-56 bg-[#0d0d0f] border border-zinc-800 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] z-[70] p-1.5 backdrop-blur-xl"
+                                            >
+                                                {[
+                                                    {
+                                                        id: 'all', label: 'All Providers',
+                                                        activeClasses: 'bg-zinc-800 text-white'
+                                                    },
+                                                    {
+                                                        id: 'uptimerobot', label: 'UptimeRobot',
+                                                        activeClasses: 'bg-[#12b39f]/20 text-[#12b39f]'
+                                                    },
+                                                    {
+                                                        id: 'betterstack', label: 'Better Stack',
+                                                        activeClasses: 'bg-indigo-600/20 text-indigo-400'
+                                                    },
+                                                    {
+                                                        id: 'instatus', label: 'Instatus',
+                                                        activeClasses: 'bg-sky-600/20 text-sky-400'
+                                                    }
+                                                ].map((opt) => (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => { setProviderFilter(opt.id as any); setIsProviderOpen(false); }}
+                                                        className={`
+                                                            w-full text-left px-5 py-3 rounded-xl text-xs font-bold transition-all
+                                                            ${providerFilter === opt.id ? opt.activeClasses : 'text-zinc-500 hover:bg-white/5 hover:text-white'}
+                                                        `}
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
+
+                            {/* Sort Dropdown */}
+                            <div className="relative w-full sm:w-48 shrink-0">
+                                <button
+                                    onClick={() => setIsSortOpen(!isSortOpen)}
+                                    className="flex items-center justify-between gap-4 w-full h-11 px-6 bg-zinc-900/40 border border-zinc-800/50 rounded-2xl text-[11px] uppercase tracking-widest font-black text-zinc-500 hover:text-white hover:border-zinc-700 transition-all backdrop-blur-md"
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <ArrowUpDown className="w-4 h-4 text-indigo-400" />
+                                        <span className="truncate">Sort: {
+                                            sortBy === 'newest' ? 'Newest' :
+                                                sortBy === 'oldest' ? 'Oldest' :
+                                                    sortBy === 'az' ? 'A-Z' :
+                                                        sortBy === 'za' ? 'Z-A' : 'Uptime'
+                                        }</span>
+                                    </div>
+                                    <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${isSortOpen ? 'rotate-180' : ''}`} />
+                                </button>
+
+                                <AnimatePresence>
+                                    {isSortOpen && (
+                                        <>
+                                            <div className="fixed inset-0 z-[60] bg-transparent" onClick={() => setIsSortOpen(false)} />
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                animate={{ opacity: 1, scale: 1, y: 5 }}
+                                                exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                                                className="absolute right-0 top-full mt-2 w-full sm:w-56 bg-[#0d0d0f] border border-zinc-800 rounded-2xl shadow-[0_30px_60px_rgba(0,0,0,0.6)] z-[70] p-1.5 backdrop-blur-xl"
+                                            >
+                                                {[
+                                                    { id: 'newest', label: 'Newest First' },
+                                                    { id: 'oldest', label: 'Oldest First' },
+                                                    { id: 'az', label: 'Name (A-Z)' },
+                                                    { id: 'za', label: 'Name (Z-A)' },
+                                                    { id: 'uptime', label: 'Highest Uptime' }
+                                                ].map((opt) => (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => { setSortBy(opt.id as any); setIsSortOpen(false); }}
+                                                        className={`
                                                         w-full text-left px-5 py-3 rounded-xl text-xs font-bold transition-all
                                                         ${sortBy === opt.id ? 'bg-indigo-600 text-white shadow-lg' : 'text-zinc-500 hover:bg-white/5 hover:text-white'}
                                                     `}
-                                                >
-                                                    {opt.label}
-                                                </button>
-                                            ))}
-                                        </motion.div>
-                                    </>
-                                )}
-                            </AnimatePresence>
+                                                    >
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </motion.div>
+                                        </>
+                                    )}
+                                </AnimatePresence>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -622,147 +697,169 @@ export default function DashboardPage() {
                             btnClass = "w-full h-10 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 text-sm font-semibold hover:bg-zinc-800 hover:text-white transition-all flex items-center justify-center gap-2 group/btn";
                         }
 
+                        const activeProvider = site.published_config?.monitor_provider || site.monitor_provider || 'uptimerobot';
+                        const providerName = activeProvider === 'betterstack' ? 'Better Stack' : activeProvider === 'instatus' ? 'Instatus' : activeProvider === 'manual' ? 'Demo / Manual' : 'UptimeRobot';
+
                         return (
                             <motion.div
                                 key={site.id}
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                className="group relative bg-[#09090b] border border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-700 transition-all hover:shadow-2xl hover:shadow-indigo-500/10 h-full flex flex-col"
+                                className="group relative h-full flex flex-col z-0 hover:z-[60]"
                             >
-                                {/* Card Header (Preview Mock) */}
-                                <div className="h-32 bg-zinc-900/50 border-b border-zinc-800 relative z-0 flex items-center justify-center p-6">
-                                    {/* Abstract preview or Logo */}
-                                    {site.logo_url ? (
-                                        <img src={site.logo_url} alt={site.brand_name || ''} className="h-12 w-auto object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
-                                    ) : (
-                                        <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-700 transition-colors">
-                                            <Activity className="w-6 h-6 text-zinc-500" />
-                                        </div>
-                                    )}
-
-                                    {/* Status Badges */}
-                                    <div className="absolute top-4 right-4 text-right">
-                                        {activeMaint ? (
-                                            <div className="flex items-center gap-1.5 bg-blue-500/20 backdrop-blur-sm border border-blue-500/30 px-2 py-1 rounded-full shadow-lg">
-                                                <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                                                <span className="text-[10px] font-medium text-blue-300">In Maintenance</span>
-                                            </div>
-                                        ) : upcomingMaint ? (
-                                            <div className="flex items-center gap-1.5 bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 px-2 py-1 rounded-full shadow-lg">
-                                                <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                                                <span className="text-[10px] font-medium text-amber-300">Upcoming Maint.</span>
-                                            </div>
-                                        ) : !hasApiKey ? (
-                                            <div className="flex items-center gap-1.5 bg-amber-500/10 backdrop-blur-sm border border-amber-500/20 px-2 py-1 rounded-full">
-                                                <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                                                <span className="text-[10px] font-medium text-amber-500/80">Add API Key</span>
-                                            </div>
-                                        ) : !isPublished ? (
-                                            <div className="flex items-center gap-1.5 bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50 px-2 py-1 rounded-full">
-                                                <div className="w-2 h-2 rounded-full bg-zinc-500" />
-                                                <span className="text-[10px] font-medium text-zinc-400">Draft</span>
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-white/10 px-2 py-1 rounded-full">
-                                                <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                                                <span className="text-[10px] font-medium text-zinc-300">Live</span>
-                                            </div>
-                                        )}
+                                {/* Provider Hover Badge (Sleek pull-down) */}
+                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-[4px] group-hover:translate-y-[calc(100%-1px)] transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] z-0 pointer-events-none group-hover:pointer-events-auto">
+                                    <div className={`
+                                        flex items-center justify-center gap-1.5 h-8 px-5 rounded-b-[14px] border border-t-0 shadow-[0_10px_30px_rgba(0,0,0,0.5)] backdrop-blur-xl
+                                        ${activeProvider === 'betterstack' ? 'bg-indigo-900/60 border-indigo-500/40 text-indigo-300' :
+                                            activeProvider === 'instatus' ? 'bg-sky-900/60 border-sky-500/40 text-sky-300' :
+                                                activeProvider === 'manual' ? 'bg-zinc-800/80 border-zinc-700/50 text-zinc-400' :
+                                                    'bg-[#12b39f]/40 border-[#12b39f]/40 text-[#12b39f]'}
+                                    `}>
+                                        <Activity className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-[50ms]" />
+                                        <span className="text-[9px] font-black whitespace-nowrap tracking-[0.15em] uppercase opacity-0 group-hover:opacity-100 transition-opacity duration-300 delay-[50ms]">
+                                            {providerName}
+                                        </span>
                                     </div>
                                 </div>
 
-                                {/* Card Body */}
-                                <div className="p-6 relative z-10 bg-[#09090b] flex-1 flex flex-col">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div>
-                                            <h3 className="font-bold text-lg text-white group-hover:text-indigo-400 transition-colors">
-                                                {site.brand_name || "Untitled Project"}
-                                            </h3>
-                                            {isPublished ? (
-                                                <a
-                                                    href={`/s/${site.subdomain}`}
-                                                    target="_blank"
-                                                    className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 mt-1 transition-colors"
-                                                >
-                                                    {site.subdomain}.statuscode.in <ExternalLink className="w-3 h-3" />
-                                                </a>
+                                {/* Inner Card Wrapper */}
+                                <div className="bg-[#09090b] border border-zinc-800 rounded-2xl overflow-hidden group-hover:border-zinc-700 transition-all group-hover:shadow-2xl group-hover:shadow-indigo-500/10 h-full flex flex-col relative z-10 w-full">
+                                    {/* Card Header (Preview Mock) */}
+                                    <div className="h-32 bg-zinc-900/50 border-b border-zinc-800 relative z-0 flex items-center justify-center p-6">
+                                        {/* Abstract preview or Logo */}
+                                        {site.logo_url ? (
+                                            <img src={site.logo_url} alt={site.brand_name || ''} className="h-12 w-auto object-contain opacity-80 group-hover:opacity-100 group-hover:scale-110 transition-all duration-500" />
+                                        ) : (
+                                            <div className="w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center group-hover:bg-zinc-700 transition-colors">
+                                                <Activity className="w-6 h-6 text-zinc-500" />
+                                            </div>
+                                        )}
+
+                                        {/* Status Badges */}
+                                        <div className="absolute top-4 right-4 text-right">
+                                            {activeMaint ? (
+                                                <div className="flex items-center gap-1.5 bg-blue-500/20 backdrop-blur-sm border border-blue-500/30 px-2 py-1 rounded-full shadow-lg">
+                                                    <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+                                                    <span className="text-[10px] font-medium text-blue-300">In Maintenance</span>
+                                                </div>
+                                            ) : upcomingMaint ? (
+                                                <div className="flex items-center gap-1.5 bg-amber-500/20 backdrop-blur-sm border border-amber-500/30 px-2 py-1 rounded-full shadow-lg">
+                                                    <div className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                                                    <span className="text-[10px] font-medium text-amber-300">Upcoming Maint.</span>
+                                                </div>
+                                            ) : !hasApiKey ? (
+                                                <div className="flex items-center gap-1.5 bg-amber-500/10 backdrop-blur-sm border border-amber-500/20 px-2 py-1 rounded-full">
+                                                    <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                                                    <span className="text-[10px] font-medium text-amber-500/80">Add API Key</span>
+                                                </div>
+                                            ) : !isPublished ? (
+                                                <div className="flex items-center gap-1.5 bg-zinc-800/50 backdrop-blur-sm border border-zinc-700/50 px-2 py-1 rounded-full">
+                                                    <div className="w-2 h-2 rounded-full bg-zinc-500" />
+                                                    <span className="text-[10px] font-medium text-zinc-400">Draft</span>
+                                                </div>
                                             ) : (
-                                                <div className="text-xs text-zinc-400 flex items-center gap-2 mt-1">
-                                                    <span className="opacity-70">{site.subdomain}.statuscode.in</span>
-                                                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300">Unpublished</span>
+                                                <div className="flex items-center gap-1.5 bg-black/50 backdrop-blur-sm border border-white/10 px-2 py-1 rounded-full">
+                                                    <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                                                    <span className="text-[10px] font-medium text-zinc-300">Live</span>
                                                 </div>
                                             )}
                                         </div>
                                     </div>
 
-                                    {/* Metrics Section (Mock Data for now) */}
-                                    <div className="grid grid-cols-2 gap-4 mb-6">
-                                        <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
-                                            <div className="text-[10px] text-zinc-500 uppercase font-medium">Monitors</div>
-                                            <div className="text-lg font-mono font-medium text-white">{site.monitors?.length || 0}</div>
-                                        </div>
-                                        <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50 relative">
-                                            <div className="flex items-center justify-between">
-                                                <div className="text-[10px] text-zinc-500 uppercase font-medium">Uptime (30d)</div>
-                                                {hasApiKey && (
-                                                    <button
-                                                        onClick={() => handleRefreshUptime(site.id)}
-                                                        className="p-1 rounded-md hover:bg-zinc-800 text-zinc-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-                                                        title="Refresh Uptime"
+                                    {/* Card Body */}
+                                    <div className="p-6 relative z-10 bg-[#09090b] flex-1 flex flex-col">
+                                        <div className="flex items-start justify-between mb-4">
+                                            <div>
+                                                <h3 className="font-bold text-lg text-white group-hover:text-indigo-400 transition-colors">
+                                                    {site.brand_name || "Untitled Project"}
+                                                </h3>
+                                                {isPublished ? (
+                                                    <a
+                                                        href={`/s/${site.subdomain}`}
+                                                        target="_blank"
+                                                        className="text-xs text-zinc-500 hover:text-white flex items-center gap-1 mt-1 transition-colors"
                                                     >
-                                                        <RefreshCw className={`w-3 h-3 ${uptimeMap[site.id] === undefined ? 'animate-spin' : ''}`} />
-                                                    </button>
-                                                )}
-                                            </div>
-                                            <div className="text-lg font-mono font-medium text-emerald-400">
-                                                {uptimeMap[site.id] === undefined ? (
-                                                    <span className="text-zinc-600 animate-pulse">---.-%</span>
-                                                ) : uptimeMap[site.id] === null ? (
-                                                    <span className="text-zinc-500">0%</span>
+                                                        {site.subdomain}.statuscode.in <ExternalLink className="w-3 h-3" />
+                                                    </a>
                                                 ) : (
-                                                    `${formatUptimePercentage(uptimeMap[site.id], 2)}%`
+                                                    <div className="text-xs text-zinc-400 flex items-center gap-2 mt-1">
+                                                        <span className="opacity-70">{site.subdomain}.statuscode.in</span>
+                                                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md border border-zinc-700 bg-zinc-800 text-zinc-300">Unpublished</span>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Actions */}
-                                    <div className="flex gap-3 mt-auto">
-                                        <Link href="/editor" target="_blank" className="flex-1">
-                                            <button className={btnClass}>
-                                                {btnText} <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                        {/* Metrics Section (Mock Data for now) */}
+                                        <div className="grid grid-cols-2 gap-4 mb-6">
+                                            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50">
+                                                <div className="text-[10px] text-zinc-500 uppercase font-medium">Monitors</div>
+                                                <div className="text-lg font-mono font-medium text-white">{site.monitors?.length || 0}</div>
+                                            </div>
+                                            <div className="bg-zinc-900/50 rounded-lg p-3 border border-zinc-800/50 relative">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="text-[10px] text-zinc-500 uppercase font-medium">Uptime (30d)</div>
+                                                    {hasApiKey && (
+                                                        <button
+                                                            onClick={() => handleRefreshUptime(site.id)}
+                                                            className="p-1 rounded-md hover:bg-zinc-800 text-zinc-600 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+                                                            title="Refresh Uptime"
+                                                        >
+                                                            <RefreshCw className={`w-3 h-3 ${uptimeMap[site.id] === undefined ? 'animate-spin' : ''}`} />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                                <div className="text-lg font-mono font-medium text-emerald-400">
+                                                    {uptimeMap[site.id] === undefined ? (
+                                                        <span className="text-zinc-600 animate-pulse">---.-%</span>
+                                                    ) : uptimeMap[site.id] === null ? (
+                                                        <span className="text-zinc-500">0%</span>
+                                                    ) : (
+                                                        `${formatUptimePercentage(uptimeMap[site.id], 2)}%`
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Actions */}
+                                        <div className="flex gap-3 mt-auto">
+                                            <Link href="/editor" target="_blank" className="flex-1">
+                                                <button className={btnClass}>
+                                                    {btnText} <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+                                                </button>
+                                            </Link>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsSettingsSiteId(site.id);
+                                                    setSettingsName(site.brand_name || '');
+                                                    setSettingsLiveWebsiteUrl(site.theme_config?.liveWebsiteUrl || '');
+                                                    setSettingsSubdomain(site.subdomain || '');
+                                                    setSettingsSupportEmail(site.theme_config?.supportEmail || '');
+                                                    setSettingsSupportUrl(site.theme_config?.supportUrl || '');
+                                                    setSettingsLogoUrl(site.logo_url || '');
+                                                    setSettingsPublishImmediately(false); // Default to draft mode
+                                                }}
+                                                className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 transition-colors"
+                                                title="Project Settings"
+                                            >
+                                                <Cog className="w-4 h-4" />
                                             </button>
-                                        </Link>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setIsSettingsSiteId(site.id);
-                                                setSettingsName(site.brand_name || '');
-                                                setSettingsLiveWebsiteUrl(site.theme_config?.liveWebsiteUrl || '');
-                                                setSettingsSubdomain(site.subdomain || '');
-                                                setSettingsSupportEmail(site.theme_config?.supportEmail || '');
-                                                setSettingsSupportUrl(site.theme_config?.supportUrl || '');
-                                                setSettingsLogoUrl(site.logo_url || '');
-                                                setSettingsPublishImmediately(false); // Default to draft mode
-                                            }}
-                                            className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-white hover:border-zinc-700 transition-colors"
-                                            title="Project Settings"
-                                        >
-                                            <Cog className="w-4 h-4" />
-                                        </button>
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                setIsDeletingSiteId(site.id || '');
-                                                setIsDeletingSiteName(site.brand_name || "Untitled Project");
-                                            }}
-                                            className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/50 transition-all"
-                                            title="Delete Project"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                    setIsDeletingSiteId(site.id || '');
+                                                    setIsDeletingSiteName(site.brand_name || "Untitled Project");
+                                                }}
+                                                className="h-10 w-10 rounded-xl border border-zinc-800 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-500/10 hover:border-red-500/50 transition-all"
+                                                title="Delete Project"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </motion.div>
