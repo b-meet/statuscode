@@ -2,7 +2,7 @@
 
 import { EditorProvider } from "@/context/EditorContext";
 import Sidebar from "@/components/editor/Sidebar";
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { ChevronLeft } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -12,9 +12,11 @@ export default function EditorLayout({
     children: React.ReactNode;
 }) {
     return (
-        <EditorProvider>
-            <EditorLayoutContent>{children}</EditorLayoutContent>
-        </EditorProvider>
+        <Suspense fallback={<div className="h-screen w-full flex items-center justify-center bg-black text-white">Loading Editor...</div>}>
+            <EditorProvider>
+                <EditorLayoutContent>{children}</EditorLayoutContent>
+            </EditorProvider>
+        </Suspense>
     );
 }
 

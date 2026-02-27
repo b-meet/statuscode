@@ -175,7 +175,7 @@ export default function EditorPage() {
         },
         {
             title: "Real-time Data",
-            text: "Connect your UptimeRobot API key for live monitoring updates."
+            text: "Connect your providers API key for live monitoring updates."
         }
     ];
 
@@ -287,6 +287,15 @@ export default function EditorPage() {
                     </button>
                     <div className="h-4 w-[1px] bg-zinc-800 mx-2" />
                     <span className="text-xs text-zinc-500 font-medium">Live Preview</span>
+                    {config.monitorProvider && (
+                        <>
+                            <div className="h-4 w-[1px] bg-zinc-800 mx-2" />
+                            <div className="px-2 py-1 rounded-md bg-zinc-800 text-zinc-300 text-xs font-semibold flex items-center gap-1.5 border border-zinc-700 shadow-sm lowercase">
+                                <Activity className="w-3 h-3 text-indigo-400" />
+                                {config.monitorProvider}
+                            </div>
+                        </>
+                    )}
                 </div>
 
                 <div className="flex items-center gap-3">

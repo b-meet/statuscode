@@ -150,7 +150,7 @@ export default function AnalyticsPage() {
                     <Activity className="w-12 h-12 text-zinc-800 mx-auto mb-4" />
                     <h3 className="text-xl font-bold text-white mb-2">No Data Available</h3>
                     <p className="text-zinc-500 max-w-md mx-auto">
-                        Connect your UptimeRobot API key in project settings and add monitors to see analytics.
+                        Connect your providers API key in project settings and add monitors to see analytics.
                     </p>
                 </div>
             ) : (

@@ -823,7 +823,7 @@ export default function DashboardPage() {
 
                                         {/* Actions */}
                                         <div className="flex gap-3 mt-auto">
-                                            <Link href="/editor" target="_blank" className="flex-1">
+                                            <Link href={`/editor?projectId=${site.id}`} target="_blank" className="flex-1">
                                                 <button className={btnClass}>
                                                     {btnText} <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
                                                 </button>

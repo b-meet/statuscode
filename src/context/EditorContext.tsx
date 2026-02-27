@@ -6,6 +6,7 @@ import { useNotifications } from "@/context/NotificationContext";
 import { toast } from 'sonner';
 import { MonitorData, IncidentUpdate, MaintenanceWindow, Log, MonitorProvider } from '@/lib/types';
 import { getDemoMonitors, isDemoId, toDemoStringId } from '@/lib/mockMonitors';
+import { useSearchParams } from 'next/navigation';
 
 // --- Types ---
 export type Theme = 'modern' | 'minimal' | 'brutal';
@@ -101,10 +102,14 @@ const defaultConfig: SiteConfig = {
 const EditorContext = createContext<EditorContextType | undefined>(undefined);
 
 export function EditorProvider({ children }: { children: ReactNode }) {
+    const searchParams = useSearchParams();
+    const targetProjectId = searchParams.get("projectId");
+
     const { addNotification } = useNotifications();
     const [config, setConfig] = useState<SiteConfig>(defaultConfig);
     const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
     const [loading, setLoading] = useState(true);
+    const isDirtyRef = React.useRef(false);
     const [baseMonitors, setBaseMonitors] = useState<MonitorData[]>([]);
     const [user, setUser] = useState<any | null>(null);
     const [monitorError, setMonitorError] = useState<string | null>(null);
@@ -221,7 +226,9 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                 const res = await fetch("/api/projects");
                 if (!res.ok) throw new Error("Failed to load projects");
                 const { projects } = await res.json();
-                const site = projects?.[0];
+                const site = targetProjectId
+                    ? projects.find((p: any) => p.id === targetProjectId) || projects?.[0]
+                    : projects?.[0];
 
                 if (site) {
                     setConfig({
@@ -298,14 +305,16 @@ export function EditorProvider({ children }: { children: ReactNode }) {
             const newConfig = { ...prev, ...updates };
             return newConfig;
         });
+        isDirtyRef.current = true;
         setSaveStatus('idle'); // Reset save status on change
     };
 
     // Auto-save effect (debounce)
     useEffect(() => {
-        if (loading) return; // Don't save if loading
+        if (loading || !isDirtyRef.current) return; // Don't save if loading or unmodified
 
         const timeout = setTimeout(async () => {
+            isDirtyRef.current = false;
             setSaveStatus('saving');
             try {
                 if (!user) {
