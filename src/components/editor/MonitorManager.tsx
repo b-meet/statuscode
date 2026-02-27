@@ -3,7 +3,8 @@
 import { useEditor } from "@/context/EditorContext";
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { Loader2, CheckCircle2, ChevronRight, Activity as ActivityIcon, Sparkles } from "lucide-react";
+import { Loader2, CheckCircle2, ChevronRight, Activity as ActivityIcon, Sparkles, HelpCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toDemoStringId } from "@/lib/mockMonitors";
 import { MonitorProvider } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export default function MonitorManager() {
     const popupRef = useRef<HTMLDivElement>(null);
     const [position, setPosition] = useState({ top: 0, left: 0 });
     const [isAddingDemos, setIsAddingDemos] = useState(false);
+    const [showApiTooltip, setShowApiTooltip] = useState(false);
 
     const handleAddDemos = async () => {
         setIsAddingDemos(true);
@@ -162,11 +164,56 @@ export default function MonitorManager() {
                             </div>
 
                             {config.monitorProvider !== 'manual' && (
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">
-                                        {config.monitorProvider === 'betterstack' ? 'Better Stack Token' :
-                                            config.monitorProvider === 'instatus' ? 'Instatus API Key' : 'UptimeRobot Key'}
-                                    </label>
+                                <div className="space-y-1.5 relative">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-[10px] uppercase font-bold text-zinc-500 tracking-tight">
+                                            {config.monitorProvider === 'betterstack' ? 'Better Stack Token' :
+                                                config.monitorProvider === 'instatus' ? 'Instatus API Key' : 'UptimeRobot Key'}
+                                        </label>
+                                        <div
+                                            className="relative"
+                                            onMouseEnter={() => setShowApiTooltip(true)}
+                                            onMouseLeave={() => setShowApiTooltip(false)}
+                                        >
+                                            <button
+                                                onClick={() => setShowApiTooltip(!showApiTooltip)}
+                                                className="text-[9px] flex items-center gap-1 text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-wider font-bold cursor-help"
+                                            >
+                                                <HelpCircle className="w-3 h-3" /> Where to find?
+                                            </button>
+                                            <AnimatePresence>
+                                                {showApiTooltip && (
+                                                    <motion.div
+                                                        initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                        exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                        className="absolute bottom-full right-0 mb-2 w-56 bg-zinc-900 border border-zinc-700 rounded-xl p-3 shadow-2xl z-50 text-left"
+                                                    >
+                                                        {config.monitorProvider === 'betterstack' ? (
+                                                            <div className="text-[10px] text-zinc-300 space-y-1.5">
+                                                                <p>1. Log in to <strong>Better Stack</strong>.</p>
+                                                                <p>2. Go to <a href="https://betterstack.com/settings/global-api-tokens" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-2"><strong>Integrations</strong> {'->'} <strong>API tokens</strong></a>.</p>
+                                                                <p>3. Create a new <strong>Uptime API Token</strong>.</p>
+                                                            </div>
+                                                        ) : config.monitorProvider === 'instatus' ? (
+                                                            <div className="text-[10px] text-zinc-300 space-y-1.5">
+                                                                <p>1. Log in to <strong>Instatus</strong>.</p>
+                                                                <p>2. Go to <a href="https://instatus.com/app/developer" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-2"><strong>Developer Settings</strong></a>.</p>
+                                                                <p>3. Generate a new <strong>API Key</strong>.</p>
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-[10px] text-zinc-300 space-y-1.5">
+                                                                <p>1. Log in to <strong>UptimeRobot</strong>.</p>
+                                                                <p>2. Go to <a href="https://dashboard.uptimerobot.com/integrations" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors underline decoration-zinc-500 underline-offset-2"><strong>Integrations and API</strong></a> → <strong>API</strong>.</p>
+                                                                <p>3. Create a <strong>Read-Only API Key</strong>.</p>
+                                                            </div>
+                                                        )}
+                                                        <div className="absolute top-full right-4 -mt-1 w-2 h-2 bg-zinc-900 border-r border-b border-zinc-700 rotate-45 transform" />
+                                                    </motion.div>
+                                                )}
+                                            </AnimatePresence>
+                                        </div>
+                                    </div>
                                     <div className="flex gap-2">
                                         <input
                                             type="password"
