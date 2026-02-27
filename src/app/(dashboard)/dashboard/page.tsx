@@ -103,7 +103,7 @@ export default function DashboardPage() {
             fetchingUptimeRef.current.add(site.id);
 
             // For dashboard display, prefer published monitor settings if they exist, else draft.
-            const apiKey = site.published_config?.api_key || site.published_config?.uptimerobot_api_key || site.api_key || site.uptimerobot_api_key;
+            const apiKey = site.published_config?.api_key || site.api_key;
             const monitorProvider = site.published_config?.monitor_provider || site.monitor_provider || 'uptimerobot';
             const monitors = (site.published_config?.monitors || site.monitors || []).filter((id: string) => !id.startsWith('demo-'));
 
@@ -308,9 +308,8 @@ export default function DashboardPage() {
                     theme_config: updatedThemeConfig,
                     // Preserve existing published monitors and api key
                     monitors: currentPublishedConfig.monitors || currentSite?.monitors || [],
-                    api_key: currentPublishedConfig.api_key || currentSite?.api_key || currentPublishedConfig.uptimerobot_api_key || currentSite?.uptimerobot_api_key || '',
-                    monitor_provider: currentPublishedConfig.monitor_provider || currentSite?.monitor_provider || 'uptimerobot',
-                    uptimerobot_api_key: currentPublishedConfig.uptimerobot_api_key || currentSite?.uptimerobot_api_key || ''
+                    api_key: currentPublishedConfig.api_key || currentSite?.api_key || '',
+                    monitor_provider: currentPublishedConfig.monitor_provider || currentSite?.monitor_provider || 'uptimerobot'
                 };
             }
 
@@ -398,7 +397,7 @@ export default function DashboardPage() {
         if (statusFilter !== 'all') {
             result = result.filter(site => {
                 const isPublished = !!site.published_config;
-                const hasApiKey = !!(site.published_config?.api_key || site.api_key || site.published_config?.uptimerobot_api_key || site.uptimerobot_api_key);
+                const hasApiKey = !!(site.published_config?.api_key || site.api_key);
 
                 if (statusFilter === 'live') return isPublished;
                 if (statusFilter === 'draft') return !isPublished && hasApiKey;
@@ -658,7 +657,7 @@ export default function DashboardPage() {
                             const draftState = {
                                 brand_name: site.brand_name,
                                 logo_url: site.logo_url,
-                                api_key: site.api_key || site.uptimerobot_api_key,
+                                api_key: site.api_key,
                                 monitor_provider: site.monitor_provider || 'uptimerobot',
                                 monitors: (site.monitors || []).filter((id: string) => !id.startsWith('demo-')),
                                 theme_config: site.theme_config,
@@ -668,7 +667,7 @@ export default function DashboardPage() {
                             const publishedState = {
                                 brand_name: site.published_config?.brand_name,
                                 logo_url: site.published_config?.logo_url,
-                                api_key: site.published_config?.api_key || site.published_config?.uptimerobot_api_key,
+                                api_key: site.published_config?.api_key,
                                 monitor_provider: site.published_config?.monitor_provider || 'uptimerobot',
                                 monitors: site.published_config?.monitors || [],
                                 theme_config: site.published_config?.theme_config,
@@ -682,7 +681,7 @@ export default function DashboardPage() {
                         let btnText = "Start Designing";
                         let btnClass = "w-full h-10 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 group/btn";
 
-                        const hasApiKey = !!(site.published_config?.api_key || site.api_key || site.published_config?.uptimerobot_api_key || site.uptimerobot_api_key);
+                        const hasApiKey = !!(site.published_config?.api_key || site.api_key);
 
                         if (isPublished) {
                             if (hasDraftChanges) {

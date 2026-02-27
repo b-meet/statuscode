@@ -51,7 +51,7 @@ export async function GET(
 
         // Fetch from Provider if we have real IDs and an API key
         if (realIds.length > 0) {
-            const apiKey = config.api_key || config.uptimerobot_api_key;
+            const apiKey = config.api_key;
             if (!apiKey) {
                 // If we have real IDs but no API key, we have a config issue, 
                 // but we can still return whatever demo data we found.

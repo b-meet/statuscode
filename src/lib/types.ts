@@ -55,7 +55,6 @@ export interface Site {
     published_config?: any;
     api_key?: string | null;
     monitor_provider?: MonitorProvider;
-    uptimerobot_api_key?: string | null; // legacy
     monitors?: string[] | null;
     created_at?: string;
 }

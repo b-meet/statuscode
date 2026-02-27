@@ -108,7 +108,7 @@ export default async function StatusPage({ params }: { params: Promise<{ subdoma
     }
 
     // Add Real Monitors
-    const apiKey = site.api_key || site.uptimerobot_api_key;
+    const apiKey = site.api_key;
     if (realIds.length > 0 && apiKey) {
         const realMonitors = await getMonitors(site.monitor_provider, apiKey, {
             monitors: realIds,

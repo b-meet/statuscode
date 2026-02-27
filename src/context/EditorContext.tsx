@@ -259,7 +259,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                         customLogs: site.theme_config?.customLogs || {},
                         maintenance: site.theme_config?.maintenance || [],
                         monitors: site.monitors || [],
-                        apiKey: site.api_key || site.uptimerobot_api_key || '',
+                        apiKey: site.api_key || '',
                         monitorProvider: site.monitor_provider || 'uptimerobot',
                     });
 
@@ -320,7 +320,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
                     user_id: user.id,
                     brand_name: config.brandName,
                     logo_url: config.logoUrl,
-                    uptimerobot_api_key: config.apiKey,
+                    api_key: config.apiKey,
+                    monitor_provider: config.monitorProvider,
                     monitors: config.monitors,
                     theme_config: {
                         theme: config.theme,

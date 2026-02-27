@@ -27,14 +27,14 @@ export default function AnalyticsPage() {
 
             const { data: sites, error: sitesError } = await supabase
                 .from("sites")
-                .select("uptimerobot_api_key, api_key, monitor_provider")
+                .select("api_key, monitor_provider")
                 .eq("user_id", user.id);
 
             if (sitesError) throw sitesError;
 
             // Find the first valid configured API key across sites
-            const siteWithKey = sites?.find((s: any) => s.api_key || s.uptimerobot_api_key);
-            const apiKey = siteWithKey?.api_key || siteWithKey?.uptimerobot_api_key;
+            const siteWithKey = sites?.find((s: any) => s.api_key);
+            const apiKey = siteWithKey?.api_key;
             const monitorProvider = siteWithKey?.monitor_provider || 'uptimerobot';
 
             if (!apiKey) {

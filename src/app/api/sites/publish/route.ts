@@ -80,8 +80,7 @@ export async function POST(req: NextRequest) {
         const publishedConfig = {
             brand_name: site.brand_name,
             logo_url: site.logo_url,
-            uptimerobot_api_key: site.uptimerobot_api_key,
-            api_key: site.api_key || site.uptimerobot_api_key,
+            api_key: site.api_key,
             monitor_provider: site.monitor_provider || 'uptimerobot',
             monitors: filteredMonitors,
             annotations: updatedAnnotations, // Use the updated annotations
